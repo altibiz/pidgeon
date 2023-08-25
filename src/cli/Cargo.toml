@@ -4,3 +4,17 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+chrono = { version = "0.4.26", features = ["serde"] }
+clap = { version = "4.4.0", features = ["derive"] }
+ctrlc = "3.4.0"
+directories = "5.0.1"
+env_logger = "0.10.0"
+log = { version = "0.4.20", features = ["serde"] }
+reqwest = { version = "0.11.20", features = ["json", "rustls", "rustls-tls", "gzip"] }
+rustls = "0.21.6"
+serde = { version = "1.0.186", features = ["derive"] }
+sqlx = { version = "0.7.1", features = ["postgres", "runtime-tokio", "tls-rustls", "chrono"] }
+thiserror = "1.0.47"
+tokio = { version = "1.32.0", features = ["full"] }
+tokio-modbus = "0.9.0"
+toml = "0.7.6"

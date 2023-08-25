@@ -22,10 +22,14 @@
     man-pages
     man-pages-posix
     openssl
+    pkg-config
     age
     ssh-to-age
     sops
   ];
+  environment.sessionVariables = {
+    PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
+  };
 
   services.postgresql.enable = true;
   services.postgresql.package = pkgs.postgresql_14;

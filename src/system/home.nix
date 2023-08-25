@@ -109,6 +109,7 @@ in
     cargo
     clippy
     rustfmt
+    rust-analyzer
     marksman
 
     # tui
