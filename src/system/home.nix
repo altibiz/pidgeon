@@ -73,6 +73,8 @@ in
   programs.home-manager.enable = true;
   xdg.configFile."nixpkgs/config.nix".source = ./assets/config.nix;
 
+  xdg.configFile."pidgeon/config.yaml".source = ./assets/pidgeon.yaml;
+
   home.username = "${username}";
   home.homeDirectory = "/home/${username}";
   home.sessionVariables = {
@@ -127,6 +129,7 @@ in
     unzip
     unrar
     sd
+    tshark
 
     # scripts
     nix-recreate
