@@ -9,6 +9,7 @@ clap = { version = "4.4.0", features = ["derive"] }
 ctrlc = "3.4.0"
 directories = "5.0.1"
 env_logger = "0.10.0"
+ipnet = { version = "2.8.0", features = ["serde"] }
 log = { version = "0.4.20", features = ["serde"] }
 reqwest = { version = "0.11.20", features = ["json", "rustls", "rustls-tls", "gzip"] }
 rustls = "0.21.6"
@@ -16,5 +17,5 @@ serde = { version = "1.0.186", features = ["derive"] }
 sqlx = { version = "0.7.1", features = ["postgres", "runtime-tokio", "tls-rustls", "chrono"] }
 thiserror = "1.0.47"
 tokio = { version = "1.32.0", features = ["full"] }
-tokio-modbus = "0.9.0"
+tokio-modbus = { version = "0.9.0", features = ["tcp"] }
 toml = "0.7.6"
