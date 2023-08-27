@@ -17,11 +17,12 @@ use std::net::{SocketAddr, SocketAddrV4};
 use thiserror::Error;
 use tokio_modbus::Slave;
 
-use crate::{config::read_config, modbus::read};
+use crate::{config::read_config, modbus::read, sql::Measurement};
 
 mod config;
 mod modbus;
 mod scan;
+mod sql;
 
 #[derive(Debug, Error)]
 pub enum PidgeonError {
@@ -30,6 +31,9 @@ pub enum PidgeonError {
 
     #[error("Failed reading config")]
     ConfigRead(#[from] ReadConfigError),
+
+    #[error("Client error")]
+    Client(#[from] sql::ClientError),
 }
 
 #[tokio::main(worker_threads = 4)]
@@ -50,14 +54,22 @@ async fn main() -> Result<(), PidgeonError> {
 
     match ip_addresses.first() {
         Some(std::net::IpAddr::V4(ipv4_address)) => {
-            dbg!(
-                read(
-                    SocketAddr::V4(SocketAddrV4::new(ipv4_address.clone(), 502)),
-                    Slave(1),
-                    config,
-                )
-                .await?
-            );
+            let data = read(
+                SocketAddr::V4(SocketAddrV4::new(ipv4_address.clone(), 502)),
+                Slave(1),
+                config,
+            )
+            .await?;
+            let client = sql::Client::new().await?;
+            client.migrate().await?;
+            client
+                .insert_measurements(vec![Measurement {
+                    id: 0,
+                    source: "test".to_string(),
+                    timestamp: chrono::offset::Utc::now(),
+                    data: serde_json::Value::Null,
+                }])
+                .await?;
         }
         _ => {}
     };

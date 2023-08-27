@@ -1,9 +1,9 @@
 keys:
   - &pidgeon age16fvhjve0x8cv82qdr6hjke9ftr3lsy7muue8f6x0dzjnjfg5fdysekgd06
-  - &dev/hrvoje age1lafrnph9jay33vuergfv0at8k5ltnn0km698ymkkjves20vk9fzqdp976v 
+  - &hrvoje age1lafrnph9jay33vuergfv0at8k5ltnn0km698ymkkjves20vk9fzqdp976v 
 creation_rules:
   - path_regex: secrets.yaml
     key_groups:
     - age:
        - *pidgeon
-       - *dev/hrvoje
+       - *hrvoje

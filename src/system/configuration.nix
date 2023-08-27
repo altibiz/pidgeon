@@ -37,12 +37,12 @@
     timescaledb
   ];
   services.postgresql.settings.shared_preload_libraries = "timescaledb";
-  services.postgresql.ensureDatabases = [ "mess" ];
+  services.postgresql.ensureDatabases = [ "pidgeon" ];
   services.postgresql.ensureUsers = [
     {
-      name = "mess";
+      name = "pidgeon";
       ensurePermissions = {
-        "DATABASE mess" = "ALL PRIVILEGES";
+        "DATABASE pidgeon" = "ALL PRIVILEGES";
       };
       ensureClauses = {
         login = true;
@@ -60,19 +60,21 @@
   services.postgresql.port = 5432;
   networking.firewall.allowedTCPPorts = [ 5432 ];
   services.postgresql.settings.ssl = "on";
-  sops.secrets."server.crt".path = "/var/lib/postgresql/14/server.crt";
+  services.postgresql.settings.ssl_cert_file = "/etc/postgresql/server.crt";
+  sops.secrets."server.crt".path = "/etc/postgresql/server.crt";
   sops.secrets."server.crt".owner = "postgres";
   sops.secrets."server.crt".group = "postgres";
   sops.secrets."server.crt".mode = "0600";
-  sops.secrets."server.key".path = "/var/lib/postgresql/14/server.key";
+  services.postgresql.settings.ssl_key_file = "/etc/postgresql/server.key";
+  sops.secrets."server.key".path = "/etc/postgresql/server.key";
   sops.secrets."server.key".owner = "postgres";
   sops.secrets."server.key".group = "postgres";
   sops.secrets."server.key".mode = "0600";
-  sops.secrets."passwords.sql".path = "/var/lib/postgresql/14/passwords.sql";
-  sops.secrets."passwords.sql".owner = "postgres";
-  sops.secrets."passwords.sql".group = "postgres";
-  sops.secrets."passwords.sql".mode = "0600";
-  services.postgresql.initialScript = "/var/lib/postgresql/14/passwords.sql";
+  services.postgresql.initialScript = "/etc/postgresql/init.sql";
+  sops.secrets."init.sql".path = "/etc/postgresql/init.sql";
+  sops.secrets."init.sql".owner = "postgres";
+  sops.secrets."init.sql".group = "postgres";
+  sops.secrets."init.sql".mode = "0600";
 
   system.stateVersion = "23.11";
 }

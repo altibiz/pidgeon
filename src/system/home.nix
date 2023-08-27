@@ -130,6 +130,7 @@ in
     unrar
     sd
     tshark
+    sqlx-cli
 
     # scripts
     nix-recreate
