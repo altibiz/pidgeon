@@ -6,9 +6,10 @@ edition = "2021"
 [dependencies]
 chrono = { version = "0.4.26", features = ["serde"] }
 clap = { version = "4.4.0", features = ["derive"] }
-ctrlc = "3.4.0"
 directories = "5.0.1"
+dotenv = "0.15.0"
 env_logger = "0.10.0"
+futures = "0.3.28"
 futures-time = "3.0.0"
 ipnet = { version = "2.8.0", features = ["serde"] }
 log = { version = "0.4.20", features = ["serde"] }
