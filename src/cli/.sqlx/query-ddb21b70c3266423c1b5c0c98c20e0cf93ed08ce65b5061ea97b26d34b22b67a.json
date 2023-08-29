@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                insert into logs (timestamp, last_measurement, kind, response)\n                values ($1, $2, $3, $4)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Int8",
+        {
+          "Custom": {
+            "name": "log_kind",
+            "kind": {
+              "Enum": [
+                "success",
+                "failure"
+              ]
+            }
+          }
+        },
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ddb21b70c3266423c1b5c0c98c20e0cf93ed08ce65b5061ea97b26d34b22b67a"
+}

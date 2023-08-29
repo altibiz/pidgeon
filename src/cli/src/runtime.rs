@@ -1,156 +1,111 @@
-use std::{future::Future, time::Duration};
 use thiserror::Error;
-use tokio::{runtime::Runtime as AsyncRuntime, sync::oneshot, task::JoinHandle, time::interval};
 
-use crate::{
-    cloud::{CloudClient, CloudClientError, CloudMeasurement},
-    config::{ConfigManager, ConfigManagerError},
-    db::{DbClient, DbClientError, DbMeasurement},
-    modbus,
-    modbus::{ModbusClient, ModbusClientError},
-    scan::{NetworkScanner, NetworkScannerError},
-};
+use crate::services::{ServiceError, Services};
 
+#[derive(Debug)]
 pub struct Runtime {
-    config_manager: ConfigManager,
-    network_scanner: NetworkScanner,
-    modbus_client: ModbusClient,
-    db_client: DbClient,
-    cloud_client: CloudClient,
-    r#async: AsyncRuntime,
+  r#async: tokio::runtime::Runtime,
+  services: Services,
+}
+
+struct Interval {
+  token: tokio_util::sync::CancellationToken,
+  handle: tokio::task::JoinHandle<()>,
 }
 
 #[derive(Debug, Error)]
 pub enum RuntimeError {
-    #[error("Config error")]
-    ConfigManager(#[from] ConfigManagerError),
+  #[error("Logging setup error")]
+  LogSetup,
 
-    #[error("Network scanner error")]
-    NetworkScanner(#[from] NetworkScannerError),
+  #[error("Async runtime error")]
+  AsyncRuntime(#[from] std::io::Error),
 
-    #[error("Modbus error")]
-    ModbusClient(#[from] ModbusClientError),
-
-    #[error("Db error")]
-    DbClient(#[from] DbClientError),
-
-    #[error("Cloud error")]
-    CloudClient(#[from] CloudClientError),
+  #[error("Service error")]
+  Service(#[from] ServiceError),
 }
 
-impl Runtime {
-    pub fn new() -> Result<Self, RuntimeError> {
-        let config_manager = ConfigManager::new()?;
+macro_rules! interval {
+  ($rt:ident,$handler:ident,$duration:literal) => {{
+    let services = $rt.services.clone();
+    let token = tokio_util::sync::CancellationToken::new();
+    let child_token = token.child_token();
+    let handle = $rt.r#async.spawn(async move {
+      let mut interval =
+        tokio::time::interval(std::time::Duration::from_millis($duration));
 
-        let scan_ip_range = config_manager.scan_ip_range();
-        let scan_timeout = config_manager.scan_timeout();
-        let network_scanner = NetworkScanner::new(scan_ip_range, scan_timeout)?;
-
-        let modbus_client = ModbusClient::new()?;
-
-        let db_connection_string = config_manager.db_connection_string();
-        let db_client = DbClient::new(db_connection_string)?;
-
-        let cloud_domain = config_manager.cloud_domain();
-        let cloud_ssl = config_manager.cloud_ssl();
-        let cloud_client = CloudClient::new(cloud_domain, cloud_ssl)?;
-
-        let r#async = tokio::runtime::Builder::new_multi_thread()
-            .worker_threads(4)
-            .enable_all()
-            .build()
-            .unwrap();
-
-        let runtime = Self {
-            config_manager,
-            network_scanner,
-            modbus_client,
-            db_client,
-            cloud_client,
-            r#async,
-        };
-
-        Ok(runtime)
-    }
-
-    pub fn start(&self) -> Result<(), RuntimeError> {
-        self.r#async.block_on(async { self.start_async().await })
-    }
-
-    // TODO: intervals with macro
-    async fn start_async(&self) -> Result<(), RuntimeError> {
-        self.on_setup().await?;
-
-        self.register_interval(Self::on_scan, Duration::from_secs(60));
-        self.register_interval(Self::on_pull, Duration::from_secs(1));
-        self.register_interval(Self::on_push, Duration::from_secs(60));
-
-        let _ = tokio::signal::ctrl_c().await;
-
-        Ok(())
-    }
-
-    async fn on_setup(&self) -> Result<(), RuntimeError> {
-        self.db_client.migrate().await?;
-
-        Ok(())
-    }
-
-    async fn on_scan(&self) -> Result<(), RuntimeError> {
-        let _ = self.network_scanner.scan().await;
-
-        Ok(())
-    }
-
-    async fn on_pull(&self) -> Result<(), RuntimeError> {
-        let ips = self.network_scanner.ips().await;
-        let registers = self.config_manager.registers().await;
-
-        let mut measurements = Vec::<DbMeasurement>::new();
-        for ip in ips {
-            let values = self.modbus_client.read(ip, 1, registers.clone()).await?;
-            let json = modbus::registers_to_json(values);
-
-            measurements.push(DbMeasurement {
-                source: "todo".to_string(),
-                timestamp: chrono::Utc::now(),
-                data: json,
-            });
-        }
-
-        self.db_client.insert_measurements(measurements).await?;
-
-        Ok(())
-    }
-
-    async fn on_push(&self) -> Result<(), RuntimeError> {
-        Ok(())
-    }
-
-    fn register_interval<T, F>(
-        &self,
-        task: T,
-        duration: Duration,
-    ) -> (oneshot::Sender<()>, JoinHandle<()>)
-    where
-        T: FnMut(&Self) -> F + Send + 'static,
-        F: Future<Output = Result<(), RuntimeError>> + Send + 'static,
-    {
-        let (tx, rx) = oneshot::channel();
-        let wrapped_task = move |this| Box::pin(task(this));
-        let handle = self.r#async.spawn(async move {
-            let mut interval = interval(duration);
-            loop {
-                if let Ok(_) = rx.try_recv() {
-                    return;
+      loop {
+        tokio::select! {
+            _ = child_token.cancelled() => {
+                return;
+            },
+            _ = async {
+                if let Err(error) = services.$handler().await {
+                    tracing::error! { %error, "interval handler failed" };
                 }
 
                 interval.tick().await;
+            } => {
 
-                if let Err(error) = wrapped_task(self).await {}
             }
-        });
+        }
+      }
+    });
 
-        (tx, handle)
+    Interval { token, handle }
+  }};
+}
+
+macro_rules! kill_intervals {
+    [$($interval:expr),*] => {
+        $(
+            $interval.token.cancel();
+        )*
+
+        $(
+            if let Err(error) = $interval.handle.await {
+                tracing::error! { %error, "Interval exited with error" }
+            }
+        )*
+    };
+}
+
+impl Runtime {
+  pub fn new() -> Result<Self, RuntimeError> {
+    let subscriber = tracing_subscriber::FmtSubscriber::new();
+    if tracing::subscriber::set_global_default(subscriber).is_err() {
+      return Err(RuntimeError::LogSetup);
+    };
+
+    let services = Services::new()?;
+
+    let r#async = tokio::runtime::Builder::new_multi_thread()
+      .worker_threads(4)
+      .enable_all()
+      .build()?;
+
+    let runtime = Self { services, r#async };
+
+    Ok(runtime)
+  }
+
+  pub fn start(&self) -> Result<(), RuntimeError> {
+    self.r#async.block_on(async { self.start_async().await })
+  }
+
+  async fn start_async(&self) -> Result<(), RuntimeError> {
+    self.services.on_setup().await?;
+
+    let scan = interval!(self, on_scan, 60000);
+    let pull = interval!(self, on_pull, 60000);
+    let push = interval!(self, on_push, 60000);
+
+    if let Err(error) = tokio::signal::ctrl_c().await {
+      tracing::error! { %error, "Failed waiting for Ctrl+C" }
     }
+
+    kill_intervals![scan, pull, push];
+
+    Ok(())
+  }
 }

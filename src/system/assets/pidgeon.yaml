@@ -1,55 +1,77 @@
-registers:
-  - name: Voltage L1-N
-    address: 0x5B00
-    kind: u32
-  - name: Voltage L2-N
-    address: 0x5B02
-    kind: u32
-  - name: Voltage L3-N
-    address: 0x5B04
-    kind: u32
-  - name: Current L1
-    address: 0x5B0C
-    kind: u32
-  - name: Current L2
-    address: 0x5B0E
-    kind: u32
-  - name: Current L3
-    address: 0x5B10
-    kind: u32
-  - name: Active power L1
-    address: 0x5B16
-    kind: s32
-  - name: Active power L2
-    address: 0x5B18
-    kind: s32
-  - name: Active power L3
-    address: 0x5B1A
-    kind: s32
-  - name: Reactive power L1
-    address: 0x5B1E
-    kind: s32
-  - name: Reactive power L2
-    address: 0x5B20
-    kind: s32
-  - name: Reactive power L3
-    address: 0x5B22
-    kind: s32
-  - name: Apparent power L1
-    address: 0x5B26
-    kind: s32
-  - name: Apparent power L2
-    address: 0x5B28
-    kind: s32
-  - name: Apparent power L3
-    address: 0x5B2A
-    kind: s32
-  - name: Power factor L1
-    address: 0x5B3B
-    kind: s16
-  - name: Power factor L2
-    address: 0x5B3C
-    kind: s16
-  - name: Power factor L3
-    address: 0x5B3D
-    kind: s16
+runtime:
+  scan_interval: 60000
+  pull_interval: 1000
+  push_interval: 60000
+
+db:
+  timeout: 1000
+
+network:
+  timeout: 10000
+
+cloud:
+  timeout: 10000
+
+modbus:
+  timeout: 1000
+  devices:
+    abb:
+      detect:
+        address: 0x5B00
+        kind: utf8
+        match: abb
+      registers:
+        - name: Voltage L1-N
+          address: 0x5B00
+          kind: u32
+        - name: Voltage L2-N
+          address: 0x5B02
+          kind: u32
+        - name: Voltage L3-N
+          address: 0x5B04
+          kind: u32
+        - name: Current L1
+          address: 0x5B0C
+          kind: u32
+        - name: Current L2
+          address: 0x5B0E
+          kind: u32
+        - name: Current L3
+          address: 0x5B10
+          kind: u32
+        - name: Active power L1
+          address: 0x5B16
+          kind: s32
+        - name: Active power L2
+          address: 0x5B18
+          kind: s32
+        - name: Active power L3
+          address: 0x5B1A
+          kind: s32
+        - name: Reactive power L1
+          address: 0x5B1E
+          kind: s32
+        - name: Reactive power L2
+          address: 0x5B20
+          kind: s32
+        - name: Reactive power L3
+          address: 0x5B22
+          kind: s32
+        - name: Apparent power L1
+          address: 0x5B26
+          kind: s32
+        - name: Apparent power L2
+          address: 0x5B28
+          kind: s32
+        - name: Apparent power L3
+          address: 0x5B2A
+          kind: s32
+        - name: Power factor L1
+          address: 0x5B3B
+          kind: s16
+        - name: Power factor L2
+          address: 0x5B3C
+          kind: s16
+        - name: Power factor L3
+          address: 0x5B3D
+          kind: s16

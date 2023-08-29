@@ -13,12 +13,13 @@ mod cloud;
 mod config;
 mod db;
 mod modbus;
+mod network;
 mod runtime;
-mod scan;
+mod services;
 
 use crate::runtime::{Runtime, RuntimeError};
 
 fn main() -> Result<(), RuntimeError> {
-    let runtime = Runtime::new()?;
-    runtime.start()
+  let runtime = Runtime::new()?;
+  runtime.start()
 }

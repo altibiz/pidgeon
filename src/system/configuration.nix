@@ -17,7 +17,7 @@
   environment.systemPackages = with pkgs; [
     libraspberrypi
     raspberrypi-eeprom
-    vim-full
+    helix
     git
     man-pages
     man-pages-posix
