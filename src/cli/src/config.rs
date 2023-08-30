@@ -44,12 +44,18 @@ pub struct Register {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct StringRegisterKind {
+  pub length: u16,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum RegisterKind {
   U16,
   U32,
   S16,
   S32,
+  String(StringRegisterKind),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,8 +66,15 @@ pub struct DetectRegister {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum DeviceDetect {
+  One(DetectRegister),
+  Many(Vec<DetectRegister>),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeviceConfig {
-  pub detect: DetectRegister,
+  pub detect: DeviceDetect,
   pub registers: Vec<Register>,
 }
 
@@ -89,7 +102,7 @@ struct ConfigFromFile {
 struct CloudEnv {
   ssl: bool,
   domain: String,
-  api_key: String,
+  api_key: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -152,7 +165,7 @@ pub struct ParsedCloudConfig {
   pub timeout: u64,
   pub ssl: bool,
   pub domain: String,
-  pub api_key: String,
+  pub api_key: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -371,7 +384,7 @@ impl ConfigManager {
       cloud: CloudEnv {
         ssl: env::var("PIDGEON_CLOUD_SSL").map_or_else(|_| false, |_| true),
         domain: env::var("PIDGEON_CLOUD_DOMAIN")?,
-        api_key: env::var("PIDGEON_CLOUD_API_KEY")?,
+        api_key: env::var("PIDGEON_CLOUD_API_KEY").ok(),
       },
       db: DbEnv {
         ssl: env::var("PIDGEON_DB_SSL").map_or_else(|_| false, |_| true),
@@ -382,8 +395,8 @@ impl ConfigManager {
         name: env::var("PIDGEON_DB_NAME")?,
       },
       network: NetworkEnv {
-        ip_range_start: env::var("PIDGEON_SCAN_IP_RANGE_START")?,
-        ip_range_end: env::var("PIDGEON_SCAN_IP_RANGE_END")?,
+        ip_range_start: env::var("PIDGEON_NETWORK_IP_RANGE_START")?,
+        ip_range_end: env::var("PIDGEON_NETWORK_IP_RANGE_END")?,
       },
     };
 

@@ -1,21 +1,12 @@
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
-use reqwest::{Client as HttpClient, Error as HttpError};
+use reqwest::{
+  header::{HeaderMap, HeaderValue, InvalidHeaderValue},
+  Client as HttpClient, Error as HttpError,
+};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-
-#[derive(Debug, Clone)]
-pub struct CloudClient {
-  push_endpoint: String,
-  http: HttpClient,
-}
-
-#[derive(Debug, Error)]
-pub enum CloudClientError {
-  #[error("HTTP error")]
-  HttpError(#[from] HttpError),
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CloudMeasurement {
@@ -30,19 +21,43 @@ pub struct CloudResponse {
   pub text: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct CloudClient {
+  push_endpoint: String,
+  http: HttpClient,
+}
+
+#[derive(Debug, Error)]
+pub enum CloudClientError {
+  #[error("HTTP error")]
+  HttpError(#[from] HttpError),
+
+  #[error("Invalid header  error")]
+  InvalidHeader(#[from] InvalidHeaderValue),
+}
+
 impl CloudClient {
   pub fn new(
     domain: String,
     ssl: bool,
+    api_key: Option<String>,
     timeout: u64,
   ) -> Result<Self, CloudClientError> {
     let protocol = if ssl { "https" } else { "http" };
     let push_endpoint = format!("{protocol}://{domain}/push");
 
-    let http = HttpClient::builder()
+    let mut headers = HeaderMap::new();
+    if let Some(api_key) = api_key {
+      let value = HeaderValue::from_str(api_key.as_str())?;
+      headers.insert("X-API-Key", value);
+    }
+
+    let builder = HttpClient::builder()
       .timeout(Duration::from_millis(timeout))
-      .gzip(true)
-      .build()?;
+      .default_headers(headers)
+      .gzip(true);
+
+    let http = builder.build()?;
 
     let client = Self {
       push_endpoint,
@@ -57,16 +72,18 @@ impl CloudClient {
     &self,
     measurements: Vec<CloudMeasurement>,
   ) -> Result<CloudResponse, CloudClientError> {
-    let response = self
+    let http_response = self
       .http
       .post(self.push_endpoint.clone())
       .json(&measurements)
       .send()
       .await?;
 
-    let success = response.status().is_success();
-    let text = response.text().await?;
+    let success = http_response.status().is_success();
+    let text = http_response.text().await?;
 
-    Ok(CloudResponse { success, text })
+    let response = CloudResponse { success, text };
+
+    Ok(response)
   }
 }

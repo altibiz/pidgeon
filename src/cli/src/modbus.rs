@@ -18,11 +18,17 @@ use tokio_modbus::{
 };
 
 #[derive(Debug, Clone, Copy)]
+pub struct StringRegisterKind {
+  pub length: Quantity,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub enum RegisterKind {
   U16,
   U32,
   S16,
   S32,
+  String(StringRegisterKind),
 }
 
 #[derive(Debug, Clone)]
@@ -45,9 +51,15 @@ pub struct DetectRegister {
 }
 
 #[derive(Debug, Clone)]
+pub enum DeviceDetect {
+  One(DetectRegister),
+  Many(Vec<DetectRegister>),
+}
+
+#[derive(Debug, Clone)]
 pub struct DeviceConfig {
   pub kind: DeviceKind,
-  pub detect: DetectRegister,
+  pub detect: DeviceDetect,
   pub registers: Vec<RegisterConfig>,
 }
 
@@ -75,6 +87,7 @@ pub enum RegisterValue {
   U32(u32),
   S16(i16),
   S32(i32),
+  String(String),
 }
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
@@ -283,30 +296,75 @@ impl ModbusClient {
         _ => continue,
       };
 
-      let value = match Self::read_register(
-        mutex.clone(),
-        self.timeout,
-        RegisterConfig {
-          name: "detect".to_string(),
-          address: config.detect.address,
-          kind: config.detect.kind,
-        },
-      )
-      .await
-      {
-        Ok(value) => value,
-        _ => continue,
-      };
+      match &config.detect {
+        DeviceDetect::One(detect) => {
+          if Self::detect_register(
+            mutex.clone(),
+            self.timeout,
+            detect.clone(),
+          )
+          .await
+          {
+            return Some(NetworkDevice {
+              config: config.clone(),
+              connection_id: id,
+            });
+          }
+        }
+        DeviceDetect::Many(detects) => {
+          let tasks = detects.iter().map(|detect| {
+            let task_mutext = mutex.clone();
+            let task_timeout = self.timeout;
+            let task_detect = detect.clone();
 
-      if Self::match_register(value, config.detect.r#match.clone()) {
-        return Some(NetworkDevice {
-          connection_id: id,
-          config: config.clone(),
-        });
+            tokio::spawn(async move {
+              Self::detect_register(task_mutext, task_timeout, task_detect)
+                .await
+            })
+          });
+
+          let mut detected = true;
+          for task in tasks {
+            if !task.await.unwrap_or(false) {
+              detected = false;
+              break;
+            }
+          }
+
+          if detected {
+            return Some(NetworkDevice {
+              config: config.clone(),
+              connection_id: id,
+            });
+          }
+        }
       }
     }
 
     None
+  }
+
+  async fn detect_register(
+    mutex: Arc<Mutex<Connection>>,
+    timeout: futures_time::time::Duration,
+    detect: DetectRegister,
+  ) -> bool {
+    let value = match Self::read_register(
+      mutex.clone(),
+      timeout,
+      RegisterConfig {
+        name: "detect".to_string(),
+        address: detect.address,
+        kind: detect.kind,
+      },
+    )
+    .await
+    {
+      Ok(value) => value,
+      _ => return false,
+    };
+
+    Self::match_register(value, detect.r#match.clone())
   }
 
   fn match_register(
@@ -318,6 +376,7 @@ impl ModbusClient {
       RegisterValue::U32(value) => value.to_string(),
       RegisterValue::S16(value) => value.to_string(),
       RegisterValue::S32(value) => value.to_string(),
+      RegisterValue::String(value) => value,
     };
 
     match &r#match {
@@ -336,6 +395,7 @@ impl ModbusClient {
       RegisterKind::U32 => 2,
       RegisterKind::S16 => 1,
       RegisterKind::S32 => 2,
+      RegisterKind::String(StringRegisterKind { length }) => length,
     };
 
     let response = {
@@ -373,6 +433,10 @@ impl ModbusClient {
         Some(value) => RegisterValue::S32(value),
         None => return Err(ModbusClientError::Parse),
       },
+      RegisterKind::String(_) => match Self::parse_string_register(data) {
+        Some(value) => RegisterValue::String(value),
+        None => return Err(ModbusClientError::Parse),
+      },
     };
 
     Ok(value)
@@ -403,6 +467,27 @@ impl ModbusClient {
 
     Some((u32::from(first) << 16 | u32::from(second)) as i32)
   }
+
+  fn parse_bytes(data: Vec<u16>) -> Option<Vec<u8>> {
+    let mut result = Vec::new();
+
+    for &value in &data {
+      let _upper_char = (value >> 8) as u8;
+      let _lower_char = (value & 0xFF) as u8;
+
+      result.push((value >> 8) as u8);
+      result.push((value & 0xFF) as u8);
+    }
+
+    Some(result)
+  }
+
+  fn parse_string_register(data: Vec<u16>) -> Option<String> {
+    let bytes = Self::parse_bytes(data)?;
+    let string = String::from_utf8(bytes).ok()?;
+
+    Some(string)
+  }
 }
 
 pub fn registers_to_json(registers: Vec<RegisterData>) -> serde_json::Value {
@@ -421,6 +506,7 @@ pub fn registers_to_json(registers: Vec<RegisterData>) -> serde_json::Value {
               RegisterValue::U32(value) => serde_json::json!(value),
               RegisterValue::S16(value) => serde_json::json!(value),
               RegisterValue::S32(value) => serde_json::json!(value),
+              RegisterValue::String(value) => serde_json::json!(value),
             },
           )
         },

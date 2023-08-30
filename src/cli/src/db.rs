@@ -113,11 +113,11 @@ impl DbClient {
     let measurements = sqlx::query_as!(
       DbMeasurement,
       r#"
-               select id, source, timestamp, data
-               from measurements
-               where measurements.id > $1 
-               limit $2
-            "#,
+        select id, source, timestamp, data
+        from measurements
+        where measurements.id > $1 
+        limit $2
+      "#,
       from,
       limit
     )
@@ -132,9 +132,9 @@ impl DbClient {
     #[allow(clippy::panic)]
     sqlx::query!(
       r#"
-                insert into logs (timestamp, last_measurement, kind, response)
-                values ($1, $2, $3, $4)
-            "#,
+        insert into logs (timestamp, last_measurement, kind, response)
+        values ($1, $2, $3, $4)
+      "#,
       log.timestamp,
       log.last_measurement,
       log.kind as DbLogKind,
@@ -151,18 +151,18 @@ impl DbClient {
     &self,
   ) -> Result<Option<DbLog>, DbClientError> {
     #[allow(clippy::panic)]
-        let log = sqlx::query_as!(
-            DbLog,
-            r#"
-                select id, timestamp, last_measurement, kind as "kind: DbLogKind", response
-                from logs
-                where logs.kind = 'success'::log_kind
-                order by timestamp desc
-                limit 1
-            "#
-        )
-        .fetch_optional(&self.pool)
-        .await?;
+    let log = sqlx::query_as!(
+      DbLog,
+      r#"
+        select id, timestamp, last_measurement, kind as "kind: DbLogKind", response
+        from logs
+        where logs.kind = 'success'::log_kind
+        order by timestamp desc
+        limit 1
+      "#
+    )
+    .fetch_optional(&self.pool)
+    .await?;
 
     Ok(log)
   }

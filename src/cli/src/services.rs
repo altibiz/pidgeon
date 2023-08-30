@@ -38,8 +38,7 @@ pub enum ServiceError {
 }
 
 impl Services {
-  pub fn new() -> Result<Self, ServiceError> {
-    let config_manager = ConfigManager::new()?;
+  pub fn new(config_manager: ConfigManager) -> Result<Self, ServiceError> {
     let mut config = config_manager.config()?;
 
     let network_scanner = NetworkScanner::new(
@@ -54,13 +53,18 @@ impl Services {
         .devices
         .drain()
         .map(|(kind, mut device)| modbus::DeviceConfig {
-          detect: modbus::DetectRegister {
-            address: device.detect.address,
-            kind: Self::to_modbus_register(device.detect.kind),
-            r#match: match regex::Regex::new(device.detect.r#match.as_str()) {
-              Ok(regex) => either::Either::Right(regex),
-              _ => either::Either::Left(device.detect.r#match),
-            },
+          detect: match device.detect {
+            config::DeviceDetect::One(register) => modbus::DeviceDetect::One(
+              Self::to_modbus_detect_register(register),
+            ),
+            config::DeviceDetect::Many(mut registers) => {
+              modbus::DeviceDetect::Many(
+                registers
+                  .drain(0..)
+                  .map(Self::to_modbus_detect_register)
+                  .collect(),
+              )
+            }
           },
           kind: Self::to_modbus_device(kind),
           registers: device
@@ -89,6 +93,7 @@ impl Services {
     let cloud_client = CloudClient::new(
       config.cloud.domain,
       config.cloud.ssl,
+      config.cloud.api_key,
       config.cloud.timeout,
     )?;
 
@@ -190,6 +195,19 @@ impl Services {
     Ok(())
   }
 
+  fn to_modbus_detect_register(
+    register: config::DetectRegister,
+  ) -> modbus::DetectRegister {
+    modbus::DetectRegister {
+      address: register.address,
+      kind: Self::to_modbus_register(register.kind),
+      r#match: match regex::Regex::new(register.r#match.as_str()) {
+        Ok(regex) => either::Either::Right(regex),
+        _ => either::Either::Left(register.r#match),
+      },
+    }
+  }
+
   fn to_modbus_register(
     register: config::RegisterKind,
   ) -> modbus::RegisterKind {
@@ -198,6 +216,9 @@ impl Services {
       config::RegisterKind::U32 => modbus::RegisterKind::U32,
       config::RegisterKind::S16 => modbus::RegisterKind::S16,
       config::RegisterKind::S32 => modbus::RegisterKind::S32,
+      config::RegisterKind::String(config::StringRegisterKind { length }) => {
+        modbus::RegisterKind::String(modbus::StringRegisterKind { length })
+      }
     }
   }
 
