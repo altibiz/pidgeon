@@ -12,6 +12,7 @@ python = "^3.10"
 [tool.poetry.group.dev.dependencies]
 yapf = "^0.40.1"
 ruff = "^0.0.286"
+python-lsp-server = "^1.7.4"
 
 [build-system]
 requires = ["poetry-core"]
