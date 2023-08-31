@@ -19,7 +19,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.yapf]
-style = "autopep8"
+based_on_style = "autopep8"
 column-limit = 80
 continuation-indent-width = 2
 indent-width = 2

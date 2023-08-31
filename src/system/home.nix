@@ -106,8 +106,6 @@ in
     ruff
     python310Packages.python-lsp-ruff
     python310Packages.yapf
-    nodePackages.bash-language-server
-    nodePackages.yaml-language-server
     llvmPackages.clangNoLibcxx
     llvmPackages.lldb
     rustc
@@ -115,6 +113,9 @@ in
     clippy
     rustfmt
     rust-analyzer
+    nodePackages.bash-language-server
+    nodePackages.yaml-language-server
+    taplo
     marksman
 
     # tui
