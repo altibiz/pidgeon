@@ -17,9 +17,11 @@ modbus:
   devices:
     abb:
       detect:
-        address: 0x5B00
-        kind: utf8
-        match: abb
+        - address: 0x5B00
+          kind: 
+            string:
+              length: 20
+          match: abb
       registers:
         - name: Voltage L1-N
           address: 0x5B00

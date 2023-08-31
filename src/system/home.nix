@@ -100,6 +100,7 @@ in
     meld
     nil
     nixpkgs-fmt
+    poetry
     python311
     python311Packages.python-lsp-server
     python311Packages.black
