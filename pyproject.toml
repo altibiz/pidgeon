@@ -13,16 +13,17 @@ python = "^3.10"
 yapf = "^0.40.1"
 ruff = "^0.0.286"
 python-lsp-server = "^1.7.4"
+python-lsp-ruff = "^1.5.1"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.yapf]
-based_on_style = "autopep8"
-column-limit = 80
-continuation-indent-width = 2
-indent-width = 2
+based_on_style = "pep8"
+column_limit = 80
+continuation_indent_width = 2
+indent_width = 2
 
 [tool.ruff]
 line-length = 80

@@ -1,1 +1,9 @@
-  from pymodbus.client import AsyncModbusTcpClient
+from pymodbus.client import AsyncModbusTcpClient
+
+
+def main():
+  pass
+
+
+if __name__ == "__main__":
+  main()
