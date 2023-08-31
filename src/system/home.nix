@@ -76,7 +76,7 @@ let
 
       export VIRTUAL_ENV="$("${pkgs.poetry}/bin/poetry" env info --path)"
 
-      "${pkgs.python310Packages.python-lsp-server}/bin/python-lsp-server" "$@"
+      "${pkgs.python310Packages.python-lsp-server}/bin/pylsp" "$@"
     '';
 in
 {
