@@ -177,6 +177,7 @@ in
         name = "python";
         auto-format = true;
         formatter = { command = "yapf"; };
+        language-server = { command = "poetry-pylsp"; };
         config.pylsp.plugins = {
           rope = { enabled = true; };
           ruff = { enabled = true; };
