@@ -1,2 +1,11 @@
+[package]
+name = "pidgeon"
+version = "0.1.0"
+description = "Raspberry Pi message broker"
+authors = ["Hrvoje Jurić <hrvoje@altibiz.com>"]
+license = "MIT"
+readme = "README.md"
+edition = "2021"
+
 [workspace]
 members = [ "src/cli" ]

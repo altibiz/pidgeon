@@ -1,6 +1,10 @@
 [package]
-name = "cli"
+name = "pidgeon-cli"
 version = "0.1.0"
+description = "Pidgeon CLI"
+authors = ["Hrvoje Jurić <hrvoje@altibiz.com>"]
+license = "MIT"
+readme = "README.md"
 edition = "2021"
 
 [dependencies]

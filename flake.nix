@@ -1,4 +1,6 @@
 {
+  description = "Raspberry Pi message broker";
+
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     nixpkgs-stable.url = "github:NixOS/nixpkgs/release-23.05";

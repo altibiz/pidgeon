@@ -1,21 +1,13 @@
 [tool.poetry]
-name = "pidgeon"
+name = "pidgeon-probe"
 version = "0.1.0"
-description = "Raspberry Pi message broker"
+description = "Pidgeon probe"
 authors = ["Hrvoje Jurić <hrvoje@altibiz.com>"]
-license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
 
-[tool.poetry.group.dev.dependencies]
-yapf = "^0.40.1"
-ruff = "^0.0.286"
-
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-
-[tool.ruff]
-line-length = 80
