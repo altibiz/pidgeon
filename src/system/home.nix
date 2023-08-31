@@ -100,11 +100,12 @@ in
     meld
     nil
     nixpkgs-fmt
-    (poetry.override { python3 = python311; })
-    python311
-    python311Packages.python-lsp-server
-    python311Packages.pylint
-    python311Packages.yapf
+    python310
+    (poetry.override { python3 = python310; })
+    python310Packages.python-lsp-server
+    ruff
+    python310Packages.python-lsp-ruff
+    python310Packages.yapf
     nodePackages.bash-language-server
     nodePackages.yaml-language-server
     llvmPackages.clangNoLibcxx
@@ -162,7 +163,17 @@ in
       {
         name = "python";
         auto-format = true;
-        formatter = { command = "black"; };
+        formatter = { command = "yapf"; };
+        config.pylsp.plugins = {
+          flake8 = { enabled = false; };
+          autopep8 = { enabled = false; };
+          mccabe = { enabled = false; };
+          pycodestyle = { enabled = false; };
+          pyflakes = { enabled = false; };
+          pylint = { enabled = false; };
+          yapf = { enabled = true; };
+          ruff = { enabled = true; };
+        };
       }
       {
         name = "nix";
