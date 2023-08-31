@@ -1,9 +1,11 @@
-from pymodbus.cli import AsyncModbusTcpClient
+import asyncio
+
+from pymodbus.client import AsyncModbusTcpClient
 
 
-def main():
+async def main():
   pass
 
 
 if __name__ == "__main__":
-  main()
+  asyncio.run(main())

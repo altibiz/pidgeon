@@ -12,9 +12,9 @@ python = "^3.10"
 [tool.poetry.group.dev.dependencies]
 yapf = "^0.40.1"
 ruff = "^0.0.286"
-python-lsp-server = "^1.7.4"
 python-lsp-ruff = "^1.5.1"
 pylsp-rope = "^0.1.11"
+python-lsp-server = {version = "^1.7.4", extras = ["rope", "yapf"]}
 
 [build-system]
 requires = ["poetry-core"]
