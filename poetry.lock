@@ -122,6 +122,17 @@ attrs = ">=21.3.0"
 cattrs = "*"
 
 [[package]]
+name = "packaging"
+version = "23.1"
+description = "Core utilities for Python packages"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "packaging-23.1-py3-none-any.whl", hash = "sha256:994793af429502c4ea2ebf6bf664629d07c1a9fe974af92966e4b8d2df7edc61"},
+    {file = "packaging-23.1.tar.gz", hash = "sha256:a392980d2b6cffa644431898be54b0045151319d1e7ec34f0cfed48767dd334f"},
+]
+
+[[package]]
 name = "parso"
 version = "0.8.3"
 description = "A Python Parser"
@@ -165,6 +176,25 @@ files = [
 [package.extras]
 dev = ["pre-commit", "tox"]
 testing = ["pytest", "pytest-benchmark"]
+
+[[package]]
+name = "pylsp-rope"
+version = "0.1.11"
+description = "Extended refactoring capabilities for Python LSP Server using Rope."
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "pylsp-rope-0.1.11.tar.gz", hash = "sha256:48aadf993dafa5e8fca1108b4a5431314cf80bc78cffdd56400ead9c407553be"},
+    {file = "pylsp_rope-0.1.11-py3-none-any.whl", hash = "sha256:71fb08dc6ead9a69202f2e7c5f7bbc5ada037a0f0722d7eb2d1f8cac2c9a18af"},
+]
+
+[package.dependencies]
+python-lsp-server = "*"
+rope = ">=0.21.0"
+
+[package.extras]
+dev = ["build", "pytest", "twine"]
+test = ["pytest"]
 
 [[package]]
 name = "python-lsp-jsonrpc"
@@ -235,6 +265,47 @@ rope = ["rope (>1.2.0)"]
 test = ["coverage", "flaky", "matplotlib", "numpy", "pandas", "pylint (>=2.5.0,<3)", "pyqt5", "pytest", "pytest-cov"]
 websockets = ["websockets (>=10.3)"]
 yapf = ["whatthepatch (>=1.0.2,<2.0.0)", "yapf (>=0.33.0)"]
+
+[[package]]
+name = "pytoolconfig"
+version = "1.2.5"
+description = "Python tool configuration"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "pytoolconfig-1.2.5-py3-none-any.whl", hash = "sha256:239ba9d3e537b91d0243275a497700ea39a5e259ddb80421c366e3b288bf30fe"},
+    {file = "pytoolconfig-1.2.5.tar.gz", hash = "sha256:a50f9dfe23b03a9d40414c1fdf902fefbeae12f2ac75a3c8f915944d6ffac279"},
+]
+
+[package.dependencies]
+packaging = ">=22.0"
+platformdirs = {version = ">=1.4.4", optional = true, markers = "extra == \"global\""}
+tomli = {version = ">=2.0.1", markers = "python_version < \"3.11\""}
+
+[package.extras]
+doc = ["sphinx (>=4.5.0)", "tabulate (>=0.8.9)"]
+gendocs = ["pytoolconfig[doc]", "sphinx (>=4.5.0)", "sphinx-autodoc-typehints (>=1.18.1)", "sphinx-rtd-theme (>=1.0.0)"]
+global = ["platformdirs (>=1.4.4)"]
+validation = ["pydantic (>=1.7.4)"]
+
+[[package]]
+name = "rope"
+version = "1.9.0"
+description = "a python refactoring library..."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "rope-1.9.0-py3-none-any.whl", hash = "sha256:2ed32d72cd2c4395bb1d569e38fd4f15d6080cfadd61b6e5c565fd39e3f677aa"},
+    {file = "rope-1.9.0.tar.gz", hash = "sha256:f48d708132c0e062b411308732ca13933b976486b4b53d1e804f94ed08d69503"},
+]
+
+[package.dependencies]
+pytoolconfig = {version = ">=1.2.2", extras = ["global"]}
+
+[package.extras]
+dev = ["build (>=0.7.0)", "pre-commit (>=2.20.0)", "pytest (>=7.0.1)", "pytest-timeout (>=2.1.0)"]
+doc = ["pytoolconfig[doc]", "sphinx (>=4.5.0)", "sphinx-autodoc-typehints (>=1.18.1)", "sphinx-rtd-theme (>=1.0.0)"]
+release = ["pip-tools (>=6.12.1)", "toml (>=0.10.2)", "twine (>=4.0.2)"]
 
 [[package]]
 name = "ruff"
@@ -404,4 +475,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "ecd4981d73d1055e5380811f84eee89f68c03237aa9827e8f5ff3e3e82f5d314"
+content-hash = "b69663e24407a8f6e7f7ba25b44b9f6a00b1d370e95706879c29539219761b43"

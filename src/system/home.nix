@@ -105,6 +105,7 @@ in
     python310Packages.python-lsp-server
     ruff
     python310Packages.python-lsp-ruff
+    python310Packages.pylsp-rope
     python310Packages.yapf
     llvmPackages.clangNoLibcxx
     llvmPackages.lldb
