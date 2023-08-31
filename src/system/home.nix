@@ -166,14 +166,15 @@ in
         auto-format = true;
         formatter = { command = "yapf"; };
         config.pylsp.plugins = {
+          rope = { enabled = true; };
+          ruff = { enabled = true; };
           flake8 = { enabled = false; };
-          autopep8 = { enabled = false; };
-          mccabe = { enabled = false; };
+          pylint = { enabled = false; };
           pycodestyle = { enabled = false; };
           pyflakes = { enabled = false; };
-          pylint = { enabled = false; };
+          mccabe = { enabled = false; };
           yapf = { enabled = true; };
-          ruff = { enabled = true; };
+          autopep8 = { enabled = false; };
         };
       }
       {

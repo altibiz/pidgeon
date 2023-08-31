@@ -1,4 +1,4 @@
-from pymodbus.client import AsyncModbusTcpClient
+from pymodbus.cli import AsyncModbusTcpClient
 
 
 def main():
