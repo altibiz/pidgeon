@@ -74,7 +74,7 @@ let
       #!${pkgs.stdenv.shell}
       set -eo pipefail
 
-      "${pkgs.poetry}/bin/poetry" "$@"
+      "${pkgs.python310Packages.python-lsp-server}/bin/python-lsp-server" "$@"
     '';
 in
 {
