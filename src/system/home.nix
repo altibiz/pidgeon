@@ -100,10 +100,11 @@ in
     meld
     nil
     nixpkgs-fmt
-    poetry
+    (poetry.override { python = python311; })
     python311
     python311Packages.python-lsp-server
-    python311Packages.black
+    python311Packages.pylint
+    python311Packages.yapf
     nodePackages.bash-language-server
     nodePackages.yaml-language-server
     llvmPackages.clangNoLibcxx
