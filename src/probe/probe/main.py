@@ -1,6 +1,5 @@
 import asyncio
-
-from pymodbus.client import AsyncModbusTcpClient
+import pymodbus
 
 
 async def main():

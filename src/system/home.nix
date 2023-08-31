@@ -78,6 +78,14 @@ let
 
       "${pkgs.python310Packages.python-lsp-server}/bin/pylsp" "$@"
     '';
+
+  poetry-python = pkgs.writeScriptBin "poetry-pylsp"
+    ''
+      #!${pkgs.stdenv.shell}
+      set -eo pipefail
+
+      "${pkgs.poetry}/bin/poetry" run python "$@"
+    '';
 in
 {
   programs.home-manager.enable = true;
@@ -113,6 +121,7 @@ in
     python310
     (poetry.override { python3 = python310; })
     poetry-pylsp
+    poetry-python
     python310Packages.python-lsp-server
     ruff
     python310Packages.python-lsp-ruff
