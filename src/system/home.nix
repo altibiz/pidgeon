@@ -69,12 +69,12 @@ let
       nix-store --gc
     '';
 
-  poetry-pylsp = pkgs.writeScriptBin "venv-pylsp"
+  poetry-pylsp = pkgs.writeScriptBin "poetry-pylsp"
     ''
       #!${pkgs.stdenv.shell}
       set -eo pipefail
 
-      ${pkgs.poetry} "$@"
+      "${pkgs.poetry}/bin/poetry" "$@"
     '';
 in
 {
