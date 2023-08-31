@@ -68,6 +68,14 @@ let
       nix-env --delete-generations 7d
       nix-store --gc
     '';
+
+  poetry-pylsp = pkgs.writeScriptBin "venv-pylsp"
+    ''
+      #!${pkgs.stdenv.shell}
+      set -eo pipefail
+
+      ${pkgs.poetry} "$@"
+    '';
 in
 {
   programs.home-manager.enable = true;
@@ -102,6 +110,7 @@ in
     nixpkgs-fmt
     python310
     (poetry.override { python3 = python310; })
+    poetry-pylsp
     python310Packages.python-lsp-server
     ruff
     python310Packages.python-lsp-ruff
