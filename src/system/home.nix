@@ -169,7 +169,6 @@ in
         #   {
         #     command = "${poetryPyrightLangserver}/bin/poetry-pyright-langserver";
         #     args = [ "--stdio" ];
-        #     config = { };
         #   }
         #   { command = "${poetryRuffLsp}/bin/poetry-ruff-lsp"; }
         # ];
@@ -177,8 +176,8 @@ in
         language-server = {
           command = "${poetryPyrightLangserver}/bin/poetry-pyright-langserver";
           args = [ "--stdio" ];
-          config = { plswork = "plswork"; };
         };
+        config = { };
       }
       {
         name = "nix";
