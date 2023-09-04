@@ -1,75 +1,7 @@
 { pkgs, username, ... }:
 
 let
-  nix-recreate = pkgs.writeScriptBin "nix-recreate"
-    ''
-      #!${pkgs.stdenv.shell}
-      set -eo pipefail
-
-      command=switch
-      comment="$1"
-      if [[ "$1" == "boot" ]]; then
-        command=boot
-        comment="$2"
-      fi
-      if [[ -z "$comment" ]]; then
-        comment="WIP"
-      fi
-
-      if [[ ! -d ~/repos/pidgeon ]]; then
-       mkdir -p ~/repos
-       git clone https://github.com/altibiz/pidgeon ~/repos/pidgeon
-      fi
-
-      wd="$(pwd)"
-      cd ~/repos/pidgeon
-      git add .
-      git commit -m "$comment"
-      git push
-      sudo nixos-rebuild "$command" --flake ~/repos/pidgeon#pidgeon
-      cd "$wd"
-    '';
-
-  nix-update = pkgs.writeScriptBin "nix-update"
-    ''
-      #!${pkgs.stdenv.shell}
-      set -eo pipefail
-
-      command=switch
-      comment="$1"
-      if [[ "$1" == "boot" ]]; then
-        command=boot
-        comment="$2"
-      fi
-      if [[ -z "$comment" ]]; then
-        comment="WIP"
-      fi
-
-      if [[ ! -d ~/repos/pidgeon ]]; then
-       mkdir -p ~/repos
-       git clone https://github.com/altibiz/pidgeon ~/repos/pidgeon
-      fi
-
-      wd="$(pwd)"
-      cd ~/repos/pidgeon
-      nix flake update
-      git add .
-      git commit -m "$comment"
-      git push
-      sudo nixos-rebuild "$command" --flake ~/repos/pidgeon#pidgeon
-      cd "$wd"
-    '';
-
-  nix-clean = pkgs.writeScriptBin "nix-clean"
-    ''
-      #!${pkgs.stdenv.shell}
-      set -eo pipefail
-
-      nix-env --delete-generations 7d
-      nix-store --gc
-    '';
-
-  poetry-pylsp = pkgs.writeScriptBin "poetry-pylsp"
+  poetryPylsp = pkgs.writeScriptBin "poetry-pylsp"
     ''
       #!${pkgs.stdenv.shell}
       set -eo pipefail
@@ -79,7 +11,7 @@ let
       "${pkgs.python310Packages.python-lsp-server}/bin/pylsp" "$@"
     '';
 
-  poetry-python = pkgs.writeScriptBin "poetry-python"
+  poetryPython = pkgs.writeScriptBin "poetry-python"
     ''
       #!${pkgs.stdenv.shell}
       set -eo pipefail
@@ -120,12 +52,12 @@ in
     nixpkgs-fmt
     python310
     (poetry.override { python3 = python310; })
-    poetry-pylsp
-    poetry-python
     python310Packages.python-lsp-server
     python310Packages.python-lsp-ruff
     python310Packages.pylsp-rope
     python310Packages.yapf
+    poetryPylsp
+    poetryPython
     llvmPackages.clangNoLibcxx
     llvmPackages.lldb
     rustc
@@ -185,7 +117,7 @@ in
         name = "python";
         auto-format = true;
         formatter = { command = "${pkgs.yapf}"; };
-        language-server = { command = "${pkgs.poetry-pylsp}"; };
+        language-server = { command = "${poetryPylsp}"; };
         config.pylsp.plugins = {
           rope = { enabled = true; };
           ruff = { enabled = true; };
