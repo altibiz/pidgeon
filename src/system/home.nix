@@ -53,6 +53,7 @@ in
     python310
     (poetry.override { python3 = python310; })
     python310Packages.python-lsp-server
+    ruff
     python310Packages.python-lsp-ruff
     python310Packages.pylsp-rope
     python310Packages.yapf
@@ -115,7 +116,10 @@ in
         language-server = { command = "${poetryPylsp}/bin/poetry-pylsp"; };
         config.pylsp.plugins = {
           rope = { enabled = true; };
-          ruff = { enabled = true; };
+          ruff = {
+            enabled = true;
+            executable = "${pkgs.ruff}/bin/ruff";
+          };
           yapf = { enabled = false; };
           flake8 = { enabled = false; };
           pylint = { enabled = false; };
