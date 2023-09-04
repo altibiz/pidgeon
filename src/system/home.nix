@@ -11,14 +11,14 @@ let
       "${pkgs.python310Packages.python-lsp-server}/bin/pylsp" "$@"
     '';
 
-  poetryPyright = pkgs.writeScriptBin "poetry-pyright"
+  poetryPyrightLangserver = pkgs.writeScriptBin "poetry-pyright-langserver"
     ''
       #!${pkgs.stdenv.shell}
       set -eo pipefail
 
       export VIRTUAL_ENV="$("${pkgs.poetry}/bin/poetry" env info --path)"
 
-      "${pkgs.nodePackages.pyright}/bin/pyright" "$@"
+      "${pkgs.nodePackages.pyright}/bin/pyright-langserver" "$@"
     '';
 
   poetryRuffLsp = pkgs.writeScriptBin "poetry-ruff-lsp"
@@ -166,10 +166,19 @@ in
         # };
         # NOTE: unreleased: https://github.com/helix-editor/helix/pull/2507 
         # language-servers = [
-        #   { command = "${poetryPyright}/bin/poetry-pyright"; }
+        #   {
+        #     command = "${poetryPyrightLangserver}/bin/poetry-pyright-langserver";
+        #     args = [ "--stdio" ];
+        #     config = { };
+        #   }
         #   { command = "${poetryRuffLsp}/bin/poetry-ruff-lsp"; }
         # ];
-        language-server = { command = "${poetryPyright}/bin/poetry-pyright"; };
+        # NOTE: https://github.com/helix-editor/helix/discussions/5369
+        language-server = {
+          command = "${poetryPyrightLangserver}/bin/poetry-pyright-langserver";
+          args = [ "--stdio" ];
+          config = { };
+        };
       }
       {
         name = "nix";
