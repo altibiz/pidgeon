@@ -55,6 +55,8 @@ in
     python310Packages.python-lsp-server
     ruff
     python310Packages.python-lsp-ruff
+    python310Packages.mypy
+    python310Packages.pylsp-mypy
     python310Packages.pylsp-rope
     python310Packages.yapf
     poetryPylsp
@@ -119,6 +121,12 @@ in
           ruff = {
             enabled = true;
             executable = "${pkgs.ruff}/bin/ruff";
+          };
+          mypy = {
+            enabled = true;
+            live_mode = false;
+            dmypy = true;
+            strict = true;
           };
           yapf = { enabled = false; };
           flake8 = { enabled = false; };
