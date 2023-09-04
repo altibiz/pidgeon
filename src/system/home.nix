@@ -50,15 +50,17 @@ in
     meld
     nil
     nixpkgs-fmt
-    python310
-    (poetry.override { python3 = python310; })
-    python310Packages.python-lsp-server
     ruff
-    python310Packages.python-lsp-ruff
-    python310Packages.mypy
-    python310Packages.pylsp-mypy
-    python310Packages.pylsp-rope
-    python310Packages.yapf
+    (python310.withPackages
+      (pythonPackages: with pythonPackages; [
+        python-lsp-server
+        python-lsp-ruff
+        mypy
+        pylsp-mypy
+        pylsp-rope
+        yapf
+      ]))
+    (poetry.override { python3 = python310; })
     poetryPylsp
     poetryPython
     llvmPackages.clangNoLibcxx
