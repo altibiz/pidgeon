@@ -123,7 +123,6 @@ in
     poetry-pylsp
     poetry-python
     python310Packages.python-lsp-server
-    ruff
     python310Packages.python-lsp-ruff
     python310Packages.pylsp-rope
     python310Packages.yapf
@@ -185,8 +184,8 @@ in
       {
         name = "python";
         auto-format = true;
-        formatter = { command = "yapf"; };
-        language-server = { command = "poetry-pylsp"; };
+        formatter = { command = "${pkgs.yapf}"; };
+        language-server = { command = "${pkgs.poetry-pylsp}"; };
         config.pylsp.plugins = {
           rope = { enabled = true; };
           ruff = { enabled = true; };
@@ -202,7 +201,7 @@ in
       {
         name = "nix";
         auto-format = true;
-        formatter = { command = "nixpkgs-fmt"; };
+        formatter = { command = "${pkgs.nixpkgs-fmt}"; };
       }
     ];
   };
@@ -228,35 +227,6 @@ in
   programs.direnv.enableNushellIntegration = true;
   programs.direnv.nix-direnv.enable = true;
   programs.nushell.enable = true;
-  programs.nushell.extraEnv = ''
-    def-env append-path [new_path: string] {
-      let updated_env_path = (
-        if ($env.PATH | split row ":" | any { |it| $it == $new_path }) {
-          $env.PATH
-        }
-        else {
-          $"($env.PATH):($new_path)"
-        }
-      )
-      $env.PATH = $updated_env_path
-    }
-    def-env prepend-path [new_path: string] {
-      let updated_env_path = (
-        if ($env.PATH | split row ":" | any { |it| $it == $new_path }) {
-          $env.PATH
-        }
-        else {
-          $"($new_path):($env.PATH)"
-        }
-      )
-      $env.PATH = $updated_env_path
-    }
-
-    prepend-path "/home/${username}/scripts"
-    prepend-path "/home/${username}/bin"
-    prepend-path "scripts"
-    prepend-path "bin"
-  '';
   programs.nushell.extraConfig = ''
     $env.config = {
       show_banner: false
@@ -277,8 +247,8 @@ in
     }
   '';
   programs.nushell.environmentVariables = {
-    PROMPT_INDICATOR_VI_INSERT = "'λ '";
-    PROMPT_INDICATOR_VI_NORMAL = "' '";
+    PROMPT_INDICATOR_VI_INSERT = "' '";
+    PROMPT_INDICATOR_VI_NORMAL = "' '";
   };
   programs.starship.enable = true;
   programs.starship.enableNushellIntegration = true;
@@ -320,11 +290,6 @@ in
   services.gpg-agent.enable = true;
   services.gpg-agent.pinentryFlavor = "tty";
   programs.ssh.enable = true;
-  programs.ssh.matchBlocks = {
-    "github.com" = {
-      user = "git";
-    };
-  };
 
   home.stateVersion = "23.11";
 }
