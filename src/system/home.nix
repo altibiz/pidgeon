@@ -144,7 +144,7 @@ in
         language-servers = [
           # { command = "${poetryPylsp}/bin/poetry-pylsp"; }
           { command = "${poetryPylsp}/bin/poetry-pyright"; }
-          { command = "${poetryPylsp}/bin/poetry-ruff-lsp"; }
+          # { command = "${poetryPylsp}/bin/poetry-ruff-lsp"; }
         ];
         config.pylsp.plugins = {
           rope = { enabled = true; };
