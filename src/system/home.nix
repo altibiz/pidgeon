@@ -84,7 +84,7 @@ in
         yapf
       ] ++ python-lsp-server.optional-dependencies.rope))
     poetryPylsp
-    poetryPyright
+    poetryPyrightLangserver
     poetryRuffLsp
     poetryPython
     llvmPackages.clangNoLibcxx
