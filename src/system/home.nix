@@ -190,12 +190,12 @@ in
         config.pylsp.plugins = {
           rope = { enabled = true; };
           ruff = { enabled = true; };
+          yapf = { enabled = false; };
           flake8 = { enabled = false; };
           pylint = { enabled = false; };
           pycodestyle = { enabled = false; };
           pyflakes = { enabled = false; };
           mccabe = { enabled = false; };
-          yapf = { enabled = true; };
           autopep8 = { enabled = false; };
         };
       }
