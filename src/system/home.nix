@@ -111,8 +111,8 @@ in
       {
         name = "python";
         auto-format = true;
-        formatter = { command = "${pkgs.yapf}"; };
-        language-server = { command = "${poetryPylsp}"; };
+        formatter = { command = "${pkgs.yapf}/bin/yapf"; };
+        language-server = { command = "${poetryPylsp}/bin/poetry-pylsp"; };
         config.pylsp.plugins = {
           rope = { enabled = true; };
           ruff = { enabled = true; };
@@ -128,7 +128,7 @@ in
       {
         name = "nix";
         auto-format = true;
-        formatter = { command = "${pkgs.nixpkgs-fmt}"; };
+        formatter = { command = "${pkgs.nixpkgs-fmt}/bin/nixpkgs-fmt"; };
       }
     ];
   };
