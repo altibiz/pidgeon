@@ -172,6 +172,7 @@ in
         #   }
         #   { command = "${poetryRuffLsp}/bin/poetry-ruff-lsp"; }
         # ];
+        # config = { };
         # NOTE: https://github.com/helix-editor/helix/discussions/5369
         language-server = {
           command = "${poetryPyrightLangserver}/bin/poetry-pyright-langserver";
