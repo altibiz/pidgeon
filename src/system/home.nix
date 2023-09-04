@@ -82,7 +82,7 @@ in
         pylsp-mypy
         pylsp-rope
         yapf
-      ] ++ python-lsp-server.rope))
+      ] ++ python-lsp-server.optional-dependencies.rope))
     poetryPylsp
     poetryPyright
     poetryRuffLsp
