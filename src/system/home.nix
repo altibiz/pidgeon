@@ -79,7 +79,7 @@ let
       "${pkgs.python310Packages.python-lsp-server}/bin/pylsp" "$@"
     '';
 
-  poetry-python = pkgs.writeScriptBin "poetry-pylsp"
+  poetry-python = pkgs.writeScriptBin "poetry-python"
     ''
       #!${pkgs.stdenv.shell}
       set -eo pipefail
