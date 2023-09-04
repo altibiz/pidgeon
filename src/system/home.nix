@@ -11,6 +11,26 @@ let
       "${pkgs.python310Packages.python-lsp-server}/bin/pylsp" "$@"
     '';
 
+  poetryPyright = pkgs.writeScriptBin "poetry-pyright"
+    ''
+      #!${pkgs.stdenv.shell}
+      set -eo pipefail
+
+      export VIRTUAL_ENV="$("${pkgs.poetry}/bin/poetry" env info --path)"
+
+      "${pkgs.nodePackages.pyright}/bin/pyright" "$@"
+    '';
+
+  poetryRuffLsp = pkgs.writeScriptBin "poetry-ruff-lsp"
+    ''
+      #!${pkgs.stdenv.shell}
+      set -eo pipefail
+
+      export VIRTUAL_ENV="$("${pkgs.poetry}/bin/poetry" env info --path)"
+
+      "${pkgs.python310Packages.ruff-lsp}/bin/ruff-lsp" "$@"
+    '';
+
   poetryPython = pkgs.writeScriptBin "poetry-python"
     ''
       #!${pkgs.stdenv.shell}
@@ -50,18 +70,22 @@ in
     meld
     nil
     nixpkgs-fmt
+    (poetry.override { python3 = python310; })
     ruff
+    nodePackages.pyright
     (python310.withPackages
       (pythonPackages: with pythonPackages; [
         python-lsp-server
+        ruff-lsp
         python-lsp-ruff
         mypy
         pylsp-mypy
         pylsp-rope
         yapf
-      ]))
-    (poetry.override { python3 = python310; })
+      ] ++ python-lsp-server.rope))
     poetryPylsp
+    poetryPyright
+    poetryRuffLsp
     poetryPython
     llvmPackages.clangNoLibcxx
     llvmPackages.lldb
@@ -117,7 +141,11 @@ in
         name = "python";
         auto-format = true;
         formatter = { command = "${pkgs.yapf}/bin/yapf"; };
-        language-server = { command = "${poetryPylsp}/bin/poetry-pylsp"; };
+        language-servers = [
+          # { command = "${poetryPylsp}/bin/poetry-pylsp"; }
+          { command = "${poetryPylsp}/bin/poetry-pyright"; }
+          { command = "${poetryPylsp}/bin/poetry-ruff-lsp"; }
+        ];
         config.pylsp.plugins = {
           rope = { enabled = true; };
           ruff = {
