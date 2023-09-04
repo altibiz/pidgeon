@@ -141,31 +141,35 @@ in
         name = "python";
         auto-format = true;
         formatter = { command = "${pkgs.yapf}/bin/yapf"; };
-        language-servers = [
-          # { command = "${poetryPylsp}/bin/poetry-pylsp"; }
-          { command = "${poetryPylsp}/bin/poetry-pyright"; }
-          # { command = "${poetryPylsp}/bin/poetry-ruff-lsp"; }
-        ];
-        config.pylsp.plugins = {
-          rope = { enabled = true; };
-          ruff = {
-            enabled = true;
-            executable = "${pkgs.ruff}/bin/ruff";
-          };
-          mypy = {
-            enabled = true;
-            live_mode = false;
-            dmypy = true;
-            strict = true;
-          };
-          yapf = { enabled = false; };
-          flake8 = { enabled = false; };
-          pylint = { enabled = false; };
-          pycodestyle = { enabled = false; };
-          pyflakes = { enabled = false; };
-          mccabe = { enabled = false; };
-          autopep8 = { enabled = false; };
-        };
+
+        # NOTE: can't get it to work with ruff
+        # language-server = { command = "${poetryPylsp}/bin/poetry-pylsp"; };
+        # config.pylsp.plugins = {
+        #   rope = { enabled = true; };
+        #   ruff = {
+        #     enabled = true;
+        #     executable = "${pkgs.ruff}/bin/ruff";
+        #   };
+        #   mypy = {
+        #     enabled = true;
+        #     live_mode = false;
+        #     dmypy = true;
+        #     strict = true;
+        #   };
+        #   yapf = { enabled = false; };
+        #   flake8 = { enabled = false; };
+        #   pylint = { enabled = false; };
+        #   pycodestyle = { enabled = false; };
+        #   pyflakes = { enabled = false; };
+        #   mccabe = { enabled = false; };
+        #   autopep8 = { enabled = false; };
+        # };
+        # NOTE: unreleased: https://github.com/helix-editor/helix/pull/2507 
+        # language-servers = [
+        #   { command = "${poetryPyright}/bin/poetry-pyright"; }
+        #   { command = "${poetryRuffLsp}/bin/poetry-ruff-lsp"; }
+        # ];
+        language-server = { command = "${poetryPyright}/bin/poetry-pyright"; };
       }
       {
         name = "nix";
