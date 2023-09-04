@@ -177,7 +177,7 @@ in
         language-server = {
           command = "${poetryPyrightLangserver}/bin/poetry-pyright-langserver";
           args = [ "--stdio" ];
-          config = { };
+          config = { plswork = "plswork"; };
         };
       }
       {
