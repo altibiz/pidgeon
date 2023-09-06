@@ -40,12 +40,16 @@
           })
           sops-nix.nixosModules.sops
           home-manager.nixosModules.home-manager
-          vscode-server.nixosModules.home
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = inputs // { username = username; };
-            home-manager.users."${username}" = import ./src/system/home.nix;
+            home-manager.users."${username}" = { ... } @ inputs: {
+              imports = [
+                vscode-server.nixosModules.home
+                ./src/system/home.nix
+              ];
+            };
           }
         ];
       };
