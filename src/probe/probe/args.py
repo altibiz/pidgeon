@@ -17,14 +17,14 @@ class Args:
       "-i",
       "--ip-address",
       required=True,
-      type=Args.__regex(r"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),
+      type=Args.__regex(r"^((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\.?\b){4}$"),
       help="IP address of the modbus gateway",
     )
     self.__parser.add_argument(
       "-s",
       "--slave-id",
       required=True,
-      type=compose(Args.__regex("^25[0-5]|(2[0-4]|1\d|[1-9]|)\d$"), int),
+      type=compose(Args.__regex("^25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9]$"), int),
       help="Slave ID of the modbus device",
     )
     self.__parser.add_argument(
@@ -48,7 +48,7 @@ class Args:
     return self.__args.device_type
 
   @staticmethod
-  def __regex(regex: str) -> Callable[str, str]:
+  def __regex(regex: str) -> Callable[[str], str]:
     compiled = re.compile(regex)
 
     def coerce(string: str) -> str:

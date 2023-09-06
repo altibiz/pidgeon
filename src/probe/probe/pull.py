@@ -1,3 +1,4 @@
+import struct
 from typing import Callable, TypeVar, Union, List
 from pymodbus.client import AsyncModbusTcpClient
 
@@ -31,11 +32,11 @@ class PullClient:
     if not self.__modbus_connected:
       try:
         await self.__modbus_client.connect()
-      except Exception as exception:
+      except Exception:
         return None
 
     try:
-      response = await self.__modbus_client.read_holding_registers(
+      response = self.__modbus_client.read_holding_registers(
         address=register,
         count=count,
         slave=self.__slave_id,
@@ -44,9 +45,10 @@ class PullClient:
         print(response)
         return None
 
-      value = convert(*response.registers)
+      value = convert(
+        *response.registers)  # pyright: ignore reportUnknownMemberType
       return value
-    except Exception as exception:
+    except Exception:
       return None
 
   @staticmethod
