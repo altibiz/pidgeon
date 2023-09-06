@@ -13,6 +13,7 @@
   services.openssh.enable = true;
   services.openssh.settings.PasswordAuthentication = true;
   networking.hostName = hostname;
+  programs.nix-ld.enable = true;
 
   environment.systemPackages = with pkgs; [
     libraspberrypi
