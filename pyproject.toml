@@ -14,7 +14,7 @@ yapf = "^0.40.1"
 ruff = "^0.0.286"
 python-lsp-ruff = "^1.5.1"
 pylsp-rope = "^0.1.11"
-python-lsp-server = { version = "^1.7.4", extras = ["rope", "yapf"] }
+python-lsp-server = { version = "^1.7.4", extras = ["rope"] }
 
 [build-system]
 requires = ["poetry-core"]
@@ -28,3 +28,6 @@ indent_width = 2
 
 [tool.ruff]
 line-length = 80
+
+[tool.pyright]
+typeCheckingMode = "strict"
