@@ -16,9 +16,7 @@ let
       #!${pkgs.stdenv.shell}
       set -eo pipefail
 
-      export VIRTUAL_ENV="$("${pkgs.poetry}/bin/poetry" env info --path)"
-
-      "${pkgs.nodePackages.pyright}/bin/pyright-langserver" "$@"
+      "${pkgs.poetry}/bin/poetry" run pyright-langserver "$@"
     '';
 
   poetryRuffLsp = pkgs.writeScriptBin "poetry-ruff-lsp"
@@ -82,7 +80,7 @@ in
         pylsp-mypy
         pylsp-rope
         yapf
-      ] ++ python-lsp-server.optional-dependencies.rope))
+      ]))
     poetryPylsp
     poetryPyrightLangserver
     poetryRuffLsp

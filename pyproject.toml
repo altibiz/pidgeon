@@ -13,8 +13,12 @@ python = "^3.10"
 yapf = "^0.40.1"
 ruff = "^0.0.286"
 python-lsp-ruff = "^1.5.1"
+ruff-lsp = "^0.0.38"
+rope = "^1.9.0"
 pylsp-rope = "^0.1.11"
-python-lsp-server = { version = "^1.7.4", extras = ["rope"] }
+mypy = "^1.5.1"
+pylsp-mypy = "^0.6.7"
+python-lsp-server = { version = "^1.7.4", extras = ["rope", "mypy"] }
 
 [build-system]
 requires = ["poetry-core"]
