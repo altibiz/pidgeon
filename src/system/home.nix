@@ -65,6 +65,12 @@ in
     sis = "hx";
     yas = "yes";
   };
+
+  nixpkgs.overlays = [
+    (final: prev: {
+      nodejs = prev.nodejs_20;
+    })
+  ];
   home.packages = with pkgs; [
     # dev
     meld
@@ -274,6 +280,7 @@ in
   programs.ssh.enable = true;
   services.vscode-server.enable = true;
   services.vscode-server.enableFHS = true;
+  services.vscode-server.nodejsPackage = pkgs.nodejs_20;
 
   home.stateVersion = "23.11";
 }
