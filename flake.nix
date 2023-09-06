@@ -13,9 +13,11 @@
 
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
+
+    vscode-server.url = "github:nix-community/nixos-vscode-server";
   };
 
-  outputs = { self, nixpkgs, home-manager, sops-nix, ... } @ inputs:
+  outputs = { self, nixpkgs, home-manager, sops-nix, vscode-server, ... } @ inputs:
     let
       hostname = "pidgeon";
       username = "pidgeon";
@@ -37,6 +39,7 @@
           })
           sops-nix.nixosModules.sops
           home-manager.nixosModules.home-manager
+          vscode-server.nixosModules.home
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;

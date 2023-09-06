@@ -272,6 +272,7 @@ in
   services.gpg-agent.enable = true;
   services.gpg-agent.pinentryFlavor = "tty";
   programs.ssh.enable = true;
+  services.vscode-server.enable = true;
 
   home.stateVersion = "23.11";
 }
