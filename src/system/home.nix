@@ -16,7 +16,9 @@ let
       #!${pkgs.stdenv.shell}
       set -eo pipefail
 
-      "${pkgs.poetry}/bin/poetry" run pyright-langserver "$@"
+      export VIRTUAL_ENV="$("${pkgs.poetry}/bin/poetry" env info --path)"
+
+      "${pkgs.nodePackages.pyright}/bin/pyright-langserver" "$@"
     '';
 
   poetryRuffLsp = pkgs.writeScriptBin "poetry-ruff-lsp"
