@@ -138,7 +138,7 @@ impl Services {
         data: modbus::registers_to_json(device_data.registers),
       })
       .collect::<Vec<DbMeasurement>>();
-    if measurements.len() == 0 {
+    if measurements.is_empty() {
       return Ok(());
     }
 
