@@ -1,6 +1,7 @@
 import struct
-from typing import Callable, TypeVar, Union, List
+from typing import Any, Callable, Coroutine, TypeVar, Union, List, cast
 from pymodbus.client import AsyncModbusTcpClient
+from pymodbus.pdu import ModbusResponse
 
 TRead = TypeVar("TRead")
 
@@ -36,17 +37,19 @@ class PullClient:
         return None
 
     try:
-      response = self.__modbus_client.read_holding_registers(
-        address=register,
-        count=count,
-        slave=self.__slave_id,
-      )
+      response = await cast(
+        Coroutine[Any, Any, ModbusResponse],
+        self.__modbus_client.read_holding_registers(
+          address=register,
+          count=count,
+          slave=self.__slave_id,
+        ))
       if response.isError():
         print(response)
         return None
 
-      value = convert(
-        *response.registers)  # pyright: ignore reportUnknownMemberType
+      value = convert(*cast(
+        list[int], response.registers))  # pyright: ignore unknownMemberType
       return value
     except Exception:
       return None
