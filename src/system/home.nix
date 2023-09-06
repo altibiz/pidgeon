@@ -6,7 +6,7 @@ let
       #!${pkgs.stdenv.shell}
       set -eo pipefail
 
-      export VIRTUAL_ENV="$("${pkgs.poetry}/bin/poetry" env info --path)"
+      source "$("${pkgs.poetry}/bin/poetry" env info --path)/bin/activate"
 
       "${pkgs.python310Packages.python-lsp-server}/bin/pylsp" "$@"
     '';
@@ -16,7 +16,7 @@ let
       #!${pkgs.stdenv.shell}
       set -eo pipefail
 
-      export VIRTUAL_ENV="$("${pkgs.poetry}/bin/poetry" env info --path)"
+      source "$("${pkgs.poetry}/bin/poetry" env info --path)/bin/activate"
 
       "${pkgs.nodePackages.pyright}/bin/pyright-langserver" "$@"
     '';
@@ -26,7 +26,7 @@ let
       #!${pkgs.stdenv.shell}
       set -eo pipefail
 
-      export VIRTUAL_ENV="$("${pkgs.poetry}/bin/poetry" env info --path)"
+      source "$("${pkgs.poetry}/bin/poetry" env info --path)/bin/activate"
 
       "${pkgs.python310Packages.ruff-lsp}/bin/ruff-lsp" "$@"
     '';
