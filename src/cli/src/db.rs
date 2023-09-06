@@ -64,6 +64,7 @@ impl DbClient {
       options = options.password(password.as_str());
     }
 
+    options = options.ssl_mode(sqlx::postgres::PgSslMode::Disable);
     if ssl {
       options = options.ssl_mode(sqlx::postgres::PgSslMode::Require);
     }
@@ -87,6 +88,7 @@ impl DbClient {
     &self,
     measurements: Vec<DbMeasurement>,
   ) -> Result<(), DbClientError> {
+    dbg!(measurements.clone());
     let mut query_builder =
       QueryBuilder::new("insert into measurements (source, timestamp, data)");
 

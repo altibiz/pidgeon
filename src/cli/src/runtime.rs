@@ -13,7 +13,7 @@ pub struct Runtime {
   pull_interval: Duration,
   push_interval: Duration,
   r#async: tokio::runtime::Runtime,
-  services: Services,
+  config_manager: ConfigManager,
 }
 
 struct Interval {
@@ -37,8 +37,8 @@ pub enum RuntimeError {
 }
 
 macro_rules! interval {
-  ($rt:ident,$handler:ident,$duration:expr) => {{
-    let services = $rt.services.clone();
+  ($rt:ident,$services:ident,$handler:ident,$duration:expr) => {{
+    let services = $services.clone();
     let token = tokio_util::sync::CancellationToken::new();
     let child_token = token.child_token();
     let duration = $duration.clone();
@@ -91,8 +91,6 @@ impl Runtime {
     let config_manager = ConfigManager::new()?;
     let config = config_manager.config()?;
 
-    let services = Services::new(config_manager)?;
-
     let r#async = tokio::runtime::Builder::new_multi_thread()
       .worker_threads(4)
       .enable_all()
@@ -102,8 +100,8 @@ impl Runtime {
       scan_interval: Duration::from_millis(config.runtime.scan_interval),
       pull_interval: Duration::from_millis(config.runtime.pull_interval),
       push_interval: Duration::from_millis(config.runtime.push_interval),
-      services,
       r#async,
+      config_manager,
     };
 
     Ok(runtime)
@@ -114,11 +112,13 @@ impl Runtime {
   }
 
   async fn start_async(&self) -> Result<(), RuntimeError> {
-    self.services.on_setup().await?;
+    let services = Services::new(self.config_manager.clone()).await?;
 
-    let scan = interval!(self, on_scan, self.scan_interval);
-    let pull = interval!(self, on_pull, self.pull_interval);
-    let push = interval!(self, on_push, self.push_interval);
+    services.on_setup().await?;
+
+    let scan = interval!(self, services, on_scan, self.scan_interval);
+    let pull = interval!(self, services, on_pull, self.pull_interval);
+    let push = interval!(self, services, on_push, self.push_interval);
 
     if let Err(error) = tokio::signal::ctrl_c().await {
       tracing::error! { %error, "Failed waiting for Ctrl+C" }

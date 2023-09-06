@@ -38,8 +38,10 @@ pub enum ServiceError {
 }
 
 impl Services {
-  pub fn new(config_manager: ConfigManager) -> Result<Self, ServiceError> {
-    let mut config = config_manager.config()?;
+  pub async fn new(
+    config_manager: ConfigManager,
+  ) -> Result<Self, ServiceError> {
+    let mut config = config_manager.config_async().await?;
 
     let network_scanner = NetworkScanner::new(
       config.network.ip_range,
@@ -135,7 +137,10 @@ impl Services {
         timestamp: chrono::Utc::now(),
         data: modbus::registers_to_json(device_data.registers),
       })
-      .collect();
+      .collect::<Vec<DbMeasurement>>();
+    if measurements.len() <= 0 {
+      return Ok(());
+    }
 
     self.db_client.insert_measurements(measurements).await?;
 
