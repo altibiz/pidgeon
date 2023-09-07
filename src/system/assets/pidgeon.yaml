@@ -27,7 +27,7 @@ modbus:
           kind: 
             string:
               length: 6
-          match: b23 112-100
+          match: "B23 112-100\0"
       registers:
         - name: Voltage L1-N
           address: 0x5B00
