@@ -298,12 +298,8 @@ impl ModbusClient {
 
       match &config.detect {
         DeviceDetect::One(detect) => {
-          if Self::detect_register(
-            mutex.clone(),
-            self.timeout,
-            detect.clone(),
-          )
-          .await
+          if Self::detect_register(mutex.clone(), self.timeout, detect.clone())
+            .await
           {
             return Some(NetworkDevice {
               config: config.clone(),
@@ -378,6 +374,7 @@ impl ModbusClient {
       RegisterValue::S32(value) => value.to_string(),
       RegisterValue::String(value) => value,
     };
+    dbg!(matching_value.clone());
 
     match &r#match {
       Either::Left(value) => matching_value.eq(value),
