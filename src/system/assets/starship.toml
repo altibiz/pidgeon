@@ -1,7 +1,7 @@
 format = """\
 [╭─](bold bright-cyan)\
 
-$username[@](bold bright-cyan)$hostname \
+$username[@](bold bright-cyan)$hostname\
 [\\(](bold bright-cyan)\
 $localip\
 [\\)](bold bright-cyan) \
