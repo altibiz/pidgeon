@@ -3,7 +3,7 @@ use std::time::Duration;
 use thiserror::Error;
 
 use crate::{
-  config::{ConfigManager, ConfigManagerError},
+  config::{self, ConfigManager, ConfigManagerError},
   services::{ServiceError, Services},
 };
 
@@ -83,13 +83,21 @@ macro_rules! kill_intervals {
 
 impl Runtime {
   pub fn new() -> Result<Self, RuntimeError> {
-    let subscriber = tracing_subscriber::FmtSubscriber::new();
+    let config_manager = ConfigManager::new()?;
+    let config = config_manager.config()?;
+
+    let subscriber = tracing_subscriber::FmtSubscriber::builder()
+      .with_max_level(match config.runtime.log_level {
+        config::LogLevel::Trace => tracing::level_filters::LevelFilter::TRACE,
+        config::LogLevel::Debug => tracing::level_filters::LevelFilter::DEBUG,
+        config::LogLevel::Info => tracing::level_filters::LevelFilter::INFO,
+        config::LogLevel::Warn => tracing::level_filters::LevelFilter::DEBUG,
+        config::LogLevel::Error => tracing::level_filters::LevelFilter::ERROR,
+      })
+      .finish();
     if tracing::subscriber::set_global_default(subscriber).is_err() {
       return Err(RuntimeError::LogSetup);
     };
-
-    let config_manager = ConfigManager::new()?;
-    let config = config_manager.config()?;
 
     let r#async = tokio::runtime::Builder::new_multi_thread()
       .worker_threads(4)

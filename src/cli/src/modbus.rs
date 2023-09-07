@@ -377,10 +377,14 @@ impl ModbusClient {
     dbg!(matching_value.clone());
     dbg!(r#match.clone());
 
-    match &r#match {
+    let result = match &r#match {
       Either::Left(value) => matching_value.eq(value),
       Either::Right(regex) => regex.is_match(matching_value.as_str()),
-    }
+    };
+
+    dbg!(result.clone());
+
+    result
   }
 
   async fn read_register(

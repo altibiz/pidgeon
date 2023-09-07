@@ -22,7 +22,7 @@ modbus:
             string:
               length: 1
           # TODO: this is 2 bytes but it surely wont match like this
-          match: \\u{3}\\0
+          match: \u{3}\0
         - address: 0x8960
           kind: 
             string:

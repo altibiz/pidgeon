@@ -24,7 +24,18 @@ struct DbFile {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LogLevel {
+  Trace,
+  Debug,
+  Info,
+  Warn,
+  Error,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct RuntimeFile {
+  log_level: Option<LogLevel>,
   scan_interval: Option<u64>,
   pull_interval: Option<u64>,
   push_interval: Option<u64>,
@@ -138,6 +149,7 @@ struct Config {
 #[derive(Debug, Clone)]
 pub struct ParsedRuntimeConfig {
   pub dev: bool,
+  pub log_level: LogLevel,
   pub scan_interval: u64,
   pub pull_interval: u64,
   pub push_interval: u64,
@@ -301,6 +313,13 @@ impl ConfigManager {
         devices: config.from_file.modbus.devices,
       },
       runtime: ParsedRuntimeConfig {
+        log_level: config.from_file.runtime.log_level.unwrap_or(
+          if config.from_args.dev {
+            LogLevel::Debug
+          } else {
+            LogLevel::Info
+          },
+        ),
         dev: config.from_args.dev,
         scan_interval: config.from_file.runtime.scan_interval.unwrap_or(60000),
         pull_interval,
