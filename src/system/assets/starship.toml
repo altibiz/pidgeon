@@ -203,6 +203,10 @@ symbol = " "
 format = "[$symbol($version)]($style) "
 symbol = " "
 
+[dotnet]
+format = "[$symbol($version)(🎯 $tfm)]($style) "
+symbol = " "
+
 [time]
 format = "[at](italic dimmed white) [$time]($style) "
 disabled = false
