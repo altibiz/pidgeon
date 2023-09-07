@@ -6,7 +6,7 @@ $username[@](bold bright-cyan)$hostname \
 $localip\
 [\\)](bold bright-cyan) \
 
-[using](white italic) $shlvl$shell \
+[using](italic) $shlvl$shell \
 [\\(](bold bright-cyan) \
 $aws\
 $azure\
@@ -32,6 +32,8 @@ $memory_usage\
 $line_break\
 
 [│](bold cyan) \
+
+[in](italic dimmed white) $directory$vcsh\
 
 $package\
 [\\[](bold bright-cyan) \
@@ -68,7 +70,6 @@ $zig\
 $crystal\
 [\\]](bold bright-cyan) \
 
-[in](white italic) $directory$vcsh\
 $git_branch$hg_branch\
 $git_commit$git_state$git_metrics$git_status\
 
@@ -179,7 +180,7 @@ format = "[$symbol($version)]($style)"
 symbol = " "
 
 [python]
-format = "[${symbol}${pyenv_prefix}(${version} )(\\($virtualenv\\))]($style) "
+format = "[${symbol}${pyenv_prefix}(${version})(\\($virtualenv\\))]($style) "
 symbol = " "
 
 [ruby]
@@ -203,12 +204,12 @@ format = "[$symbol($version)]($style) "
 symbol = " "
 
 [time]
-format = "[at](white italic) [$time]($style) "
+format = "[at](italic dimmed white) [$time]($style) "
 disabled = false
 
 [cmd_duration]
 min_time = 1
-format = "[took](white italic) [$duration]($style)"
+format = "[took](italic dimmed white) [$duration]($style)"
 disabled = false
 style = "underline bold bright-yellow"
 
@@ -259,7 +260,7 @@ behind = "${count}"
 deleted = "x"
 
 [character]
-success_symbol = "[󰞷 ](bold green)"
+success_symbol = "[󰞷](bold green)"
 vicmd_symbol = "[ ](bold green)"
 error_symbol = "[ ](bold bright-red)"
 
