@@ -6,7 +6,7 @@ $username[@](bold bright-cyan)$hostname\
 $localip\
 [\\)](bold bright-cyan) \
 
-[using](italic) $shlvl$shell \
+[using](italic dimmed white) $shlvl$shell \
 [\\(](bold bright-cyan) \
 $aws\
 $azure\
