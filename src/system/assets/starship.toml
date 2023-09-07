@@ -1,26 +1,28 @@
 format = """\
 [╭─](bold bright-cyan)\
-$username[@](bold bright-cyan)$hostname \
-[\\(](bold bright-cyan)$localip[\\)](bold bright-cyan) \
-[using](white italic) $shlvl[$shell](bold dimmed red)\
 
-[\\[](bold bright-cyan)\
+$username[@](bold bright-cyan)$hostname \
+[\\(](bold bright-cyan)\
+$localip\
+[\\)](bold bright-cyan) \
+
+[using](white italic) $shlvl $shell \
+[\\(](bold bright-cyan) \
 $aws\
 $azure\
 $gcloud\
 $openstack\
 $singularity\
-
 $container\
 $docker_context\
 $kubernetes\
 $terraform\
-
 $nix_shell\
-$helm\
 $conda\
+[\\)](bold bright-cyan) \
+[\\[](bold bright-cyan) \
+$helm\
 $cmake\
-
 $cobol\
 $dart\
 $deno\
@@ -50,8 +52,7 @@ $vlang\
 $vagrant\
 $zig\
 $crystal\
-
-[\\]](bold bright-cyan)\
+[\\]](bold bright-cyan) \
 
 $jobs\
 $time\
@@ -68,7 +69,6 @@ $package\
 [in](white italic) $directory$vcsh\
 $git_branch$hg_branch\
 $git_commit$git_state$git_metrics$git_status\
-$time\
 $line_break\
 
 [╰─](bold dimmed cyan)\
@@ -97,6 +97,7 @@ style = "bold purple"
 disabled = false
 
 [shell]
+format = "[$indicator]($style)"
 fish_indicator = "󰈺 "
 bash_indicator = " "
 style ="10 bold"
@@ -104,76 +105,98 @@ disabled = false
 
 [shlvl]
 threshold = 2
-format = "[$symbol]($style) "
+format = "[$symbol]($style)"
 symbol = ""
 repeat = true
 style = "dimmed yellow"
 disabled = false
 
 [aws]
+format ="[$symbol($profile )(\\($region\\) )(\\[$duration\\])]($style) "
 symbol = " "
 
 [azure]
+format = "[$symbol($subscription)]($style) "
 symbol = " "
 
 [conda]
+format = "[$symbol$environment]($style) "
 symbol = " "
 
 [dart]
+format = "[$symbol($version)]($style) "
 symbol = " "
 
 [docker_context]
+format = "[$symbol$context]($style) "
 symbol = " "
 
 [container]
+format = "[$symbol \\[$name\\]]($style) "
 symbol = " "
 
 [elixir]
+format = "[$symbol($version \\(OTP $otp_version\\))]($style) "
 symbol = " "
 
 [elm]
+format = "[$symbol($version)]($style) "
 symbol = " "
 
 [golang]
+format = "[$symbol($version)]($style) "
 symbol = " "
 
 [java]
+format = "[$symbol($version)]($style) "
 symbol = " "
 
 [julia]
+format = "[$symbol($version)]($style) "
 symbol = " "
 
 [nim]
+format = "[$symbol($version)]($style) "
 symbol = " "
 
 [nix_shell]
+format = "[$symbol$state( \\($name\\))]($style) "
 symbol = " "
 
 [nodejs]
+format = "[$symbol($version)]($style) "
 symbol = " "
 
 [perl]
+format = "[$symbol($version)]($style) "
 symbol = " "
 
 [php]
+format = "[$symbol($version)]($style)"
 symbol = " "
 
 [python]
+format = "[${symbol}${pyenv_prefix}(${version} )(\\($virtualenv\\))]($style) "
 symbol = " "
 
 [ruby]
+format = "[$symbol($version)]($style) "
 symbol = " "
 
 [rust]
+format = "[$symbol($version)]($style) "
 symbol = " "
 
 [swift]
+format = "[$symbol($version)]($style) "
 symbol = "ﯣ "
 
 [cmake]
+format = "[$symbol($version)]($style) "
 symbol = " "
 
 [lua]
+format = "[$symbol($version)]($style) "
 symbol = " "
 
 [time]
