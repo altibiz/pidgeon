@@ -1,7 +1,7 @@
 format = """\
-[╭─](bold cyan)\
+[╭─](bold bright-cyan)\
 $username[@](bold bright-cyan)$hostname \
-[(](bold bright-cyan)$localip[)](bold bright-cyan) \
+[\\(](bold bright-cyan)$localip[\\)](bold bright-cyan) \
 [using](white italic) $shlvl[$shell](bold dimmed red)\
 
 $aws\
@@ -68,7 +68,7 @@ $git_commit$git_state$git_metrics$git_status\
 $time\
 $line_break\
 
-[╰─](bold cyan)\
+[╰─](bold dimmed cyan)\
 """
 
 scan_timeout = 500
