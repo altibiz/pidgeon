@@ -40,6 +40,7 @@ impl NetworkScanner {
     self.ips.lock().await.clone()
   }
 
+  #[tracing::instrument(skip(self))]
   pub async fn scan(&self) -> Vec<IpAddr> {
     let mut matched_ips: Vec<IpAddr> = Vec::new();
     let ip_scans = self
@@ -52,6 +53,11 @@ impl NetworkScanner {
         matched_ips.push(ip)
       }
     }
+
+    tracing::debug! {
+      "Found {:?} ips",
+      matched_ips.len()
+    };
 
     {
       let mut ips = self.ips.lock().await;

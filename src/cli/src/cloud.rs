@@ -79,8 +79,23 @@ impl CloudClient {
       .send()
       .await?;
 
-    let success = http_response.status().is_success();
+    let status_code = http_response.status();
+    let success = status_code.is_success();
     let text = http_response.text().await?;
+
+    if success {
+      tracing::debug! {
+        "Successfully pushed {:?} measurements",
+        measurements.len()
+      };
+    } else {
+      tracing::warn! {
+        "Failed pushing {:?} measurements: {:?} {:?}",
+        measurements.len(),
+        status_code,
+        text.clone()
+      };
+    }
 
     let response = CloudResponse { success, text };
 

@@ -27,6 +27,9 @@ modbus:
             string:
               length: 6
           match: "B23 112-100\0"
+      id:
+        address: 0x8900
+        kind: u32
       registers:
         - name: Voltage L1-N
           address: 0x5B00

@@ -38,11 +38,6 @@ pub struct RegisterConfig {
   pub kind: RegisterKind,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum DeviceKind {
-  Abb,
-}
-
 #[derive(Debug, Clone)]
 pub struct DetectRegister {
   pub address: u16,
@@ -51,21 +46,23 @@ pub struct DetectRegister {
 }
 
 #[derive(Debug, Clone)]
-pub enum DeviceDetect {
-  One(DetectRegister),
-  Many(Vec<DetectRegister>),
+pub struct IdRegister {
+  pub address: u16,
+  pub kind: RegisterKind,
 }
 
 #[derive(Debug, Clone)]
 pub struct DeviceConfig {
-  pub kind: DeviceKind,
-  pub detect: DeviceDetect,
+  pub kind: String,
+  pub detect: Vec<DetectRegister>,
+  pub id: Vec<IdRegister>,
   pub registers: Vec<RegisterConfig>,
 }
 
 #[derive(Debug, Clone)]
 struct NetworkDevice {
   connection_id: ConnectionId,
+  id: String,
   config: DeviceConfig,
 }
 
@@ -155,6 +152,11 @@ impl ModbusClient {
     }
     tracing::Span::current().record("count", network_devices.len());
 
+    tracing::debug! {
+      "Found {:?} devices",
+      network_devices.len()
+    };
+
     {
       *self.network_devices.lock().await = network_devices;
     };
@@ -237,6 +239,11 @@ impl ModbusClient {
     }
     tracing::Span::current().record("read", read);
 
+    tracing::debug! {
+      "Read {:?} devices",
+      data.len()
+    };
+
     Ok(data)
   }
 
@@ -285,54 +292,53 @@ impl ModbusClient {
     ip: IpAddr,
     slave: Option<SlaveId>,
   ) -> Option<NetworkDevice> {
-    let id = match Self::make_connection_id(ip, slave) {
-      Ok(id) => id,
+    let connection_id = match Self::make_connection_id(ip, slave) {
+      Ok(connection_id) => connection_id,
       _ => return None,
     };
 
     for config in self.devices.iter() {
-      let mutex = match self.connect(id.clone()).await {
+      let mutex = match self.connect(connection_id.clone()).await {
         Ok(mutex) => mutex,
         _ => continue,
       };
 
-      match &config.detect {
-        DeviceDetect::One(detect) => {
-          if Self::detect_register(mutex.clone(), self.timeout, detect.clone())
-            .await
-          {
-            return Some(NetworkDevice {
-              config: config.clone(),
-              connection_id: id,
-            });
-          }
+      let tasks = config.detect.iter().map(|detect| {
+        let task_mutext = mutex.clone();
+        let task_timeout = self.timeout;
+        let task_detect = detect.clone();
+
+        tokio::spawn(async move {
+          Self::detect_register(task_mutext, task_timeout, task_detect).await
+        })
+      });
+
+      let mut detected = true;
+      for task in tasks {
+        if !task.await.unwrap_or(false) {
+          detected = false;
+          break;
         }
-        DeviceDetect::Many(detects) => {
-          let tasks = detects.iter().map(|detect| {
-            let task_mutext = mutex.clone();
-            let task_timeout = self.timeout;
-            let task_detect = detect.clone();
+      }
+      if !detected {
+        continue;
+      }
 
-            tokio::spawn(async move {
-              Self::detect_register(task_mutext, task_timeout, task_detect)
-                .await
-            })
-          });
-
-          let mut detected = true;
-          for task in tasks {
-            if !task.await.unwrap_or(false) {
-              detected = false;
-              break;
-            }
-          }
-
-          if detected {
-            return Some(NetworkDevice {
-              config: config.clone(),
-              connection_id: id,
-            });
-          }
+      let id = Self::get_id(
+        mutex.clone(),
+        self.timeout,
+        config.kind.clone(),
+        config.id.clone(),
+      )
+      .await;
+      match id {
+        None => continue,
+        Some(id) => {
+          return Some(NetworkDevice {
+            config: config.clone(),
+            connection_id,
+            id,
+          })
         }
       }
     }
@@ -363,28 +369,58 @@ impl ModbusClient {
     Self::match_register(value, detect.r#match.clone())
   }
 
+  async fn get_id(
+    mutex: Arc<Mutex<Connection>>,
+    timeout: futures_time::time::Duration,
+    kind: String,
+    registers: Vec<IdRegister>,
+  ) -> Option<String> {
+    let mut id = kind.clone();
+
+    for register in registers {
+      let value = Self::read_register(
+        mutex.clone(),
+        timeout.clone(),
+        RegisterConfig {
+          name: "id".to_string(),
+          address: register.address,
+          kind: register.kind,
+        },
+      )
+      .await
+      .ok();
+
+      match value {
+        None => return None,
+        Some(value) => {
+          id = id + Self::register_to_string(value).as_str();
+        }
+      }
+    }
+
+    Some(id)
+  }
+
   fn match_register(
     value: RegisterValue,
     r#match: Either<String, Regex>,
   ) -> bool {
-    let matching_value = match value {
+    let matching_value = Self::register_to_string(value);
+
+    match &r#match {
+      Either::Left(value) => matching_value.eq(value),
+      Either::Right(regex) => regex.is_match(matching_value.as_str()),
+    }
+  }
+
+  fn register_to_string(value: RegisterValue) -> String {
+    match value {
       RegisterValue::U16(value) => value.to_string(),
       RegisterValue::U32(value) => value.to_string(),
       RegisterValue::S16(value) => value.to_string(),
       RegisterValue::S32(value) => value.to_string(),
       RegisterValue::String(value) => value,
-    };
-    dbg!(matching_value.clone());
-    dbg!(r#match.clone());
-
-    let result = match &r#match {
-      Either::Left(value) => matching_value.eq(value),
-      Either::Right(regex) => regex.is_match(matching_value.as_str()),
-    };
-
-    dbg!(result);
-
-    result
+    }
   }
 
   async fn read_register(

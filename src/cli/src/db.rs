@@ -88,7 +88,6 @@ impl DbClient {
     &self,
     measurements: Vec<DbMeasurement>,
   ) -> Result<(), DbClientError> {
-    dbg!(measurements.clone());
     let mut query_builder =
       QueryBuilder::new("insert into measurements (source, timestamp, data)");
 

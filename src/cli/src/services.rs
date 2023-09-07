@@ -56,19 +56,24 @@ impl Services {
         .drain()
         .map(|(kind, mut device)| modbus::DeviceConfig {
           detect: match device.detect {
-            config::DeviceDetect::One(register) => modbus::DeviceDetect::One(
-              Self::to_modbus_detect_register(register),
-            ),
-            config::DeviceDetect::Many(mut registers) => {
-              modbus::DeviceDetect::Many(
-                registers
-                  .drain(0..)
-                  .map(Self::to_modbus_detect_register)
-                  .collect(),
-              )
+            config::DeviceDetect::One(register) => {
+              vec![Self::to_modbus_detect_register(register)]
             }
+            config::DeviceDetect::Many(mut registers) => registers
+              .drain(0..)
+              .map(Self::to_modbus_detect_register)
+              .collect(),
           },
-          kind: Self::to_modbus_device(kind),
+          id: match device.id {
+            config::DeviceId::One(register) => {
+              vec![Self::to_modbus_id_register(register)]
+            }
+            config::DeviceId::Many(mut registers) => registers
+              .drain(0..)
+              .map(Self::to_modbus_id_register)
+              .collect(),
+          },
+          kind,
           registers: device
             .registers
             .drain(0..)
@@ -130,7 +135,7 @@ impl Services {
   pub async fn on_pull(&self) -> Result<(), ServiceError> {
     let mut device_data = self.modbus_client.read().await?;
     let measurements = device_data
-      .drain(..0)
+      .drain(0..)
       .map(|device_data| DbMeasurement {
         id: 0,
         source: "todo".to_string(),
@@ -213,6 +218,13 @@ impl Services {
     }
   }
 
+  fn to_modbus_id_register(register: config::IdRegister) -> modbus::IdRegister {
+    modbus::IdRegister {
+      address: register.address,
+      kind: Self::to_modbus_register(register.kind),
+    }
+  }
+
   fn to_modbus_register(
     register: config::RegisterKind,
   ) -> modbus::RegisterKind {
@@ -224,12 +236,6 @@ impl Services {
       config::RegisterKind::String(config::StringRegisterKind { length }) => {
         modbus::RegisterKind::String(modbus::StringRegisterKind { length })
       }
-    }
-  }
-
-  fn to_modbus_device(device: config::DeviceKind) -> modbus::DeviceKind {
-    match device {
-      config::DeviceKind::Abb => modbus::DeviceKind::Abb,
     }
   }
 }

@@ -41,12 +41,6 @@ struct RuntimeFile {
   push_interval: Option<u64>,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum DeviceKind {
-  Abb,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Register {
   pub name: String,
@@ -84,15 +78,29 @@ pub enum DeviceDetect {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IdRegister {
+  pub address: u16,
+  pub kind: RegisterKind,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum DeviceId {
+  One(IdRegister),
+  Many(Vec<IdRegister>),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeviceConfig {
   pub detect: DeviceDetect,
+  pub id: DeviceId,
   pub registers: Vec<Register>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ModbusFile {
   timeout: u64,
-  devices: HashMap<DeviceKind, DeviceConfig>,
+  devices: HashMap<String, DeviceConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -183,7 +191,7 @@ pub struct ParsedCloudConfig {
 #[derive(Debug, Clone)]
 pub struct ParsedModbusConfig {
   pub timeout: u64,
-  pub devices: HashMap<DeviceKind, DeviceConfig>,
+  pub devices: HashMap<String, DeviceConfig>,
 }
 
 #[derive(Debug, Clone)]
