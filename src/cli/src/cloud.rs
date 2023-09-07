@@ -10,9 +10,15 @@ use thiserror::Error;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CloudMeasurement {
-  pub source: String,
+  pub device_id: String,
   pub timestamp: DateTime<Utc>,
   pub data: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct PushRequest {
+  timestamp: DateTime<Utc>,
+  measurements: Vec<CloudMeasurement>,
 }
 
 #[derive(Debug, Clone)]
@@ -92,10 +98,15 @@ impl CloudClient {
     &self,
     measurements: Vec<CloudMeasurement>,
   ) -> Result<CloudResponse, CloudClientError> {
+    let request = PushRequest {
+      timestamp: chrono::offset::Utc::now(),
+      measurements,
+    };
+
     let http_response = self
       .http
       .post(self.push_endpoint.clone())
-      .json(&measurements)
+      .json(&request)
       .send()
       .await?;
 
@@ -106,12 +117,12 @@ impl CloudClient {
     if success {
       tracing::debug! {
         "Successfully pushed {:?} measurements",
-        measurements.len()
+        request.measurements.len()
       };
     } else {
       tracing::warn! {
         "Failed pushing {:?} measurements: {:?} {:?}",
-        measurements.len(),
+        request.measurements.len(),
         status_code,
         text.clone()
       };

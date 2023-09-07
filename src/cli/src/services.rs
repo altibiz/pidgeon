@@ -175,7 +175,7 @@ impl Services {
         measurements_to_push
           .drain(0..)
           .map(|measurement| CloudMeasurement {
-            source: measurement.source,
+            device_id: measurement.source,
             timestamp: measurement.timestamp,
             data: measurement.data,
           })
