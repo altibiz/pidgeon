@@ -44,7 +44,7 @@
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = inputs // { username = username; };
-            home-manager.users."${username}" = { ... } @ inputs: {
+            home-manager.users."${username}" = { ... }: {
               imports = [
                 vscode-server.nixosModules.home
                 ./src/system/home.nix
