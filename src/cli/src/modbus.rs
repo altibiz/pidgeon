@@ -69,6 +69,7 @@ struct NetworkDevice {
 #[derive(Debug, Clone)]
 pub struct DeviceData {
   pub device: DeviceConfig,
+  pub id: String,
   pub registers: Vec<RegisterData>,
 }
 
@@ -205,6 +206,7 @@ impl ModbusClient {
       };
       let mut device_data: DeviceData = DeviceData {
         device: device.config.clone(),
+        id: device.id.clone(),
         registers: Vec::new(),
       };
 

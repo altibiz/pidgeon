@@ -102,6 +102,7 @@ impl Services {
       config.cloud.ssl,
       config.cloud.api_key,
       config.cloud.timeout,
+      config.cloud.id,
     )?;
 
     let services = Services {
@@ -138,7 +139,7 @@ impl Services {
       .drain(0..)
       .map(|device_data| DbMeasurement {
         id: 0,
-        source: "todo".to_string(),
+        source: device_data.id,
         timestamp: chrono::Utc::now(),
         data: modbus::registers_to_json(device_data.registers),
       })

@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{fs, time::Duration};
 
 use chrono::{DateTime, Utc};
 use reqwest::{
@@ -32,8 +32,11 @@ pub enum CloudClientError {
   #[error("HTTP error")]
   HttpError(#[from] HttpError),
 
-  #[error("Invalid header  error")]
+  #[error("Invalid header error")]
   InvalidHeader(#[from] InvalidHeaderValue),
+
+  #[error("IO error")]
+  IO(#[from] std::io::Error),
 }
 
 impl CloudClient {
@@ -42,15 +45,32 @@ impl CloudClient {
     ssl: bool,
     api_key: Option<String>,
     timeout: u64,
+    id: Option<String>,
   ) -> Result<Self, CloudClientError> {
+    let id = match id {
+      Some(id) => id,
+      None => {
+        "raspberry-pi-".to_string()
+          + fs::read_to_string("/sys/firmware/devicetree/base/serial-number")?
+            .as_str()
+      }
+    };
+
     let protocol = if ssl { "https" } else { "http" };
-    let push_endpoint = format!("{protocol}://{domain}/push");
+
+    let push_endpoint = format!("{protocol}://{domain}/push/{id}");
 
     let mut headers = HeaderMap::new();
-    if let Some(api_key) = api_key {
-      let value = HeaderValue::from_str(api_key.as_str())?;
-      headers.insert("X-API-Key", value);
-    }
+    match api_key {
+      Some(api_key) => {
+        let value = HeaderValue::from_str(api_key.as_str())?;
+        headers.insert("X-API-Key", value);
+      }
+      None => {
+        let value = HeaderValue::from_str((id + "-oil-rulz-5000").as_str())?;
+        headers.insert("X-API-Key", value);
+      }
+    };
 
     let builder = HttpClient::builder()
       .timeout(Duration::from_millis(timeout))

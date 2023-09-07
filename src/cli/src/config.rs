@@ -122,6 +122,7 @@ struct CloudEnv {
   ssl: bool,
   domain: String,
   api_key: Option<String>,
+  id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -186,6 +187,7 @@ pub struct ParsedCloudConfig {
   pub ssl: bool,
   pub domain: String,
   pub api_key: Option<String>,
+  pub id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -295,6 +297,7 @@ impl ConfigManager {
         ssl: config.from_env.cloud.ssl,
         domain: config.from_env.cloud.domain,
         api_key: config.from_env.cloud.api_key,
+        id: config.from_env.cloud.id,
       },
       db: ParsedDbConfig {
         timeout: config.from_file.db.timeout.unwrap_or(pull_interval),
@@ -412,6 +415,7 @@ impl ConfigManager {
         ssl: env::var("PIDGEON_CLOUD_SSL").map_or_else(|_| false, |_| true),
         domain: env::var("PIDGEON_CLOUD_DOMAIN")?,
         api_key: env::var("PIDGEON_CLOUD_API_KEY").ok(),
+        id: env::var("PIDGEON_CLOUD_ID").ok(),
       },
       db: DbEnv {
         ssl: env::var("PIDGEON_DB_SSL").map_or_else(|_| false, |_| true),
