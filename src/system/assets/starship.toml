@@ -6,7 +6,7 @@ $username[@](bold bright-cyan)$hostname \
 $localip\
 [\\)](bold bright-cyan) \
 
-[using](white italic) $shlvl $shell \
+[using](white italic) $shlvl$shell \
 [\\(](bold bright-cyan) \
 $aws\
 $azure\
@@ -200,6 +200,7 @@ format = "[$symbol($version)]($style) "
 symbol = " "
 
 [time]
+format = "[at](white italic) [$time]($style) "
 disabled = false
 
 [cmd_duration]
