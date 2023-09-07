@@ -375,6 +375,7 @@ impl ModbusClient {
       RegisterValue::String(value) => value,
     };
     dbg!(matching_value.clone());
+    dbg!(r#match.clone());
 
     match &r#match {
       Either::Left(value) => matching_value.eq(value),
