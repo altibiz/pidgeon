@@ -382,7 +382,7 @@ impl ModbusClient {
       Either::Right(regex) => regex.is_match(matching_value.as_str()),
     };
 
-    dbg!(result.clone());
+    dbg!(result);
 
     result
   }
