@@ -10,6 +10,10 @@
   nix.extraOptions = "experimental-features = nix-command flakes";
   nixpkgs.config = import ./assets/config.nix;
 
+  location.provider = "geoclue2";
+  time.timeZone = "Etc/UTC";
+  i18n.defaultLocale = "en_US.UTF-8";
+
   services.openssh.enable = true;
   services.openssh.settings.PasswordAuthentication = true;
   networking.hostName = hostname;
