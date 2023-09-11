@@ -285,9 +285,6 @@ in
   services.gpg-agent.enable = true;
   services.gpg-agent.pinentryFlavor = "tty";
   programs.ssh.enable = true;
-  services.vscode-server.enable = true;
-  services.vscode-server.enableFHS = true;
-  services.vscode-server.nodejsPackage = pkgs.nodejs_20;
 
   home.stateVersion = "23.11";
 }

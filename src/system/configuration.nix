@@ -1,9 +1,9 @@
-{ self, pkgs, config, hostname, ... }:
+{ pkgs, config, hostname, username, ... }:
 
 {
-  sops.defaultSopsFile = "${self}/secrets/secrets.enc.yaml";
-  sops.age.keyFile = "/var/lib/sops-nix/key.txt";
-  sops.age.generateKey = true;
+  sops.defaultSopsFile = ./secrets/secrets.enc.yaml;
+  environment.etc."sops-nix/key.txt".source = ./secrets/pidgeon-age.key;
+  sops.age.keyFile = "/etc/sops-nix/key.txt";
 
   nix.package = pkgs.nixFlakes;
   nix.extraOptions = "experimental-features = nix-command flakes";
@@ -64,20 +64,31 @@
   networking.firewall.allowedTCPPorts = [ 5432 ];
   services.postgresql.settings.ssl = "on";
   services.postgresql.settings.ssl_cert_file = "/etc/postgresql/server.crt";
-  sops.secrets."server.crt".path = "/etc/postgresql/server.crt";
-  sops.secrets."server.crt".owner = "postgres";
-  sops.secrets."server.crt".group = "postgres";
-  sops.secrets."server.crt".mode = "0600";
+  sops.secrets."postgres.crt".path = "/etc/postgresql/server.crt";
+  sops.secrets."postgres.crt".owner = "postgres";
+  sops.secrets."postgres.crt".group = "postgres";
+  sops.secrets."postgres.crt".mode = "0600";
   services.postgresql.settings.ssl_key_file = "/etc/postgresql/server.key";
-  sops.secrets."server.key".path = "/etc/postgresql/server.key";
-  sops.secrets."server.key".owner = "postgres";
-  sops.secrets."server.key".group = "postgres";
-  sops.secrets."server.key".mode = "0600";
-  services.postgresql.initialScript = "/etc/postgresql/init.sql";
-  sops.secrets."init.sql".path = "/etc/postgresql/init.sql";
-  sops.secrets."init.sql".owner = "postgres";
-  sops.secrets."init.sql".group = "postgres";
-  sops.secrets."init.sql".mode = "0600";
+  sops.secrets."postgres.key".path = "/etc/postgresql/server.key";
+  sops.secrets."postgres.key".owner = "postgres";
+  sops.secrets."postgres.key".group = "postgres";
+  sops.secrets."postgres.key".mode = "0600";
+  services.postgresql.initialScript = "/etc/postgresql/passwords.sql";
+  sops.secrets."passwords.sql".path = "/etc/postgresql/passwords.sql";
+  sops.secrets."passwords.sql".owner = "postgres";
+  sops.secrets."passwords.sql".group = "postgres";
+  sops.secrets."passwords.sql".mode = "0600";
+
+  users.users."${username}" = {
+    isNormalUser = true;
+    initialPassword = (builtins.readFile ./secrets/password.key);
+    # TODO: remove?
+    extraGroups = [ "wheel" ];
+    shell = pkgs.nushell;
+    openssh.authorizedKeys.keys = [
+      (builtins.readFile ./secrets/authorized.pub)
+    ];
+  };
 
   system.stateVersion = "23.11";
 }

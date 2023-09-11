@@ -13,12 +13,9 @@
 
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
-
-    vscode-server.url = "github:nix-community/nixos-vscode-server";
-    vscode-server.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, home-manager, sops-nix, vscode-server, ... } @ inputs:
+  outputs = { self, nixpkgs, home-manager, sops-nix, ... } @ inputs:
     let
       hostname = "pidgeon";
       username = "pidgeon";
@@ -26,18 +23,10 @@
     {
       nixosConfigurations.pidgeon = nixpkgs.lib.nixosSystem {
         system = "aarch64-linux";
-        specialArgs = inputs // { hostname = hostname; };
+        specialArgs = inputs // { hostname = hostname; username = username; };
         modules = [
           ./src/system/hardware-configuration.nix
           ./src/system/configuration.nix
-          ({ pkgs, ... }: {
-            users.users."${username}" = {
-              isNormalUser = true;
-              initialPassword = username;
-              extraGroups = [ "wheel" ];
-              shell = pkgs.nushell;
-            };
-          })
           sops-nix.nixosModules.sops
           home-manager.nixosModules.home-manager
           {
@@ -46,7 +35,6 @@
             home-manager.extraSpecialArgs = inputs // { username = username; };
             home-manager.users."${username}" = { ... }: {
               imports = [
-                vscode-server.nixosModules.home
                 ./src/system/home.nix
               ];
             };
