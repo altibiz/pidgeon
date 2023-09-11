@@ -11,6 +11,12 @@
   };
   sops.age.keyFile = "/etc/sops-nix/key.txt";
 
+  system.activationScripts."myoverlycomplicatedscriptname".text = ''
+    #!${pkgs.stdenv.shell}
+
+    printf "Hello, World!"
+  '';
+
   nix.package = pkgs.nixFlakes;
   nix.extraOptions = "experimental-features = nix-command flakes";
   nixpkgs.config = import ./assets/config.nix;
