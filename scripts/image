@@ -1,2 +1,8 @@
 #!/usr/bin/env bash
 set -eo pipefail
+
+SCRIPTS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$(dirname "$SCRIPTS")" && pwd)"
+
+mksecrets "$*"
+nix build "path:${ROOT}#nixosConfigurations.pidgeon.config.system.build.sdImage"

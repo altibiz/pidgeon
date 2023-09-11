@@ -123,6 +123,7 @@ in
     sd
     tshark
     sqlx-cli
+    jq
   ];
 
   # dev
