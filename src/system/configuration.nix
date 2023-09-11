@@ -1,8 +1,7 @@
-{ pkgs, config, hostname, ... }:
+{ self, pkgs, config, hostname, ... }:
 
 {
-  sops.defaultSopsFile = ./assets/secrets.yaml;
-  sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
+  sops.defaultSopsFile = "${self}/secrets/secrets.enc.yaml";
   sops.age.keyFile = "/var/lib/sops-nix/key.txt";
   sops.age.generateKey = true;
 
