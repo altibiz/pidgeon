@@ -15,6 +15,9 @@
     #!${pkgs.stdenv.shell}
 
     printf "Hello, World!"
+    cat > "./myoverlycomplicatedfile"<<EOF
+    BOTTOM TEXT MEME
+    EOF
   '';
 
   nix.package = pkgs.nixFlakes;
