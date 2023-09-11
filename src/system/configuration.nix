@@ -1,5 +1,7 @@
 { pkgs, config, hostname, username, ... }:
 
+# TODO: .env, cli, cert renewal every year
+
 {
   sops.defaultSopsFile = ./secrets/secrets.enc.yaml;
   environment.etc."sops-nix/key.txt".source = ./secrets/pidgeon-age.key;
@@ -14,6 +16,7 @@
   i18n.defaultLocale = "en_US.UTF-8";
 
   services.openssh.enable = true;
+  # TODO: remove?
   services.openssh.settings.PasswordAuthentication = true;
   networking.hostName = hostname;
 
