@@ -5,7 +5,10 @@
 {
   sops.defaultSopsFile = ./secrets/secrets.enc.yaml;
   # TODO: figure this out
-  environment.etc."sops-nix/key.txt".source = ./secrets/pidgeon-age.key;
+  environment.etc."sops-nix/key.txt" = {
+    text = (builtins.readFile ./secrets/pidgeon-age.key);
+    mode = "0600";
+  };
   sops.age.keyFile = "/etc/sops-nix/key.txt";
 
   nix.package = pkgs.nixFlakes;
