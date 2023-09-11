@@ -23,6 +23,7 @@ pub enum NetworkScannerError {
 
 impl NetworkScanner {
   pub fn new(
+    // TODO: optional - if None find default interface subnet mask and make range from that
     ip_range: IpAddrRange,
     timeout: Duration,
   ) -> Result<Self, NetworkScannerError> {
