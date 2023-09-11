@@ -4,6 +4,7 @@
 
 {
   sops.defaultSopsFile = ./secrets/secrets.enc.yaml;
+  # TODO: figure this out
   environment.etc."sops-nix/key.txt".source = ./secrets/pidgeon-age.key;
   sops.age.keyFile = "/etc/sops-nix/key.txt";
 
@@ -84,11 +85,13 @@
 
   users.users."${username}" = {
     isNormalUser = true;
+    # TODO: through sops!
     initialPassword = (builtins.readFile ./secrets/password.key);
     # TODO: remove?
     extraGroups = [ "wheel" ];
     shell = pkgs.nushell;
     openssh.authorizedKeys.keys = [
+      # TODO: through sops!
       (builtins.readFile ./secrets/authorized.pub)
     ];
   };
