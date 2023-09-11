@@ -56,7 +56,7 @@ impl CloudClient {
     let id = match id {
       Some(id) => id,
       None => {
-        "raspberry-pi-".to_string()
+        "pidgeon-".to_string()
           + fs::read_to_string("/sys/firmware/devicetree/base/serial-number")?
             .as_str()
       }
