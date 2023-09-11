@@ -190,4 +190,4 @@ cython_debug/
 # User
 
 .env
-secrets.nix
+secrets/

@@ -6,8 +6,6 @@
   sops.age.keyFile = "/var/lib/sops-nix/key.txt";
   sops.age.generateKey = true;
 
-  environment.etc."test".text = (import ./secrets.nix).password;
-
   nix.package = pkgs.nixFlakes;
   nix.extraOptions = "experimental-features = nix-command flakes";
   nixpkgs.config = import ./assets/config.nix;

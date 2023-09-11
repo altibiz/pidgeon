@@ -100,6 +100,7 @@ in
     clippy
     rustfmt
     rust-analyzer
+    shfmt
     nodePackages.bash-language-server
     nodePackages.yaml-language-server
     taplo
@@ -185,6 +186,11 @@ in
           args = [ "--stdio" ];
         };
         config = { };
+      }
+      {
+        name = "bash";
+        auto-format = true;
+        formatter = { command = "${pkgs.shfmt}/bin/shfmt"; };
       }
       {
         name = "nix";
