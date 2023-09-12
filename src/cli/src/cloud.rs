@@ -108,7 +108,15 @@ impl CloudClient {
       .post(self.push_endpoint.clone())
       .json(&request)
       .send()
-      .await?;
+      .await;
+    if let Err(error) = &http_response {
+      tracing::warn! {
+        %error,
+        "Failed pushing {:?} measurements: connection error",
+        request.measurements.len(),
+      }
+    }
+    let http_response = http_response?;
 
     let status_code = http_response.status();
     let success = status_code.is_success();

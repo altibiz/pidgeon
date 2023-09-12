@@ -192,7 +192,7 @@ impl Services {
         success: false,
         text,
       }) => (DbLogKind::Failure, text),
-      Err(_) => (DbLogKind::Failure, "".to_string()),
+      Err(_) => (DbLogKind::Failure, "connection error".to_string()),
     };
     let log = DbLog {
       id: 0,
