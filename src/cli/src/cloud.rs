@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CloudMeasurement {
   pub device_id: String,
   pub timestamp: DateTime<Utc>,
@@ -16,6 +17,7 @@ pub struct CloudMeasurement {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct PushRequest {
   timestamp: DateTime<Utc>,
   measurements: Vec<CloudMeasurement>,
