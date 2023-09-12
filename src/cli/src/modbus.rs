@@ -377,7 +377,7 @@ impl ModbusClient {
     kind: String,
     registers: Vec<IdRegister>,
   ) -> Option<String> {
-    let mut id = kind.clone();
+    let mut id = format!("{kind}-");
 
     for register in registers {
       let value = Self::read_register(
