@@ -31,57 +31,57 @@ modbus:
         address: 0x8900
         kind: u32
       registers:
-        - name: Voltage L1-N
+        - name: voltageL1
           address: 0x5B00
           kind: u32
-        - name: Voltage L2-N
+        - name: voltageL2
           address: 0x5B02
           kind: u32
-        - name: Voltage L3-N
+        - name: voltageL3
           address: 0x5B04
           kind: u32
-        - name: Current L1
+        - name: currentL1
           address: 0x5B0C
           kind: u32
-        - name: Current L2
+        - name: currentL2
           address: 0x5B0E
           kind: u32
-        - name: Current L3
+        - name: currentL3
           address: 0x5B10
           kind: u32
-        - name: Active power L1
+        - name: activePowerL1
           address: 0x5B16
           kind: s32
-        - name: Active power L2
+        - name: activePowerL2
           address: 0x5B18
           kind: s32
-        - name: Active power L3
+        - name: activePowerL3
           address: 0x5B1A
           kind: s32
-        - name: Reactive power L1
+        - name: reactivePowerL1
           address: 0x5B1E
           kind: s32
-        - name: Reactive power L2
+        - name: reactivePowerL2
           address: 0x5B20
           kind: s32
-        - name: Reactive power L3
+        - name: reactivePowerL3
           address: 0x5B22
           kind: s32
-        - name: Apparent power L1
+        - name: apparentPowerL1
           address: 0x5B26
           kind: s32
-        - name: Apparent power L2
+        - name: apparentPowerL2
           address: 0x5B28
           kind: s32
-        - name: Apparent power L3
+        - name: apparentPowerL3
           address: 0x5B2A
           kind: s32
-        - name: Power factor L1
+        - name: powerFactorL1
           address: 0x5B3B
           kind: s16
-        - name: Power factor L2
+        - name: powerFactorL1
           address: 0x5B3C
           kind: s16
-        - name: Power factor L3
+        - name: powerFactorL1
           address: 0x5B3D
           kind: s16
