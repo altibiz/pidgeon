@@ -99,7 +99,6 @@ struct Connection {
   ctx: Context,
 }
 
-// TODO: detect whether the device is on and clean up connection if not
 #[derive(Debug, Clone)]
 pub struct ModbusClient {
   timeout: futures_time::time::Duration,
