@@ -177,7 +177,7 @@ impl Services {
           .map(|measurement| CloudMeasurement {
             device_id: measurement.source,
             timestamp: measurement.timestamp,
-            data: measurement.data,
+            data: measurement.data.to_string(),
           })
           .collect(),
       )

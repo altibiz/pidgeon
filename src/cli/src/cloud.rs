@@ -12,7 +12,7 @@ use thiserror::Error;
 pub struct CloudMeasurement {
   pub device_id: String,
   pub timestamp: DateTime<Utc>,
-  pub data: serde_json::Value,
+  pub data: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
