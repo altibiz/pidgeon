@@ -164,10 +164,11 @@ impl Services {
       .db_client
       .get_measurements(last_pushed_id, 1000)
       .await?;
-    let last_push_id = match measurements_to_push.last() {
-      Some(measurement) => measurement.id,
-      None => return Ok(()),
-    };
+    let last_push_id =
+      match measurements_to_push.iter().max_by(|x, y| x.id.cmp(&y.id)) {
+        Some(measurement) => measurement.id,
+        None => return Ok(()),
+      };
 
     let result = self
       .cloud_client
