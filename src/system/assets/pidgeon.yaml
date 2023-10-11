@@ -25,6 +25,10 @@ modbus:
       id:
         address: 0x0081
         kind: u32
+      registers:
+        - name: current
+          address: 0x0BC1
+          kind: u32
     abb:
       detect:
         - address: 0x8910
