@@ -5,6 +5,7 @@ from typing import Optional
 
 class DeviceType(Enum):
   abb = 'abb'
+  schneider = 'schneider'
 
   def __str__(self):
     return self.value
