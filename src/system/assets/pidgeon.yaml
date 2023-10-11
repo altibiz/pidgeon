@@ -17,7 +17,7 @@ modbus:
   devices:
     schneider:
       detect:
-        address:  0x0031
+        address: 0x0031
         kind:
           string:
             length: 20

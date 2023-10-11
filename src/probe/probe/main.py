@@ -16,9 +16,9 @@ async def main():
     print(
       "Serial number",
       await client.read(
-        register=0x8908,
-        count=8,
-        convert=PullClient.to_ascii,
+        register=0x8900,
+        count=2,
+        convert=PullClient.to_uint32,
       ),
     )
     print(
@@ -35,6 +35,24 @@ async def main():
         register=0x8960,
         count=6,
         convert=PullClient.to_ascii,
+      ),
+    )
+
+  if args.device_type() == DeviceType.schneider:
+    print(
+      "Model",
+      await client.read(
+        register=0x0031,
+        count=20,
+        convert=PullClient.to_utf8,
+      ),
+    )
+    print(
+      "Serial number",
+      await client.read(
+        register=0x0081,
+        count=2,
+        convert=PullClient.to_uint32,
       ),
     )
 
