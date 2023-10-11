@@ -102,6 +102,7 @@ struct Connection {
 #[derive(Debug, Clone)]
 pub struct ModbusClient {
   timeout: futures_time::time::Duration,
+  retries: u64,
   devices: Vec<DeviceConfig>,
   network_devices: Arc<Mutex<Vec<NetworkDevice>>>,
   pool: Arc<Mutex<HashMap<ConnectionId, Arc<Mutex<Connection>>>>>,
@@ -122,10 +123,12 @@ pub enum ModbusClientError {
 impl ModbusClient {
   pub fn new(
     timeout: u64,
+    retries: u64,
     devices: Vec<DeviceConfig>,
   ) -> Result<Self, ModbusClientError> {
     Ok(Self {
       timeout: futures_time::time::Duration::from_millis(timeout),
+      retries,
       devices,
       network_devices: Arc::new(Mutex::new(Vec::new())),
       pool: Arc::new(Mutex::new(HashMap::new())),
@@ -213,6 +216,7 @@ impl ModbusClient {
         let value = match Self::read_register(
           mutex.clone(),
           self.timeout,
+          self.retries,
           register.clone(),
         )
         .await
@@ -304,19 +308,16 @@ impl ModbusClient {
         _ => continue,
       };
 
-      let tasks = config.detect.iter().map(|detect| {
-        let task_mutext = mutex.clone();
-        let task_timeout = self.timeout;
-        let task_detect = detect.clone();
-
-        tokio::spawn(async move {
-          Self::detect_register(task_mutext, task_timeout, task_detect).await
-        })
-      });
-
       let mut detected = true;
-      for task in tasks {
-        if !task.await.unwrap_or(false) {
+      for detect in config.detect.iter() {
+        if !Self::detect_register(
+          mutex.clone(),
+          self.timeout,
+          self.retries,
+          detect.clone(),
+        )
+        .await
+        {
           detected = false;
           break;
         }
@@ -328,6 +329,7 @@ impl ModbusClient {
       let id = Self::get_id(
         mutex.clone(),
         self.timeout,
+        self.retries,
         config.kind.clone(),
         config.id.clone(),
       )
@@ -350,11 +352,13 @@ impl ModbusClient {
   async fn detect_register(
     mutex: Arc<Mutex<Connection>>,
     timeout: futures_time::time::Duration,
+    retries: u64,
     detect: DetectRegister,
   ) -> bool {
     let value = match Self::read_register(
       mutex.clone(),
       timeout,
+      retries,
       RegisterConfig {
         name: "detect".to_string(),
         address: detect.address,
@@ -373,6 +377,7 @@ impl ModbusClient {
   async fn get_id(
     mutex: Arc<Mutex<Connection>>,
     timeout: futures_time::time::Duration,
+    retries: u64,
     kind: String,
     registers: Vec<IdRegister>,
   ) -> Option<String> {
@@ -382,6 +387,7 @@ impl ModbusClient {
       let value = Self::read_register(
         mutex.clone(),
         timeout.clone(),
+        retries.clone(),
         RegisterConfig {
           name: "id".to_string(),
           address: register.address,
@@ -427,6 +433,7 @@ impl ModbusClient {
   async fn read_register(
     mutex: Arc<Mutex<Connection>>,
     timeout: futures_time::time::Duration,
+    retries: u64,
     register: RegisterConfig,
   ) -> Result<RegisterValue, ModbusClientError> {
     let register_size: Quantity = match register.kind {
@@ -439,12 +446,30 @@ impl ModbusClient {
 
     let response = {
       let mut conn = mutex.lock().await;
-      conn
+      let mut response = conn
         .ctx
         .read_holding_registers(register.address, register_size)
         .timeout(timeout)
-        .await??
-    };
+        .await;
+      let mut remaining = retries;
+      while remaining > 0 {
+        response = conn
+          .ctx
+          .read_holding_registers(register.address, register_size)
+          .timeout(timeout)
+          .await;
+        match response {
+          Ok(Ok(_)) => {
+            remaining = 0;
+          }
+          _ => {
+            remaining = remaining - 1;
+          }
+        };
+      }
+
+      response
+    }??;
 
     let value = Self::parse_register(response, register.kind)?;
 

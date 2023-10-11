@@ -50,6 +50,7 @@ impl Services {
 
     let modbus_client = ModbusClient::new(
       config.modbus.timeout,
+      config.modbus.retries,
       config
         .modbus
         .devices

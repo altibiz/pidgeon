@@ -100,6 +100,7 @@ pub struct DeviceConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ModbusFile {
   timeout: u64,
+  retries: u64,
   devices: HashMap<String, DeviceConfig>,
 }
 
@@ -193,6 +194,7 @@ pub struct ParsedCloudConfig {
 #[derive(Debug, Clone)]
 pub struct ParsedModbusConfig {
   pub timeout: u64,
+  pub retries: u64,
   pub devices: HashMap<String, DeviceConfig>,
 }
 
@@ -321,6 +323,7 @@ impl ConfigManager {
       },
       modbus: ParsedModbusConfig {
         timeout: config.from_file.modbus.timeout,
+        retries: config.from_file.modbus.retries,
         devices: config.from_file.modbus.devices,
       },
       runtime: ParsedRuntimeConfig {
