@@ -15,6 +15,16 @@ cloud:
 modbus:
   timeout: 1000
   devices:
+    schneider:
+      detect:
+        address:  0x0031
+        kind:
+          string:
+            length: 20
+        match: "???"
+      id:
+        address: 0x0081
+        kind: u32
     abb:
       detect:
         - address: 0x8910
