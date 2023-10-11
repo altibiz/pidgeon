@@ -25,8 +25,8 @@
         system = "aarch64-linux";
         specialArgs = inputs // { hostname = hostname; username = username; };
         modules = [
-          ./src/system/hardware-configuration.nix
-          ./src/system/configuration.nix
+          ./hardware-configuration.nix
+          ./configuration.nix
           sops-nix.nixosModules.sops
           home-manager.nixosModules.home-manager
           {
@@ -35,7 +35,7 @@
             home-manager.extraSpecialArgs = inputs // { username = username; };
             home-manager.users."${username}" = { ... }: {
               imports = [
-                ./src/system/home.nix
+                ./home.nix
               ];
             };
           }

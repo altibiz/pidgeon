@@ -40,7 +40,7 @@ modbus:
           kind: 
             string:
               length: 6
-          match: "B23 112-100\0"
+          match: "B23 [0-9]12-100\0"
       id:
         address: 0x8900
         kind: u32
