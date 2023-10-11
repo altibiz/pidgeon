@@ -21,7 +21,7 @@ modbus:
         kind:
           string:
             length: 20
-        match: "???"
+        match: "iEM3255"
       id:
         address: 0x0081
         kind: u32
