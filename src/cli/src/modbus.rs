@@ -386,8 +386,8 @@ impl ModbusClient {
     for register in registers {
       let value = Self::read_register(
         mutex.clone(),
-        timeout.clone(),
-        retries.clone(),
+        timeout,
+        retries,
         RegisterConfig {
           name: "id".to_string(),
           address: register.address,
@@ -400,7 +400,7 @@ impl ModbusClient {
       match value {
         None => return None,
         Some(value) => {
-          id = id + Self::register_to_string(value).as_str();
+          id += Self::register_to_string(value).as_str();
         }
       }
     }
@@ -463,7 +463,7 @@ impl ModbusClient {
             remaining = 0;
           }
           _ => {
-            remaining = remaining - 1;
+            remaining -= 1;
           }
         };
       }
