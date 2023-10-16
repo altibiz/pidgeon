@@ -4,5 +4,8 @@ set -eo pipefail
 SCRIPTS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$(dirname "$SCRIPTS")" && pwd)"
 
-mksecrets "$*"
-nix build "path:${ROOT}#nixosConfigurations.pidgeon.config.system.build.sdImage"
+"$SCRIPTS/mksecrets" "$@"
+nix build \
+  --extra-experimental-features nix-command \
+  --extra-experimental-features flakes \
+  "path:${ROOT}/src/system#nixosConfigurations.pidgeon.config.system.build.sdImage"
