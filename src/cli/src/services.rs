@@ -234,8 +234,12 @@ impl Services {
     match register {
       config::RegisterKind::U16 => modbus::RegisterKind::U16,
       config::RegisterKind::U32 => modbus::RegisterKind::U32,
+      config::RegisterKind::U64 => modbus::RegisterKind::U64,
       config::RegisterKind::S16 => modbus::RegisterKind::S16,
       config::RegisterKind::S32 => modbus::RegisterKind::S32,
+      config::RegisterKind::S64 => modbus::RegisterKind::S64,
+      config::RegisterKind::F32 => modbus::RegisterKind::F32,
+      config::RegisterKind::F64 => modbus::RegisterKind::F64,
       config::RegisterKind::String(config::StringRegisterKind { length }) => {
         modbus::RegisterKind::String(modbus::StringRegisterKind { length })
       }

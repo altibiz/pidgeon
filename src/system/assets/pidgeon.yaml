@@ -27,9 +27,51 @@ modbus:
         address: 0x0081
         kind: u32
       registers:
-        - name: current
-          address: 0x0BC1
+        - name: voltageL1
+          address: 0x3028
           kind: u32
+        - name: voltageL2
+          address: 0x3030
+          kind: u32
+        - name: voltageL3
+          address: 0x3032
+          kind: u32
+        - name: voltage
+          address: 0x3036
+          kind: u32
+        - name: currentL1
+          address: 0x3000
+          kind: u32
+        - name: currentL2
+          address: 0x3002
+          kind: u32
+        - name: currentL3
+          address: 0x3004
+          kind: u32
+        - name: current
+          address: 0x3010
+          kind: u32
+        - name: activePowerL1
+          address: 0x3054
+          kind: s32
+        - name: activePowerL2
+          address: 0x3056
+          kind: s32
+        - name: activePowerL3
+          address: 0x3058
+          kind: s32
+        - name: activePower
+          address: 0x3060
+          kind: s32
+        - name: reactivePower
+          address: 0x3068
+          kind: s32
+        - name: apparentPower
+          address: 0x3076
+          kind: s32
+        - name: powerFactor
+          address: 0x3048
+          kind: s32
     abb:
       detect:
         - address: 0x8910

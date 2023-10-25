@@ -62,8 +62,12 @@ pub struct StringRegisterKind {
 pub enum RegisterKind {
   U16,
   U32,
+  U64,
   S16,
   S32,
+  S64,
+  F32,
+  F64,
   String(StringRegisterKind),
 }
 

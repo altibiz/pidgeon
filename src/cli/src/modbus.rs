@@ -23,8 +23,12 @@ pub struct StringRegisterKind {
 pub enum RegisterKind {
   U16,
   U32,
+  U64,
   S16,
   S32,
+  S64,
+  F32,
+  F64,
   String(StringRegisterKind),
 }
 
@@ -80,8 +84,12 @@ pub struct RegisterData {
 pub enum RegisterValue {
   U16(u16),
   U32(u32),
+  U64(u64),
   S16(i16),
   S32(i32),
+  S64(i64),
+  F32(f32),
+  F64(f64),
   String(String),
 }
 
@@ -498,8 +506,12 @@ impl ModbusClient {
     match value {
       RegisterValue::U16(value) => value.to_string(),
       RegisterValue::U32(value) => value.to_string(),
+      RegisterValue::U64(value) => value.to_string(),
       RegisterValue::S16(value) => value.to_string(),
       RegisterValue::S32(value) => value.to_string(),
+      RegisterValue::S64(value) => value.to_string(),
+      RegisterValue::F32(value) => value.to_string(),
+      RegisterValue::F64(value) => value.to_string(),
       RegisterValue::String(value) => value,
     }
   }
@@ -513,8 +525,12 @@ impl ModbusClient {
     let register_size: Quantity = match register.kind {
       RegisterKind::U16 => 1,
       RegisterKind::U32 => 2,
+      RegisterKind::U64 => 4,
       RegisterKind::S16 => 1,
       RegisterKind::S32 => 2,
+      RegisterKind::S64 => 4,
+      RegisterKind::F32 => 2,
+      RegisterKind::F64 => 4,
       RegisterKind::String(StringRegisterKind { length }) => length,
     };
 
@@ -563,12 +579,28 @@ impl ModbusClient {
         Some(value) => RegisterValue::U32(value),
         None => return Err(ModbusClientError::Parse),
       },
+      RegisterKind::U64 => match Self::parse_u64_register(data) {
+        Some(value) => RegisterValue::U64(value),
+        None => return Err(ModbusClientError::Parse),
+      },
       RegisterKind::S16 => match Self::parse_s16_register(data) {
         Some(value) => RegisterValue::S16(value),
         None => return Err(ModbusClientError::Parse),
       },
       RegisterKind::S32 => match Self::parse_s32_register(data) {
         Some(value) => RegisterValue::S32(value),
+        None => return Err(ModbusClientError::Parse),
+      },
+      RegisterKind::S64 => match Self::parse_s64_register(data) {
+        Some(value) => RegisterValue::S64(value),
+        None => return Err(ModbusClientError::Parse),
+      },
+      RegisterKind::F32 => match Self::parse_f32_register(data) {
+        Some(value) => RegisterValue::F32(value),
+        None => return Err(ModbusClientError::Parse),
+      },
+      RegisterKind::F64 => match Self::parse_f64_register(data) {
+        Some(value) => RegisterValue::F64(value),
         None => return Err(ModbusClientError::Parse),
       },
       RegisterKind::String(_) => match Self::parse_string_register(data) {
@@ -581,50 +613,97 @@ impl ModbusClient {
   }
 
   fn parse_u16_register(data: Vec<u16>) -> Option<u16> {
-    let first = *data.first()?;
+    let bytes = Self::parse_ne_bytes(data)?;
+    let slice = bytes.as_slice().try_into().ok()?;
+    let result = u16::from_ne_bytes(slice);
 
-    Some(first)
+    Some(result)
   }
 
   fn parse_u32_register(data: Vec<u16>) -> Option<u32> {
-    let first = *data.first()?;
-    let second = *data.get(1)?;
+    let bytes = Self::parse_ne_bytes(data)?;
+    let slice = bytes.as_slice().try_into().ok()?;
+    let result = u32::from_ne_bytes(slice);
 
-    Some(u32::from(first) << 16 | u32::from(second))
+    Some(result)
+  }
+
+  fn parse_u64_register(data: Vec<u16>) -> Option<u64> {
+    let bytes = Self::parse_ne_bytes(data)?;
+    let slice = bytes.as_slice().try_into().ok()?;
+    let result = u64::from_ne_bytes(slice);
+
+    Some(result)
   }
 
   fn parse_s16_register(data: Vec<u16>) -> Option<i16> {
-    let first = *data.first()?;
+    let bytes = Self::parse_ne_bytes(data)?;
+    let slice = bytes.as_slice().try_into().ok()?;
+    let result = i16::from_ne_bytes(slice);
 
-    Some(first as i16)
+    Some(result)
   }
 
   fn parse_s32_register(data: Vec<u16>) -> Option<i32> {
-    let first = *data.first()?;
-    let second = *data.get(1)?;
+    let bytes = Self::parse_ne_bytes(data)?;
+    let slice = bytes.as_slice().try_into().ok()?;
+    let result = i32::from_ne_bytes(slice);
 
-    Some((u32::from(first) << 16 | u32::from(second)) as i32)
+    Some(result)
   }
 
-  fn parse_bytes(data: Vec<u16>) -> Option<Vec<u8>> {
-    let mut result = Vec::new();
+  fn parse_s64_register(data: Vec<u16>) -> Option<i64> {
+    let bytes = Self::parse_ne_bytes(data)?;
+    let slice = bytes.as_slice().try_into().ok()?;
+    let result = i64::from_ne_bytes(slice);
 
-    for &value in &data {
-      let _upper_char = (value >> 8) as u8;
-      let _lower_char = (value & 0xFF) as u8;
+    Some(result)
+  }
 
-      result.push((value >> 8) as u8);
-      result.push((value & 0xFF) as u8);
-    }
+  fn parse_f32_register(data: Vec<u16>) -> Option<f32> {
+    let bytes = Self::parse_ne_bytes(data)?;
+    let slice = bytes.as_slice().try_into().ok()?;
+    let result = f32::from_ne_bytes(slice);
+
+    Some(result)
+  }
+
+  fn parse_f64_register(data: Vec<u16>) -> Option<f64> {
+    let bytes = Self::parse_ne_bytes(data)?;
+    let slice = bytes.as_slice().try_into().ok()?;
+    let result = f64::from_ne_bytes(slice);
 
     Some(result)
   }
 
   fn parse_string_register(data: Vec<u16>) -> Option<String> {
-    let bytes = Self::parse_bytes(data)?;
+    let bytes = Self::parse_ne_bytes(data)?;
     let string = String::from_utf8(bytes).ok()?;
 
     Some(string)
+  }
+
+  // TODO: remove hints about inactive-code
+  // NOTE: modbus is big-endian
+  fn parse_ne_bytes(data: Vec<u16>) -> Option<Vec<u8>> {
+    let mut result = Vec::with_capacity(data.len() * 2);
+
+    #[cfg(target_endian = "little")]
+    {
+      for &value in &data {
+        result.push((value >> 8) as u8);
+        result.push((value & 0xFF) as u8);
+      }
+    }
+    #[cfg(target_endian = "big")]
+    {
+      for &value in &data {
+        result.push((value & 0xFF) as u8);
+        result.push((value >> 8) as u8);
+      }
+    }
+
+    Some(result)
   }
 }
 
@@ -642,8 +721,12 @@ pub fn registers_to_json(registers: Vec<RegisterData>) -> serde_json::Value {
             match value {
               RegisterValue::U16(value) => serde_json::json!(value),
               RegisterValue::U32(value) => serde_json::json!(value),
+              RegisterValue::U64(value) => serde_json::json!(value),
               RegisterValue::S16(value) => serde_json::json!(value),
               RegisterValue::S32(value) => serde_json::json!(value),
+              RegisterValue::S64(value) => serde_json::json!(value),
+              RegisterValue::F32(value) => serde_json::json!(value),
+              RegisterValue::F64(value) => serde_json::json!(value),
               RegisterValue::String(value) => serde_json::json!(value),
             },
           )
