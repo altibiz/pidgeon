@@ -198,7 +198,7 @@ impl ModbusClient {
     tracing::Span::current().record("to_read", to_read);
     let mut data: Vec<DeviceData> = Vec::new();
     for device in network_devices {
-      let mutex = match self.connect(device.connection_id.clone()).await {
+      let mutex = match self.connect(device.connection_id).await {
         Ok(mutex) => mutex,
         Err(error) => {
           tracing::trace! {
@@ -368,7 +368,7 @@ impl ModbusClient {
     connection_id: ConnectionId,
   ) -> Option<NetworkDevice> {
     for config in self.devices.iter() {
-      let mutex = match self.connect(connection_id.clone()).await {
+      let mutex = match self.connect(connection_id).await {
         Ok(mutex) => mutex,
         Err(err) => {
           tracing::debug! {
