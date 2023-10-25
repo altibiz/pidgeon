@@ -2,6 +2,7 @@ runtime:
   scan_interval: 60000
   pull_interval: 1000
   push_interval: 60000
+  log_level: trace
 
 db:
   timeout: 1000

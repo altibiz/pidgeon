@@ -194,7 +194,7 @@ impl ModbusClient {
       let mutex = match self.connect(device.connection_id.clone()).await {
         Ok(mutex) => mutex,
         Err(error) => {
-          tracing::warn! {
+          tracing::trace! {
             %error,
             "Failed connecting to device {:?}",
             device.connection_id.clone()
