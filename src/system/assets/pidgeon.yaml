@@ -13,7 +13,7 @@ cloud:
   timeout: 10000
 
 modbus:
-  timeout: 1000
+  timeout: 10000
   retries: 3
   devices:
     schneider:

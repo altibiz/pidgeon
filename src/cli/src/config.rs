@@ -11,6 +11,10 @@ struct ConfigFromArgs {
   /// Run in development mode
   #[arg(short, long)]
   dev: bool,
+
+  /// Alternative configuration location
+  #[arg(short, long)]
+  config: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -262,10 +266,9 @@ impl ConfigManager {
 
   #[allow(unused)]
   pub fn reload(&self) -> Result<ParsedConfig, ConfigManagerError> {
-    let from_file = Self::read_from_file()?;
-
     let config = {
       let mut values = self.values.blocking_lock();
+      let from_file = Self::read_from_file(values.from_args.config.clone())?;
       values.from_file = from_file;
       values.clone()
     };
@@ -277,10 +280,10 @@ impl ConfigManager {
 
   #[allow(unused)]
   pub async fn reload_async(&self) -> Result<ParsedConfig, ConfigManagerError> {
-    let from_file = Self::read_from_file_async().await?;
-
     let config = {
       let mut values = self.values.lock().await;
+      let from_file =
+        Self::read_from_file_async(values.from_args.config.clone()).await?;
       values.from_file = from_file;
       values.clone()
     };
@@ -371,7 +374,7 @@ impl ConfigManager {
 
   fn read() -> Result<Config, ConfigManagerError> {
     let from_args = Self::read_from_args()?;
-    let from_file = Self::read_from_file()?;
+    let from_file = Self::read_from_file(from_args.config.clone())?;
     let from_env = Self::read_from_env()?;
 
     let config = Config {
@@ -383,31 +386,40 @@ impl ConfigManager {
     Ok(config)
   }
 
-  fn read_from_file() -> Result<ConfigFromFile, ConfigManagerError> {
-    let from_file =
-      match directories::ProjectDirs::from("com", "altibiz", "pidgeon") {
-        Some(project_dirs) => {
-          let path = project_dirs.config_dir().join("config.yaml");
-          let raw = fs::read_to_string(path)?;
-          serde_yaml::from_str::<ConfigFromFile>(raw.as_str())?
-        }
-        _ => return Err(ConfigManagerError::MissingProjectDirs),
-      };
+  fn read_from_file(
+    location: Option<String>,
+  ) -> Result<ConfigFromFile, ConfigManagerError> {
+    let location = match location {
+      Some(location) => std::path::PathBuf::from(location),
+      None => match directories::ProjectDirs::from("com", "altibiz", "pidgeon")
+      {
+        Some(project_dirs) => project_dirs.config_dir().join("config.yaml"),
+        None => return Err(ConfigManagerError::MissingProjectDirs),
+      },
+    };
+    let from_file = {
+      let raw = fs::read_to_string(location)?;
+      serde_yaml::from_str::<ConfigFromFile>(raw.as_str())?
+    };
 
     Ok(from_file)
   }
 
-  async fn read_from_file_async() -> Result<ConfigFromFile, ConfigManagerError>
-  {
-    let from_file =
-      match directories::ProjectDirs::from("com", "altibiz", "pidgeon") {
-        Some(project_dirs) => {
-          let path = project_dirs.config_dir().join("config.yaml");
-          let raw = tokio::fs::read_to_string(path).await?;
-          serde_yaml::from_str::<ConfigFromFile>(raw.as_str())?
-        }
-        _ => return Err(ConfigManagerError::MissingProjectDirs),
-      };
+  async fn read_from_file_async(
+    location: Option<String>,
+  ) -> Result<ConfigFromFile, ConfigManagerError> {
+    let location = match location {
+      Some(location) => std::path::PathBuf::from(location),
+      None => match directories::ProjectDirs::from("com", "altibiz", "pidgeon")
+      {
+        Some(project_dirs) => project_dirs.config_dir().join("config.yaml"),
+        None => return Err(ConfigManagerError::MissingProjectDirs),
+      },
+    };
+    let from_file = {
+      let raw = tokio::fs::read_to_string(location).await?;
+      serde_yaml::from_str::<ConfigFromFile>(raw.as_str())?
+    };
 
     Ok(from_file)
   }

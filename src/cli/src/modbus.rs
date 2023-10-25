@@ -368,7 +368,9 @@ impl ModbusClient {
     .await
     {
       Ok(value) => value,
-      _ => return false,
+      Err(_) => {
+        return false;
+      }
     };
 
     Self::match_register(value, detect.r#match.clone())
