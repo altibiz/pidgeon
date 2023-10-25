@@ -27,51 +27,63 @@ modbus:
         address: 0x0081
         kind: u32
       registers:
-        - name: voltageL1
+        - name: voltageL1_V
           address: 0x3028
-          kind: u32
-        - name: voltageL2
+          kind: f32
+        - name: voltageL2_V
           address: 0x3030
-          kind: u32
-        - name: voltageL3
+          kind: f32
+        - name: voltageL3_V
           address: 0x3032
-          kind: u32
-        - name: voltage
+          kind: f32
+        - name: voltageAvg_V
           address: 0x3036
-          kind: u32
-        - name: currentL1
+          kind: f32
+        - name: currentL1_A
           address: 0x3000
-          kind: u32
-        - name: currentL2
+          kind: f32
+        - name: currentL2_A
           address: 0x3002
-          kind: u32
-        - name: currentL3
+          kind: f32
+        - name: currentL3_A
           address: 0x3004
-          kind: u32
-        - name: current
+          kind: f32
+        - name: currentAvg_A
           address: 0x3010
-          kind: u32
-        - name: activePowerL1
+          kind: f32
+        - name: activePowerL1_kW
           address: 0x3054
-          kind: s32
-        - name: activePowerL2
+          kind: f32
+        - name: activePowerL2_kW
           address: 0x3056
-          kind: s32
-        - name: activePowerL3
+          kind: f32
+        - name: activePowerL3_kW
           address: 0x3058
-          kind: s32
-        - name: activePower
+          kind: f32
+        - name: activePowerTotal_kW
           address: 0x3060
-          kind: s32
-        - name: reactivePower
+          kind: f32
+        - name: reactivePowerTotal_kVAR
           address: 0x3068
-          kind: s32
-        - name: apparentPower
+          kind: f32
+        - name: apparentPowerTotal_kVA
           address: 0x3076
-          kind: s32
-        - name: powerFactor
+          kind: f32
+        - name: powerFactorTotal
           address: 0x3048
-          kind: s32
+          kind: f32
+        - name: activeEnergyImportTotal_Wh
+          address: 0x3204
+          kind: s64
+        - name: activeEnergyExportTotal_Wh
+          address: 0x3208
+          kind: s64
+        - name: activeEnergyImportRateA_Wh
+          address: 0x4196
+          kind: s64
+        - name: activeEnergyImportRateB_Wh
+          address: 0x4200
+          kind: s64
     abb:
       detect:
         - address: 0x8910
@@ -88,57 +100,90 @@ modbus:
         address: 0x8900
         kind: u32
       registers:
-        - name: voltageL1
+        - name: voltageL1_V
           address: 0x5B00
           kind: u32
-        - name: voltageL2
+        - name: voltageL2_V
           address: 0x5B02
           kind: u32
-        - name: voltageL3
+        - name: voltageL3_V
           address: 0x5B04
           kind: u32
-        - name: currentL1
+        - name: currentL1_A
           address: 0x5B0C
           kind: u32
-        - name: currentL2
+        - name: currentL2_A
           address: 0x5B0E
           kind: u32
-        - name: currentL3
+        - name: currentL3_A
           address: 0x5B10
           kind: u32
-        - name: activePowerL1
+        - name: activePowerTotal_W
+          address: 0x5B14
+          kind: s32
+        - name: activePowerL1_W
           address: 0x5B16
           kind: s32
-        - name: activePowerL2
+        - name: activePowerL2_W
           address: 0x5B18
           kind: s32
-        - name: activePowerL3
+        - name: activePowerL3_W
           address: 0x5B1A
           kind: s32
-        - name: reactivePowerL1
+        - name: reactivePowerTotal_VAR
+          address: 0x5B1C
+          kind: s32
+        - name: reactivePowerL1_VAR
           address: 0x5B1E
           kind: s32
-        - name: reactivePowerL2
+        - name: reactivePowerL2_VAR
           address: 0x5B20
           kind: s32
-        - name: reactivePowerL3
+        - name: reactivePowerL3_VAR
           address: 0x5B22
           kind: s32
-        - name: apparentPowerL1
+        - name: apparentPowerTotal_VA
+          address: 0x5B24
+          kind: s32
+        - name: apparentPowerL1_VA
           address: 0x5B26
           kind: s32
-        - name: apparentPowerL2
+        - name: apparentPowerL2_VA
           address: 0x5B28
           kind: s32
-        - name: apparentPowerL3
+        - name: apparentPowerL3_VA
           address: 0x5B2A
           kind: s32
+        - name: powerFactorTotal
+          address: 0x5B3A
+          kind: s16
         - name: powerFactorL1
           address: 0x5B3B
           kind: s16
-        - name: powerFactorL1
+        - name: powerFactorL2
           address: 0x5B3C
           kind: s16
-        - name: powerFactorL1
+        - name: powerFactorL3
           address: 0x5B3D
           kind: s16
+        - name: activeEnergyNetImport_kWh
+          address: 0x5000
+          kind: u64
+        - name: activeEnergyNetExport_kWh
+          address: 0x5004
+          kind: u64
+        - name: activeEnergyNetTotal_kWh
+          address: 0x5008
+          kind: s64
+        - name: activeEnergyImportTariff1_kWh
+          address: 0x5170
+          kind: u64
+        - name: activeEnergyImportTariff2_kWh
+          address: 0x5174
+          kind: u64
+        - name: activeEnergyExportTariff1_kWh
+          address: 0x5190
+          kind: u64
+        - name: activeEnergyExportTariff2_kWh
+          address: 0x5194
+          kind: u64
