@@ -17,9 +17,11 @@ class PullClient:
     self.__ip_address = ip_address
     self.__slave_id = slave_id
     self.__modbus_connected = False
-    self.__modbus_client = AsyncModbusTcpClient(host=self.__ip_address,
-                                                port=502,
-                                                framer=ModbusRtuFramer)
+    self.__modbus_client = AsyncModbusTcpClient(
+      host=self.__ip_address,
+      port=502,
+      framer=ModbusRtuFramer,
+    )
 
   def __del__(self):
     self.__modbus_client.close()
