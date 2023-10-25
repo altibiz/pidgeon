@@ -28,61 +28,61 @@ modbus:
         kind: u32
       registers:
         - name: voltageL1_V
-          address: 0x3028
+          address: 0x0BD3
           kind: f32
         - name: voltageL2_V
-          address: 0x3030
+          address: 0x0BD5
           kind: f32
         - name: voltageL3_V
-          address: 0x3032
+          address: 0x0BD7
           kind: f32
         - name: voltageAvg_V
-          address: 0x3036
+          address: 0x0BDB
           kind: f32
         - name: currentL1_A
-          address: 0x3000
+          address: 0x0BB7
           kind: f32
         - name: currentL2_A
-          address: 0x3002
+          address: 0x0BB9
           kind: f32
         - name: currentL3_A
-          address: 0x3004
+          address: 0x0BBB
           kind: f32
         - name: currentAvg_A
-          address: 0x3010
+          address: 0x0BC1
           kind: f32
         - name: activePowerL1_kW
-          address: 0x3054
+          address: 0x0BED
           kind: f32
         - name: activePowerL2_kW
-          address: 0x3056
+          address: 0x0BEF
           kind: f32
         - name: activePowerL3_kW
-          address: 0x3058
+          address: 0x0BF1
           kind: f32
         - name: activePowerTotal_kW
-          address: 0x3060
+          address: 0x0BF3
           kind: f32
         - name: reactivePowerTotal_kVAR
-          address: 0x3068
+          address: 0x0BFB
           kind: f32
         - name: apparentPowerTotal_kVA
-          address: 0x3076
+          address: 0x0C03
           kind: f32
         - name: powerFactorTotal
-          address: 0x3048
+          address: 0x0C0B
           kind: f32
         - name: activeEnergyImportTotal_Wh
-          address: 0x3204
+          address: 0x0C83
           kind: s64
         - name: activeEnergyExportTotal_Wh
-          address: 0x3208
+          address: 0x0C93
           kind: s64
         - name: activeEnergyImportRateA_Wh
-          address: 0x4196
+          address: 0x1063
           kind: s64
         - name: activeEnergyImportRateB_Wh
-          address: 0x4200
+          address: 0x1067
           kind: s64
     abb:
       detect:
@@ -166,10 +166,10 @@ modbus:
         - name: powerFactorL3
           address: 0x5B3D
           kind: s16
-        - name: activeEnergyNetImport_kWh
+        - name: activeEnergyImportTotal_kWh
           address: 0x5000
           kind: u64
-        - name: activeEnergyNetExport_kWh
+        - name: activeEnergyExportTotal_kWh
           address: 0x5004
           kind: u64
         - name: activeEnergyNetTotal_kWh
