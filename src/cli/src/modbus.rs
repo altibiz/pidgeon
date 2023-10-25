@@ -144,7 +144,7 @@ impl ModbusClient {
         continue;
       }
 
-      for slave in 0..255 {
+      for slave in Slave::min_device().0..Slave::max_device().0 {
         if let Some(device) = self.match_device(ip, Some(slave)).await {
           network_devices.push(device);
         }
