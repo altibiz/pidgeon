@@ -371,9 +371,9 @@ impl ModbusClient {
       let mutex = match self.connect(connection_id).await {
         Ok(mutex) => mutex,
         Err(err) => {
-          tracing::debug! {
+          tracing::trace! {
             %err,
-            "Failed connecting to device on {:?} via tcp",
+            "Failed connecting to device on {:?}",
             connection_id
           };
           continue;
