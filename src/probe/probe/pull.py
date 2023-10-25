@@ -33,7 +33,8 @@ class PullClient:
     if not self.__modbus_connected:
       try:
         await self.__modbus_client.connect()
-      except Exception:
+      except Exception as exception:
+        print(exception)
         return None
 
     try:
@@ -51,7 +52,8 @@ class PullClient:
       value = convert(*cast(
         list[int], response.registers))  # pyright: ignore unknownMemberType
       return value
-    except Exception:
+    except Exception as exception:
+      print(exception)
       return None
 
   @staticmethod
