@@ -278,8 +278,8 @@ impl ModbusClient {
     id: ConnectionId,
   ) -> Result<Arc<Mutex<Connection>>, ModbusClientError> {
     match id.framer {
-      Tcp => self.connect_tcp(id).await,
-      Rtu => self.connect_rtu(id).await,
+      Framer::Tcp => self.connect_tcp(id).await,
+      Framer::Rtu => self.connect_rtu(id).await,
     }
   }
 
