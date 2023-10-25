@@ -1,6 +1,7 @@
 import struct
 from typing import Any, Callable, Coroutine, TypeVar, Union, List, cast
 from pymodbus.client import AsyncModbusTcpClient
+from pymodbus.framer import ModbusRtuFramer
 from pymodbus.pdu import ModbusResponse
 
 TRead = TypeVar("TRead")
@@ -16,10 +17,9 @@ class PullClient:
     self.__ip_address = ip_address
     self.__slave_id = slave_id
     self.__modbus_connected = False
-    self.__modbus_client = AsyncModbusTcpClient(
-      host=self.__ip_address,
-      port=502,
-    )
+    self.__modbus_client = AsyncModbusTcpClient(host=self.__ip_address,
+                                                port=502,
+                                                framer=ModbusRtuFramer)
 
   def __del__(self):
     self.__modbus_client.close()
