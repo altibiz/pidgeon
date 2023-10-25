@@ -85,10 +85,17 @@ pub enum RegisterValue {
   String(String),
 }
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
+enum Framer {
+  Tcp,
+  Rtu,
+}
+
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 struct ConnectionId {
   socket: SocketAddr,
   slave_id: Option<SlaveId>,
+  framer: Framer,
 }
 
 #[derive(Debug)]
@@ -252,6 +259,7 @@ impl ModbusClient {
   fn make_connection_id(
     ip: IpAddr,
     slave: Option<SlaveId>,
+    framer: Framer,
   ) -> Result<ConnectionId, ModbusClientError> {
     let id = ConnectionId {
       socket: match ip {
@@ -259,6 +267,7 @@ impl ModbusClient {
         IpAddr::V6(_) => return Err(ModbusClientError::Ipv6),
       },
       slave_id: slave,
+      framer,
     };
 
     Ok(id)
@@ -268,33 +277,58 @@ impl ModbusClient {
     &self,
     id: ConnectionId,
   ) -> Result<Arc<Mutex<Connection>>, ModbusClientError> {
+    match id.framer {
+      Tcp => self.connect_tcp(id).await,
+      Rtu => self.connect_rtu(id).await,
+    }
+  }
+
+  async fn connect_rtu(
+    &self,
+    id: ConnectionId,
+  ) -> Result<Arc<Mutex<Connection>>, ModbusClientError> {
     let mut map = self.pool.lock().await;
     let mutex = match map.get(&id) {
       Some(mutex) => mutex.clone(),
       None => {
-        let ctx = match match id.slave_id {
+        let ctx = match id.slave_id {
+          Some(slave_id) => {
+            let transport = TcpStream::connect(id.socket)
+              .timeout(self.timeout)
+              .await??;
+            rtu::attach_slave(transport, Slave(slave_id))
+          }
+          None => {
+            let transport = TcpStream::connect(id.socket)
+              .timeout(self.timeout)
+              .await??;
+            rtu::attach(transport)
+          }
+        };
+        let conn = Connection { ctx };
+        let mutex = Arc::new(Mutex::new(conn));
+        map.entry(id).or_insert(mutex).clone()
+      }
+    };
+
+    Ok(mutex)
+  }
+
+  async fn connect_tcp(
+    &self,
+    id: ConnectionId,
+  ) -> Result<Arc<Mutex<Connection>>, ModbusClientError> {
+    let mut map = self.pool.lock().await;
+    let mutex = match map.get(&id) {
+      Some(mutex) => mutex.clone(),
+      None => {
+        let ctx = match id.slave_id {
           Some(slave_id) => {
             tcp::connect_slave(id.socket, Slave(slave_id))
               .timeout(self.timeout)
-              .await
+              .await??
           }
-          None => tcp::connect(id.socket).timeout(self.timeout).await,
-        } {
-          Ok(Ok(ctx)) => ctx,
-          _ => match id.slave_id {
-            Some(slave_id) => {
-              let transport = TcpStream::connect(id.socket)
-                .timeout(self.timeout)
-                .await??;
-              rtu::attach_slave(transport, Slave(slave_id))
-            }
-            None => {
-              let transport = TcpStream::connect(id.socket)
-                .timeout(self.timeout)
-                .await??;
-              rtu::attach(transport)
-            }
-          },
+          None => tcp::connect(id.socket).timeout(self.timeout).await??,
         };
         let conn = Connection { ctx };
         let mutex = Arc::new(Mutex::new(conn));
@@ -310,18 +344,36 @@ impl ModbusClient {
     ip: IpAddr,
     slave: Option<SlaveId>,
   ) -> Option<NetworkDevice> {
-    let connection_id = match Self::make_connection_id(ip, slave) {
-      Ok(connection_id) => connection_id,
-      _ => return None,
-    };
+    let tcp_connection_id =
+      match Self::make_connection_id(ip, slave, Framer::Tcp) {
+        Ok(connection_id) => connection_id,
+        _ => return None,
+      };
 
+    if let Some(device) = self.match_framed_device(tcp_connection_id).await {
+      return Some(device);
+    }
+
+    let rtu_connection_id =
+      match Self::make_connection_id(ip, slave, Framer::Rtu) {
+        Ok(connection_id) => connection_id,
+        _ => return None,
+      };
+
+    self.match_framed_device(rtu_connection_id).await
+  }
+
+  async fn match_framed_device(
+    &self,
+    connection_id: ConnectionId,
+  ) -> Option<NetworkDevice> {
     for config in self.devices.iter() {
       let mutex = match self.connect(connection_id.clone()).await {
         Ok(mutex) => mutex,
         Err(err) => {
           tracing::debug! {
             %err,
-            "Failed connecting to device on {:?}",
+            "Failed connecting to device on {:?} via tcp",
             connection_id
           };
           continue;
