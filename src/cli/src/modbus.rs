@@ -283,13 +283,15 @@ impl ModbusClient {
           Ok(Ok(ctx)) => ctx,
           _ => match id.slave_id {
             Some(slave_id) => {
-              let transport =
-                TcpStream::connect(id.socket).timeout(self.timeout).await?;
+              let transport = TcpStream::connect(id.socket)
+                .timeout(self.timeout)
+                .await??;
               rtu::attach_slave(transport, Slave(slave_id))
             }
             None => {
-              let transport =
-                TcpStream::connect(id.socket).timeout(self.timeout).await?;
+              let transport = TcpStream::connect(id.socket)
+                .timeout(self.timeout)
+                .await??;
               rtu::attach(transport)
             }
           },
