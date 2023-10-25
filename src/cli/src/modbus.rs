@@ -318,7 +318,14 @@ impl ModbusClient {
     for config in self.devices.iter() {
       let mutex = match self.connect(connection_id.clone()).await {
         Ok(mutex) => mutex,
-        _ => continue,
+        Err(err) => {
+          tracing::debug! {
+            %err,
+            "Failed connecting to device on {:?}",
+            connection_id
+          };
+          continue;
+        }
       };
 
       let mut detected = true;
