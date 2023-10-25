@@ -7,13 +7,10 @@ use std::{
   sync::Arc,
 };
 use thiserror::Error;
-use tokio::sync::Mutex;
+use tokio::{net::TcpStream, sync::Mutex};
 use tokio_modbus::{
   client::Context,
-  prelude::{
-    tcp::{connect, connect_slave},
-    Reader,
-  },
+  prelude::{rtu, tcp, Reader},
   Address, Quantity, Slave, SlaveId,
 };
 
@@ -275,13 +272,25 @@ impl ModbusClient {
     let mutex = match map.get(&id) {
       Some(mutex) => mutex.clone(),
       None => {
-        let ctx = match id.slave_id {
+        let ctx = match match id.slave_id {
           Some(slave_id) => {
-            connect_slave(id.socket, Slave(slave_id))
+            tcp::connect_slave(id.socket, Slave(slave_id))
               .timeout(self.timeout)
-              .await??
+              .await
           }
-          None => connect(id.socket).timeout(self.timeout).await??,
+          None => tcp::connect(id.socket).timeout(self.timeout).await,
+        } {
+          Ok(Ok(ctx)) => ctx,
+          _ => match id.slave_id {
+            Some(slave_id) => {
+              let transport = TcpStream::connect(id.socket).await?;
+              rtu::attach_slave(transport, Slave(slave_id))
+            }
+            None => {
+              let transport = TcpStream::connect(id.socket).await?;
+              rtu::attach(transport)
+            }
+          },
         };
         let conn = Connection { ctx };
         let mutex = Arc::new(Mutex::new(conn));
