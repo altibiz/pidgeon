@@ -243,7 +243,7 @@ pub enum ConfigManagerError {
 
 impl ConfigManager {
   pub fn new() -> Result<Self, ConfigManagerError> {
-    dotenv::dotenv()?;
+    let _ = dotenv::dotenv();
 
     let config = Self::read()?;
 
