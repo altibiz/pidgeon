@@ -613,98 +613,107 @@ impl ModbusClient {
   }
 
   fn parse_u16_register(data: Vec<u16>) -> Option<u16> {
-    let bytes = Self::parse_ne_bytes(data)?;
+    let bytes = Self::parse_numeric_bytes(data)?;
     let slice = bytes.as_slice().try_into().ok()?;
     let result = u16::from_ne_bytes(slice);
-
     Some(result)
   }
 
   fn parse_u32_register(data: Vec<u16>) -> Option<u32> {
-    let bytes = Self::parse_ne_bytes(data)?;
+    let bytes = Self::parse_numeric_bytes(data)?;
     let slice = bytes.as_slice().try_into().ok()?;
     let result = u32::from_ne_bytes(slice);
-
     Some(result)
   }
 
   fn parse_u64_register(data: Vec<u16>) -> Option<u64> {
-    let bytes = Self::parse_ne_bytes(data)?;
+    let bytes = Self::parse_numeric_bytes(data)?;
     let slice = bytes.as_slice().try_into().ok()?;
     let result = u64::from_ne_bytes(slice);
-
     Some(result)
   }
 
   fn parse_s16_register(data: Vec<u16>) -> Option<i16> {
-    let bytes = Self::parse_ne_bytes(data)?;
+    let bytes = Self::parse_numeric_bytes(data)?;
     let slice = bytes.as_slice().try_into().ok()?;
     let result = i16::from_ne_bytes(slice);
-
     Some(result)
   }
 
   fn parse_s32_register(data: Vec<u16>) -> Option<i32> {
-    let bytes = Self::parse_ne_bytes(data)?;
+    let bytes = Self::parse_numeric_bytes(data)?;
     let slice = bytes.as_slice().try_into().ok()?;
     let result = i32::from_ne_bytes(slice);
-
     Some(result)
   }
 
   fn parse_s64_register(data: Vec<u16>) -> Option<i64> {
-    let bytes = Self::parse_ne_bytes(data)?;
+    let bytes = Self::parse_numeric_bytes(data)?;
     let slice = bytes.as_slice().try_into().ok()?;
     let result = i64::from_ne_bytes(slice);
-
     Some(result)
   }
 
   fn parse_f32_register(data: Vec<u16>) -> Option<f32> {
-    let bytes = Self::parse_ne_bytes(data)?;
+    let bytes = Self::parse_numeric_bytes(data)?;
     let slice = bytes.as_slice().try_into().ok()?;
     let result = f32::from_ne_bytes(slice);
-
     Some(result)
   }
 
   fn parse_f64_register(data: Vec<u16>) -> Option<f64> {
-    let bytes = Self::parse_ne_bytes(data)?;
+    let bytes = Self::parse_numeric_bytes(data)?;
     let slice = bytes.as_slice().try_into().ok()?;
     let result = f64::from_ne_bytes(slice);
-
     Some(result)
   }
 
   fn parse_string_register(data: Vec<u16>) -> Option<String> {
-    let bytes = Self::parse_ne_bytes(data)?;
-    let string = String::from_utf8(bytes).ok()?;
-
-    Some(string)
+    let bytes = Self::parse_string_bytes(data)?;
+    let result = String::from_utf8(bytes).ok()?;
+    Some(result)
   }
 
-  // TODO: remove hints about inactive-code
-  // NOTE: modbus is big-endian
-  fn parse_ne_bytes(data: Vec<u16>) -> Option<Vec<u8>> {
-    let mut result = Vec::with_capacity(data.len() * 2);
+  fn parse_numeric_bytes(data: Vec<u16>) -> Option<Vec<u8>> {
+    let mut bytes = Vec::with_capacity(data.len() * 2);
 
     #[cfg(target_endian = "little")]
     {
-      for &value in &data {
-        result.push((value >> 8) as u8);
-        result.push((value & 0xFF) as u8);
+      for value in data.into_iter().rev() {
+        bytes.push((value & 0xFF) as u8);
+        bytes.push((value >> 8) as u8);
       }
     }
     #[cfg(target_endian = "big")]
     {
-      for &value in &data {
-        result.push((value & 0xFF) as u8);
-        result.push((value >> 8) as u8);
+      for value in data.into_iter() {
+        bytes.push((value & 0xFF) as u8);
+        bytes.push((value >> 8) as u8);
       }
     }
-    dbg!(result.clone());
 
-    Some(result)
+    Some(bytes)
+  }
+
+  fn parse_string_bytes(data: Vec<u16>) -> Option<Vec<u8>> {
+    let mut bytes = Vec::with_capacity(data.len() * 2);
+
+    #[cfg(target_endian = "little")]
+    {
+      for value in data.into_iter() {
+        bytes.push((value >> 8) as u8);
+        bytes.push((value & 0xFF) as u8);
+      }
+    }
+    #[cfg(target_endian = "big")]
+    {
+      for value in data.into_iter() {
+        bytes.push((value & 0xFF) as u8);
+        bytes.push((value >> 8) as u8);
+      }
+    }
+
+    Some(bytes)
   }
 }
 
