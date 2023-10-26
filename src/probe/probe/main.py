@@ -37,6 +37,14 @@ async def main():
         convert=PullClient.to_ascii,
       ),
     )
+    print(
+      "Power",
+      await client.read(
+        register=0x5B14,
+        count=2,
+        convert=PullClient.to_sint32,
+      ),
+    )
 
   if args.device_type() == DeviceType.schneider:
     print(
@@ -53,6 +61,14 @@ async def main():
         register=0x0081,
         count=2,
         convert=PullClient.to_uint32,
+      ),
+    )
+    print(
+      "Power",
+      await client.read(
+        register=0x0BF3,
+        count=2,
+        convert=PullClient.to_float32,
       ),
     )
 

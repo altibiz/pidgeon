@@ -702,6 +702,7 @@ impl ModbusClient {
         result.push((value >> 8) as u8);
       }
     }
+    dbg!(result.clone());
 
     Some(result)
   }
