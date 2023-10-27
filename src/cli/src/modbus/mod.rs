@@ -1,5 +1,5 @@
-mod batch;
-mod register;
+pub mod batch;
+pub mod register;
 
 use futures_time::future::FutureExt;
 use register::*;
@@ -35,7 +35,7 @@ struct Device {
 pub struct DeviceData {
   pub device: DeviceConfig,
   pub id: String,
-  pub registers: Vec<RegisterData>,
+  pub registers: Vec<MeasurementRegister<RegisterValue>>,
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
@@ -171,8 +171,7 @@ impl ModbusClient {
         id: device.id.clone(),
         registers: Vec::new(),
       };
-
-      for register in device.config.registers.iter() {
+      for register in device.config.measurement.iter() {
         let value = match Self::read_register(
           mutex.clone(),
           self.timeout,
@@ -194,10 +193,7 @@ impl ModbusClient {
           }
         };
 
-        device_data.registers.push(RegisterData {
-          register: register.clone(),
-          value,
-        })
+        device_data.registers.push(value)
       }
 
       data.push(device_data);
@@ -312,7 +308,7 @@ impl ModbusClient {
       match value {
         None => return None,
         Some(value) => {
-          id += Self::register_to_string(value).as_str();
+          id += value.to_string().as_str();
         }
       }
     }
@@ -345,27 +341,25 @@ impl ModbusClient {
 
   async fn read_register<
     TParsed: Register,
-    TRegister: Register + UnparsedRegister<TRegister>,
+    TRegister: UnparsedRegister<TParsed>,
   >(
     mutex: Arc<Mutex<Connection>>,
     timeout: futures_time::time::Duration,
     retries: u64,
     register: TRegister,
   ) -> Result<TParsed, ModbusClientError> {
-    let register_size = Self::register_size(register.kind);
-
     let response = {
       let mut conn = mutex.lock().await;
       let mut response = conn
         .ctx
-        .read_holding_registers(register.address, register_size)
+        .read_holding_registers(register.address(), register.quantity())
         .timeout(timeout)
         .await;
       let mut remaining = retries;
       while remaining > 0 {
         response = conn
           .ctx
-          .read_holding_registers(register.address, register_size)
+          .read_holding_registers(register.address(), register.quantity())
           .timeout(timeout)
           .await;
         match response {
@@ -381,7 +375,9 @@ impl ModbusClient {
       response
     }??;
 
-    register.parse(&response)
+    register
+      .parse(&response)
+      .ok_or_else(|| ModbusClientError::Parse)
   }
 
   async fn connect(

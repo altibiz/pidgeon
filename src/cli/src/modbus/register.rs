@@ -12,6 +12,8 @@ pub trait RegisterStorage {
 pub trait Register {
   fn address(&self) -> Address;
 
+  fn quantity(&self) -> Quantity;
+
   fn storage(&self) -> &dyn RegisterStorage;
 }
 
@@ -179,6 +181,10 @@ macro_rules! impl_register {
         self.address
       }
 
+      fn quantity(&self) -> Quantity {
+        self.storage.quantity()
+      }
+
       fn storage(&self) -> &dyn RegisterStorage {
         &self.storage
       }
@@ -199,7 +205,7 @@ impl_register!(MeasurementRegister);
 impl_register!(DetectRegister);
 impl_register!(IdRegister);
 
-macro_rules! parse_integer_register_kind {
+macro_rules! parse_integer_register {
   ($variant: ident, $type: ty, $data: ident, $multiplier: ident) => {{
     let bytes = parse_numeric_bytes($data);
     let slice = bytes.as_slice().try_into().ok()?;
@@ -211,7 +217,7 @@ macro_rules! parse_integer_register_kind {
   }};
 }
 
-macro_rules! parse_floating_register_kind {
+macro_rules! parse_floating_register {
   ($variant: ident, $type: ty, $data: ident, $multiplier: ident) => {{
     let bytes = parse_numeric_bytes($data);
     let slice = bytes.as_slice().try_into().ok()?;
@@ -220,6 +226,43 @@ macro_rules! parse_floating_register_kind {
       Some($multiplier) => ((value as f64) * $multiplier) as $type,
       None => value,
     })
+  }};
+}
+
+macro_rules! parse_register {
+  ($self: ident, $data: ident, $result: expr) => {{
+    let value = match $self.storage {
+      RegisterKind::U16(NumericRegisterKind { multiplier }) => {
+        parse_integer_register!(U16, u16, $data, multiplier)
+      }
+      RegisterKind::U32(NumericRegisterKind { multiplier }) => {
+        parse_integer_register!(U32, u32, $data, multiplier)
+      }
+      RegisterKind::U64(NumericRegisterKind { multiplier }) => {
+        parse_integer_register!(U64, u64, $data, multiplier)
+      }
+      RegisterKind::S16(NumericRegisterKind { multiplier }) => {
+        parse_integer_register!(S16, i16, $data, multiplier)
+      }
+      RegisterKind::S32(NumericRegisterKind { multiplier }) => {
+        parse_integer_register!(S32, i32, $data, multiplier)
+      }
+      RegisterKind::S64(NumericRegisterKind { multiplier }) => {
+        parse_integer_register!(S64, i64, $data, multiplier)
+      }
+      RegisterKind::F32(NumericRegisterKind { multiplier }) => {
+        parse_floating_register!(F32, f32, $data, multiplier)
+      }
+      RegisterKind::F64(NumericRegisterKind { multiplier }) => {
+        parse_floating_register!(F64, f64, $data, multiplier)
+      }
+      RegisterKind::String(_) => {
+        let bytes = parse_string_bytes($data);
+        RegisterValue::String(String::from_utf8(bytes).ok()?)
+      }
+    };
+
+    Some($result($self, value))
   }};
 }
 
@@ -234,38 +277,7 @@ macro_rules! impl_parse_register {
         &self,
         data: &TIntoIterator,
       ) -> Option<$type<RegisterValue>> {
-        let value = match self.storage {
-          RegisterKind::U16(NumericRegisterKind { multiplier }) => {
-            parse_integer_register_kind!(U16, u16, data, multiplier)
-          }
-          RegisterKind::U32(NumericRegisterKind { multiplier }) => {
-            parse_integer_register_kind!(U32, u32, data, multiplier)
-          }
-          RegisterKind::U64(NumericRegisterKind { multiplier }) => {
-            parse_integer_register_kind!(U64, u64, data, multiplier)
-          }
-          RegisterKind::S16(NumericRegisterKind { multiplier }) => {
-            parse_integer_register_kind!(S16, i16, data, multiplier)
-          }
-          RegisterKind::S32(NumericRegisterKind { multiplier }) => {
-            parse_integer_register_kind!(S32, i32, data, multiplier)
-          }
-          RegisterKind::S64(NumericRegisterKind { multiplier }) => {
-            parse_integer_register_kind!(S64, i64, data, multiplier)
-          }
-          RegisterKind::F32(NumericRegisterKind { multiplier }) => {
-            parse_floating_register_kind!(F32, f32, data, multiplier)
-          }
-          RegisterKind::F64(NumericRegisterKind { multiplier }) => {
-            parse_floating_register_kind!(F64, f64, data, multiplier)
-          }
-          RegisterKind::String(_) => {
-            let bytes = parse_string_bytes(data);
-            RegisterValue::String(String::from_utf8(bytes).ok()?)
-          }
-        };
-
-        Some($result(self, value))
+        parse_register!(self, data, $result)
       }
     }
 
@@ -275,38 +287,7 @@ macro_rules! impl_parse_register {
         &self,
         data: &TIntoIterator,
       ) -> Option<$type<RegisterValue>> {
-        let value = match self.storage {
-          RegisterKind::U16(NumericRegisterKind { multiplier }) => {
-            parse_integer_register_kind!(U16, u16, data, multiplier)
-          }
-          RegisterKind::U32(NumericRegisterKind { multiplier }) => {
-            parse_integer_register_kind!(U32, u32, data, multiplier)
-          }
-          RegisterKind::U64(NumericRegisterKind { multiplier }) => {
-            parse_integer_register_kind!(U64, u64, data, multiplier)
-          }
-          RegisterKind::S16(NumericRegisterKind { multiplier }) => {
-            parse_integer_register_kind!(S16, i16, data, multiplier)
-          }
-          RegisterKind::S32(NumericRegisterKind { multiplier }) => {
-            parse_integer_register_kind!(S32, i32, data, multiplier)
-          }
-          RegisterKind::S64(NumericRegisterKind { multiplier }) => {
-            parse_integer_register_kind!(S64, i64, data, multiplier)
-          }
-          RegisterKind::F32(NumericRegisterKind { multiplier }) => {
-            parse_floating_register_kind!(F32, f32, data, multiplier)
-          }
-          RegisterKind::F64(NumericRegisterKind { multiplier }) => {
-            parse_floating_register_kind!(F64, f64, data, multiplier)
-          }
-          RegisterKind::String(_) => {
-            let bytes = parse_string_bytes(data);
-            RegisterValue::String(String::from_utf8(bytes).ok()?)
-          }
-        };
-
-        Some($result(self, value))
+        parse_register!(self, data, $result)
       }
     }
   };

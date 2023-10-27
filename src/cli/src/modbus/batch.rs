@@ -41,27 +41,27 @@ impl<
     &self,
     data: &TIterator,
   ) -> Option<SortedRegisterBatch<TParsedRegister>> {
-    let registers = Vec::with_capacity(self.registers.len());
+    let mut registers = Vec::with_capacity(self.registers.len());
     let data = data.into_iter().collect::<Vec<_>>();
 
     for register in self.registers {
-      let start = register.address() - self.address;
-      let end = start + register.quantity();
+      let start = (register.address() - self.address) as usize;
+      let end = start + register.quantity() as usize;
       let slice = &data[start..end];
-      let parsed = register.parse(slice);
+      let parsed = register.parse(&slice.iter().cloned())?;
       registers.push(parsed);
     }
 
-    SortedRegisterBatch::<RegisterValue> {
+    Some(SortedRegisterBatch::<TParsedRegister> {
       address: self.address,
       quantity: self.quantity,
       registers,
-    }
+    })
   }
 }
 
 pub fn batch_registers<
-  TRegister: Register,
+  TRegister: Register + Clone,
   TIntoIterator: IntoIterator<Item = TRegister>,
 >(
   registers: TIntoIterator,
@@ -70,17 +70,17 @@ pub fn batch_registers<
   let mut registers = registers.into_iter().collect::<Vec<_>>();
   registers.sort_by_key(|register| register.address());
 
-  let batches = Vec::new();
+  let mut batches = Vec::new();
   let mut current = SortedRegisterBatch::<TRegister> {
     address: registers[0].address(),
     quantity: registers[0].storage().quantity(),
-    registers: vec![registers[0]],
+    registers: vec![registers[0].clone()],
   };
 
   for register in registers.drain(1..) {
     let end = current.address + current.quantity;
     let gap = register.address() - end;
-    if gap < threshold {
+    if (gap as usize) < threshold {
       current.quantity += gap + register.storage().quantity();
       current.registers.push(register);
     } else {

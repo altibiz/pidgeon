@@ -46,7 +46,7 @@ struct RuntimeFile {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Register {
+pub struct MeasurementRegister {
   pub name: String,
   pub address: u16,
   pub kind: RegisterKind,
@@ -107,7 +107,7 @@ pub enum DeviceId {
 pub struct DeviceConfig {
   pub detect: DeviceDetect,
   pub id: DeviceId,
-  pub registers: Vec<Register>,
+  pub measurement: Vec<MeasurementRegister>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

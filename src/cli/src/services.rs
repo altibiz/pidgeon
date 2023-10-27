@@ -76,14 +76,10 @@ impl Services {
               .collect(),
           },
           kind,
-          registers: device
-            .registers
+          measurement: device
+            .measurement
             .drain(0..)
-            .map(|register| modbus::RegisterConfig {
-              name: register.name,
-              address: register.address,
-              kind: Self::to_modbus_register(register.kind),
-            })
+            .map(Self::to_modbus_measurement_register)
             .collect(),
         })
         .collect(),
@@ -143,7 +139,7 @@ impl Services {
         id: 0,
         source: device_data.id,
         timestamp: chrono::Utc::now(),
-        data: modbus::registers_to_json(device_data.registers),
+        data: modbus::register::serialize_registers(device_data.registers),
       })
       .collect::<Vec<DbMeasurement>>();
     if measurements.is_empty() {
@@ -209,12 +205,22 @@ impl Services {
     Ok(())
   }
 
+  fn to_modbus_measurement_register(
+    register: config::MeasurementRegister,
+  ) -> modbus::register::MeasurementRegister<modbus::register::RegisterKind> {
+    modbus::register::MeasurementRegister::<modbus::register::RegisterKind> {
+      address: register.address,
+      storage: Self::to_modbus_register_kind(register.kind),
+      name: register.name,
+    }
+  }
+
   fn to_modbus_detect_register(
     register: config::DetectRegister,
-  ) -> modbus::DetectRegister {
-    modbus::DetectRegister {
+  ) -> modbus::register::DetectRegister<modbus::register::RegisterKind> {
+    modbus::register::DetectRegister::<modbus::register::RegisterKind> {
       address: register.address,
-      kind: Self::to_modbus_register(register.kind),
+      storage: Self::to_modbus_register_kind(register.kind),
       r#match: match regex::Regex::new(register.r#match.as_str()) {
         Ok(regex) => either::Either::Right(regex),
         _ => either::Either::Left(register.r#match),
@@ -222,43 +228,63 @@ impl Services {
     }
   }
 
-  fn to_modbus_id_register(register: config::IdRegister) -> modbus::IdRegister {
-    modbus::IdRegister {
+  fn to_modbus_id_register(
+    register: config::IdRegister,
+  ) -> modbus::register::IdRegister<modbus::register::RegisterKind> {
+    modbus::register::IdRegister::<modbus::register::RegisterKind> {
       address: register.address,
-      kind: Self::to_modbus_register(register.kind),
+      storage: Self::to_modbus_register_kind(register.kind),
     }
   }
 
-  fn to_modbus_register(
+  fn to_modbus_register_kind(
     register: config::RegisterKind,
-  ) -> modbus::RegisterKind {
+  ) -> modbus::register::RegisterKind {
     match register {
       config::RegisterKind::U16(config::NumericRegisterKind { multiplier }) => {
-        modbus::RegisterKind::U16(modbus::NumericRegisterKind { multiplier })
+        modbus::register::RegisterKind::U16(
+          modbus::register::NumericRegisterKind { multiplier },
+        )
       }
       config::RegisterKind::U32(config::NumericRegisterKind { multiplier }) => {
-        modbus::RegisterKind::U32(modbus::NumericRegisterKind { multiplier })
+        modbus::register::RegisterKind::U32(
+          modbus::register::NumericRegisterKind { multiplier },
+        )
       }
       config::RegisterKind::U64(config::NumericRegisterKind { multiplier }) => {
-        modbus::RegisterKind::U64(modbus::NumericRegisterKind { multiplier })
+        modbus::register::RegisterKind::U64(
+          modbus::register::NumericRegisterKind { multiplier },
+        )
       }
       config::RegisterKind::S16(config::NumericRegisterKind { multiplier }) => {
-        modbus::RegisterKind::S16(modbus::NumericRegisterKind { multiplier })
+        modbus::register::RegisterKind::S16(
+          modbus::register::NumericRegisterKind { multiplier },
+        )
       }
       config::RegisterKind::S32(config::NumericRegisterKind { multiplier }) => {
-        modbus::RegisterKind::S32(modbus::NumericRegisterKind { multiplier })
+        modbus::register::RegisterKind::S32(
+          modbus::register::NumericRegisterKind { multiplier },
+        )
       }
       config::RegisterKind::S64(config::NumericRegisterKind { multiplier }) => {
-        modbus::RegisterKind::S64(modbus::NumericRegisterKind { multiplier })
+        modbus::register::RegisterKind::S64(
+          modbus::register::NumericRegisterKind { multiplier },
+        )
       }
       config::RegisterKind::F32(config::NumericRegisterKind { multiplier }) => {
-        modbus::RegisterKind::F32(modbus::NumericRegisterKind { multiplier })
+        modbus::register::RegisterKind::F32(
+          modbus::register::NumericRegisterKind { multiplier },
+        )
       }
       config::RegisterKind::F64(config::NumericRegisterKind { multiplier }) => {
-        modbus::RegisterKind::F64(modbus::NumericRegisterKind { multiplier })
+        modbus::register::RegisterKind::F64(
+          modbus::register::NumericRegisterKind { multiplier },
+        )
       }
       config::RegisterKind::String(config::StringRegisterKind { length }) => {
-        modbus::RegisterKind::String(modbus::StringRegisterKind { length })
+        modbus::register::RegisterKind::String(
+          modbus::register::StringRegisterKind { length },
+        )
       }
     }
   }
