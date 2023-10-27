@@ -297,7 +297,7 @@ impl_parse_register!(
   MeasurementRegister,
   |register: &MeasurementRegister::<RegisterKind>, storage| {
     MeasurementRegister::<RegisterValue> {
-      address: register.address.clone(),
+      address: register.address,
       storage,
       name: register.name.clone(),
     }
@@ -307,7 +307,7 @@ impl_parse_register!(
   DetectRegister,
   |register: &DetectRegister::<RegisterKind>, storage| {
     DetectRegister::<RegisterValue> {
-      address: register.address.clone(),
+      address: register.address,
       storage,
       r#match: register.r#match.clone(),
     }
@@ -316,7 +316,7 @@ impl_parse_register!(
 impl_parse_register!(IdRegister, |register: &IdRegister::<RegisterKind>,
                                   storage| {
   IdRegister::<RegisterValue> {
-    address: register.address.clone(),
+    address: register.address,
     storage,
   }
 });
@@ -331,8 +331,7 @@ fn parse_numeric_bytes<
   data
     .into_iter()
     .rev()
-    .map(|value| [(value & 0xFF) as u8, (value >> 8) as u8])
-    .flatten()
+    .flat_map(|value| [(value & 0xFF) as u8, (value >> 8) as u8])
     .collect()
 }
 
@@ -353,8 +352,7 @@ fn parse_string_bytes<TIntoIterator: IntoIterator<Item = u16>>(
 ) -> Vec<u8> {
   data
     .into_iter()
-    .map(|value| [(value >> 8) as u8, (value & 0xFF) as u8])
-    .flatten()
+    .flat_map(|value| [(value >> 8) as u8, (value & 0xFF) as u8])
     .collect()
 }
 
