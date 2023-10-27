@@ -9,9 +9,9 @@ pub trait RegisterBatch {
 }
 
 pub trait UnparsedRegisterBatch<TParsed: RegisterBatch>: RegisterBatch {
-  fn parse<TIterator: IntoIterator<Item = u16>>(
+  fn parse<TIntoIterator: IntoIterator<Item = u16>>(
     &self,
-    data: &TIterator,
+    data: TIntoIterator,
   ) -> Option<TParsed>;
 }
 
@@ -37,18 +37,18 @@ impl<
   > UnparsedRegisterBatch<SortedRegisterBatch<TParsedRegister>>
   for SortedRegisterBatch<TUnparsedRegister>
 {
-  fn parse<TIterator: IntoIterator<Item = u16>>(
+  fn parse<TIntoIterator: IntoIterator<Item = u16>>(
     &self,
-    data: &TIterator,
+    data: TIntoIterator,
   ) -> Option<SortedRegisterBatch<TParsedRegister>> {
     let mut registers = Vec::with_capacity(self.registers.len());
     let data = data.into_iter().collect::<Vec<_>>();
 
-    for register in self.registers {
+    for register in &self.registers {
       let start = (register.address() - self.address) as usize;
       let end = start + register.quantity() as usize;
       let slice = &data[start..end];
-      let parsed = register.parse(&slice.iter().cloned())?;
+      let parsed = register.parse(slice.iter().cloned())?;
       registers.push(parsed);
     }
 

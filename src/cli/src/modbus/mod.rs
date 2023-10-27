@@ -376,7 +376,7 @@ impl ModbusClient {
     }??;
 
     register
-      .parse(&response)
+      .parse(response)
       .ok_or_else(|| ModbusClientError::Parse)
   }
 

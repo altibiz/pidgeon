@@ -24,13 +24,13 @@ pub trait UnparsedRegister<TParsed: Register>: Register {
     TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
   >(
     &self,
-    data: &TIntoIterator,
+    data: TIntoIterator,
   ) -> Option<TParsed>;
 
   #[cfg(target_endian = "big")]
   fn parse<TIntoIterator: IntoIterator<Item = u16>>(
     &self,
-    data: &TIntoIterator,
+    data: TIntoIterator,
   ) -> Option<TParsed>;
 }
 
@@ -145,8 +145,8 @@ impl Display for RegisterValue {
 impl DetectRegister<RegisterValue> {
   pub fn matches(&self) -> bool {
     let storage = self.storage.to_string();
-    match self.r#match {
-      Either::Left(string) => string == storage,
+    match &self.r#match {
+      Either::Left(string) => string.eq(storage.as_str()),
       Either::Right(regex) => regex.is_match(storage.as_str()),
     }
   }
@@ -275,7 +275,7 @@ macro_rules! impl_parse_register {
         TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
       >(
         &self,
-        data: &TIntoIterator,
+        data: TIntoIterator,
       ) -> Option<$type<RegisterValue>> {
         parse_register!(self, data, $result)
       }
@@ -285,7 +285,7 @@ macro_rules! impl_parse_register {
     impl UnparsedRegister<$type<RegisterValue>> for $type<RegisterKind> {
       fn parse<TIntoIterator: IntoIterator<Item = u16>>(
         &self,
-        data: &TIntoIterator,
+        data: TIntoIterator,
       ) -> Option<$type<RegisterValue>> {
         parse_register!(self, data, $result)
       }
@@ -295,41 +295,38 @@ macro_rules! impl_parse_register {
 
 impl_parse_register!(
   MeasurementRegister,
-  |&MeasurementRegister::<RegisterKind> { address, name, .. }, storage| {
+  |register: &MeasurementRegister::<RegisterKind>, storage| {
     MeasurementRegister::<RegisterValue> {
-      address,
+      address: register.address.clone(),
       storage,
-      name,
+      name: register.name.clone(),
     }
   }
 );
 impl_parse_register!(
   DetectRegister,
-  |&DetectRegister::<RegisterKind> {
-     address, r#match, ..
-   },
-   storage| {
+  |register: &DetectRegister::<RegisterKind>, storage| {
     DetectRegister::<RegisterValue> {
-      address,
+      address: register.address.clone(),
       storage,
-      r#match,
+      r#match: register.r#match.clone(),
     }
   }
 );
-impl_parse_register!(IdRegister, |&IdRegister::<RegisterKind> {
-                                    address,
-                                    ..
-                                  },
+impl_parse_register!(IdRegister, |register: &IdRegister::<RegisterKind>,
                                   storage| {
-  IdRegister::<RegisterValue> { address, storage }
+  IdRegister::<RegisterValue> {
+    address: register.address.clone(),
+    storage,
+  }
 });
 
 #[cfg(target_endian = "little")]
 fn parse_numeric_bytes<
-  I: DoubleEndedIterator<Item = u16>,
-  T: IntoIterator<Item = u16, IntoIter = I>,
+  TIterator: DoubleEndedIterator<Item = u16>,
+  TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
 >(
-  data: &T,
+  data: TIntoIterator,
 ) -> Vec<u8> {
   data
     .into_iter()
@@ -340,7 +337,9 @@ fn parse_numeric_bytes<
 }
 
 #[cfg(target_endian = "big")]
-fn parse_numeric_bytes<T: IntoIterator<Item = u16>>(data: &T) -> Vec<u8> {
+fn parse_numeric_bytes<TIntoIterator: IntoIterator<Item = u16>>(
+  data: TIntoIterator,
+) -> Vec<u8> {
   data
     .into_iter()
     .map(|value| [(value & 0xFF) as u8, (value >> 8) as u8])
@@ -349,7 +348,9 @@ fn parse_numeric_bytes<T: IntoIterator<Item = u16>>(data: &T) -> Vec<u8> {
 }
 
 #[cfg(target_endian = "little")]
-fn parse_string_bytes<T: IntoIterator<Item = u16>>(data: &T) -> Vec<u8> {
+fn parse_string_bytes<TIntoIterator: IntoIterator<Item = u16>>(
+  data: TIntoIterator,
+) -> Vec<u8> {
   data
     .into_iter()
     .map(|value| [(value >> 8) as u8, (value & 0xFF) as u8])
@@ -358,7 +359,9 @@ fn parse_string_bytes<T: IntoIterator<Item = u16>>(data: &T) -> Vec<u8> {
 }
 
 #[cfg(target_endian = "big")]
-fn parse_string_bytes<T: IntoIterator<Item = u16>>(data: &T) -> Vec<u8> {
+fn parse_string_bytes<TIntoIterator: IntoIterator<Item = u16>>(
+  data: TIntoIterator,
+) -> Vec<u8> {
   data
     .into_iter()
     .map(|value| [(value & 0xFF) as u8, (value >> 8) as u8])
