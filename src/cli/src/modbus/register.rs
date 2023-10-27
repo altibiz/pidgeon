@@ -15,7 +15,7 @@ pub trait Register {
   fn storage(&self) -> &dyn RegisterStorage;
 }
 
-pub trait UnparsedRegister<TParsed: Register> {
+pub trait UnparsedRegister<TParsed: Register>: Register {
   #[cfg(target_endian = "little")]
   fn parse<
     TIterator: DoubleEndedIterator<Item = u16>,
@@ -29,19 +29,6 @@ pub trait UnparsedRegister<TParsed: Register> {
   fn parse<TIntoIterator: IntoIterator<Item = u16>>(
     &self,
     data: &TIntoIterator,
-  ) -> Option<TParsed>;
-}
-
-pub trait RegisterBatch {
-  fn address(&self) -> Address;
-
-  fn quantity(&self) -> Quantity;
-}
-
-pub trait UnparsedRegisterBatch<TParsed: RegisterBatch> {
-  fn parse<TIterator: IntoIterator<Item = u16>>(
-    &self,
-    data: &TIterator,
   ) -> Option<TParsed>;
 }
 
@@ -100,13 +87,6 @@ pub struct DetectRegister<T: RegisterStorage> {
 pub struct IdRegister<T: RegisterStorage> {
   pub address: Address,
   pub storage: T,
-}
-
-#[derive(Debug, Clone)]
-struct RegisterBatchImpl<T: Register> {
-  pub address: Address,
-  pub quantity: Quantity,
-  pub registers: Vec<T>,
 }
 
 impl RegisterStorage for RegisterKind {

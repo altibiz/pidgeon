@@ -1,3 +1,4 @@
+mod batch;
 mod register;
 
 use futures_time::future::FutureExt;
