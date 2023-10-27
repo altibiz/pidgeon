@@ -209,7 +209,7 @@ pub struct ParsedCloudConfig {
 pub struct ParsedModbusConfig {
   pub timeout: u64,
   pub retries: u64,
-  pub batchind_threshold: usize,
+  pub batching_threshold: usize,
   pub devices: HashMap<String, DeviceConfig>,
 }
 
@@ -339,7 +339,7 @@ impl ConfigManager {
         timeout: config.from_file.modbus.timeout,
         retries: config.from_file.modbus.retries,
         devices: config.from_file.modbus.devices,
-        batchind_threshold: config.from_file.modbus.batch_threshold,
+        batching_threshold: config.from_file.modbus.batch_threshold,
       },
       runtime: ParsedRuntimeConfig {
         log_level: config.from_file.runtime.log_level.unwrap_or(

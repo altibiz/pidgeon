@@ -15,6 +15,7 @@ cloud:
 modbus:
   timeout: 1000
   retries: 3
+  batching_threshold: 3
   devices:
     schneider:
       detect:

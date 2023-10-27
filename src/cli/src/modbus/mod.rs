@@ -1,6 +1,7 @@
-use either::Either;
+mod register;
+
 use futures_time::future::FutureExt;
-use regex::Regex;
+use register::*;
 use std::{
   collections::HashMap,
   net::{IpAddr, SocketAddr, SocketAddrV4},
@@ -11,82 +12,15 @@ use tokio::{net::TcpStream, sync::Mutex};
 use tokio_modbus::{
   client::Context,
   prelude::{rtu, tcp, Reader},
-  Address, Quantity, Slave, SlaveId,
+  Slave, SlaveId,
 };
-
-macro_rules! parse_integer_register_kind {
-  ($variant: ident, $type: ty, $data: ident, $multiplier: ident) => {{
-    let bytes = Self::parse_numeric_bytes($data)?;
-    let slice = bytes.as_slice().try_into().ok()?;
-    let value = <$type>::from_ne_bytes(slice);
-    RegisterValue::$variant(match $multiplier {
-      Some($multiplier) => ((value as f64) * $multiplier).round() as $type,
-      None => value,
-    })
-  }};
-}
-
-macro_rules! parse_floating_register_kind {
-  ($variant: ident, $type: ty, $data: ident, $multiplier: ident) => {{
-    let bytes = Self::parse_numeric_bytes($data)?;
-    let slice = bytes.as_slice().try_into().ok()?;
-    let value = <$type>::from_ne_bytes(slice);
-    RegisterValue::$variant(match $multiplier {
-      Some($multiplier) => ((value as f64) * $multiplier) as $type,
-      None => value,
-    })
-  }};
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct StringRegisterKind {
-  pub length: Quantity,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct NumericRegisterKind {
-  pub multiplier: Option<f64>,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum RegisterKind {
-  U16(NumericRegisterKind),
-  U32(NumericRegisterKind),
-  U64(NumericRegisterKind),
-  S16(NumericRegisterKind),
-  S32(NumericRegisterKind),
-  S64(NumericRegisterKind),
-  F32(NumericRegisterKind),
-  F64(NumericRegisterKind),
-  String(StringRegisterKind),
-}
-
-#[derive(Debug, Clone)]
-pub struct RegisterConfig {
-  pub name: String,
-  pub address: Address,
-  pub kind: RegisterKind,
-}
-
-#[derive(Debug, Clone)]
-pub struct DetectRegister {
-  pub address: u16,
-  pub kind: RegisterKind,
-  pub r#match: Either<String, Regex>,
-}
-
-#[derive(Debug, Clone)]
-pub struct IdRegister {
-  pub address: u16,
-  pub kind: RegisterKind,
-}
 
 #[derive(Debug, Clone)]
 pub struct DeviceConfig {
   pub kind: String,
-  pub detect: Vec<DetectRegister>,
-  pub id: Vec<IdRegister>,
-  pub registers: Vec<RegisterConfig>,
+  pub detect: Vec<DetectRegister<RegisterKind>>,
+  pub id: Vec<IdRegister<RegisterKind>>,
+  pub measurement: Vec<MeasurementRegister<RegisterKind>>,
 }
 
 #[derive(Debug, Clone)]
@@ -103,25 +37,6 @@ pub struct DeviceData {
   pub registers: Vec<RegisterData>,
 }
 
-#[derive(Debug, Clone)]
-pub struct RegisterData {
-  pub register: RegisterConfig,
-  pub value: RegisterValue,
-}
-
-#[derive(Debug, Clone)]
-pub enum RegisterValue {
-  U16(u16),
-  U32(u32),
-  U64(u64),
-  S16(i16),
-  S32(i32),
-  S64(i64),
-  F32(f32),
-  F64(f64),
-  String(String),
-}
-
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 enum Framer {
   Tcp,
@@ -133,13 +48,6 @@ struct ConnectionId {
   socket: SocketAddr,
   slave_id: Option<SlaveId>,
   framer: Framer,
-}
-
-#[derive(Debug, Clone)]
-struct BatchRequestDefinition {
-  address: Address,
-  size: Quantity,
-  registers: Vec<RegisterConfig>,
 }
 
 #[derive(Debug)]
@@ -390,23 +298,15 @@ impl ModbusClient {
     timeout: futures_time::time::Duration,
     retries: u64,
     kind: String,
-    registers: Vec<IdRegister>,
+    registers: Vec<IdRegister<RegisterKind>>,
   ) -> Option<String> {
     let mut id = format!("{kind}-");
 
     for register in registers {
-      let value = Self::read_register(
-        mutex.clone(),
-        timeout,
-        retries,
-        RegisterConfig {
-          name: "id".to_string(),
-          address: register.address,
-          kind: register.kind,
-        },
-      )
-      .await
-      .ok();
+      let value =
+        Self::read_register(mutex.clone(), timeout, retries, register)
+          .await
+          .ok();
 
       match value {
         None => return None,
@@ -423,17 +323,13 @@ impl ModbusClient {
     mutex: Arc<Mutex<Connection>>,
     timeout: futures_time::time::Duration,
     retries: u64,
-    detect: DetectRegister,
+    register: DetectRegister<RegisterKind>,
   ) -> bool {
     let value = match Self::read_register(
       mutex.clone(),
       timeout,
       retries,
-      RegisterConfig {
-        name: "detect".to_string(),
-        address: detect.address,
-        kind: detect.kind,
-      },
+      register,
     )
     .await
     {
@@ -443,15 +339,18 @@ impl ModbusClient {
       }
     };
 
-    Self::match_register(value, detect.r#match.clone())
+    value.matches()
   }
 
-  async fn read_register(
+  async fn read_register<
+    TParsed: Register,
+    TRegister: Register + UnparsedRegister<TRegister>,
+  >(
     mutex: Arc<Mutex<Connection>>,
     timeout: futures_time::time::Duration,
     retries: u64,
-    register: RegisterConfig,
-  ) -> Result<RegisterValue, ModbusClientError> {
+    register: TRegister,
+  ) -> Result<TParsed, ModbusClientError> {
     let register_size = Self::register_size(register.kind);
 
     let response = {
@@ -481,10 +380,7 @@ impl ModbusClient {
       response
     }??;
 
-    match Self::parse_register(response, register.kind) {
-      Some(register) => Ok(register),
-      None => Err(ModbusClientError::Parse),
-    }
+    register.parse(&response)
   }
 
   async fn connect(
@@ -553,23 +449,6 @@ impl ModbusClient {
     Ok(mutex)
   }
 
-  fn make_batch_request_definitions(
-    registers: Vec<RegisterConfig>,
-    threshold: usize,
-  ) -> Vec<BatchRequestDefinition> {
-    registers.as_mut().sort_by_key(|register| register.address);
-    let result = Vec::new();
-    let mut current_batch = BatchRequestDefinition {
-      address: registers[0].address,
-      size: Self::register_size(registers[0].kind),
-      registers: vec![registers[0]],
-    };
-
-    for register in registers.drain(1..) {}
-
-    result
-  }
-
   fn make_connection_id(
     ip: IpAddr,
     slave: Option<SlaveId>,
@@ -586,153 +465,4 @@ impl ModbusClient {
 
     Ok(id)
   }
-
-  fn match_register(
-    value: RegisterValue,
-    r#match: Either<String, Regex>,
-  ) -> bool {
-    let matching_value = Self::register_to_string(value);
-
-    match &r#match {
-      Either::Left(value) => matching_value.eq(value),
-      Either::Right(regex) => regex.is_match(matching_value.as_str()),
-    }
-  }
-
-  fn register_to_string(value: RegisterValue) -> String {
-    match value {
-      RegisterValue::U16(value) => value.to_string(),
-      RegisterValue::U32(value) => value.to_string(),
-      RegisterValue::U64(value) => value.to_string(),
-      RegisterValue::S16(value) => value.to_string(),
-      RegisterValue::S32(value) => value.to_string(),
-      RegisterValue::S64(value) => value.to_string(),
-      RegisterValue::F32(value) => value.to_string(),
-      RegisterValue::F64(value) => value.to_string(),
-      RegisterValue::String(value) => value,
-    }
-  }
-
-  fn register_size(kind: RegisterKind) -> Quantity {
-    match kind {
-      RegisterKind::U16(_) => 1,
-      RegisterKind::U32(_) => 2,
-      RegisterKind::U64(_) => 4,
-      RegisterKind::S16(_) => 1,
-      RegisterKind::S32(_) => 2,
-      RegisterKind::S64(_) => 4,
-      RegisterKind::F32(_) => 2,
-      RegisterKind::F64(_) => 4,
-      RegisterKind::String(StringRegisterKind { length }) => length,
-    }
-  }
-
-  fn parse_register(
-    data: Vec<u16>,
-    kind: RegisterKind,
-  ) -> Option<RegisterValue> {
-    let value = match kind {
-      RegisterKind::U16(NumericRegisterKind { multiplier }) => {
-        parse_integer_register_kind!(U16, u16, data, multiplier)
-      }
-      RegisterKind::U32(NumericRegisterKind { multiplier }) => {
-        parse_integer_register_kind!(U32, u32, data, multiplier)
-      }
-      RegisterKind::U64(NumericRegisterKind { multiplier }) => {
-        parse_integer_register_kind!(U64, u64, data, multiplier)
-      }
-      RegisterKind::S16(NumericRegisterKind { multiplier }) => {
-        parse_integer_register_kind!(S16, i16, data, multiplier)
-      }
-      RegisterKind::S32(NumericRegisterKind { multiplier }) => {
-        parse_integer_register_kind!(S32, i32, data, multiplier)
-      }
-      RegisterKind::S64(NumericRegisterKind { multiplier }) => {
-        parse_integer_register_kind!(S64, i64, data, multiplier)
-      }
-      RegisterKind::F32(NumericRegisterKind { multiplier }) => {
-        parse_floating_register_kind!(F32, f32, data, multiplier)
-      }
-      RegisterKind::F64(NumericRegisterKind { multiplier }) => {
-        parse_floating_register_kind!(F64, f64, data, multiplier)
-      }
-      RegisterKind::String(_) => {
-        let bytes = Self::parse_string_bytes(data)?;
-        RegisterValue::String(String::from_utf8(bytes).ok()?)
-      }
-    };
-
-    Some(value)
-  }
-
-  fn parse_numeric_bytes(data: Vec<u16>) -> Option<Vec<u8>> {
-    let mut bytes = Vec::with_capacity(data.len() * 2);
-
-    #[cfg(target_endian = "little")]
-    {
-      for value in data.into_iter().rev() {
-        bytes.push((value & 0xFF) as u8);
-        bytes.push((value >> 8) as u8);
-      }
-    }
-    #[cfg(target_endian = "big")]
-    {
-      for value in data.into_iter() {
-        bytes.push((value & 0xFF) as u8);
-        bytes.push((value >> 8) as u8);
-      }
-    }
-
-    Some(bytes)
-  }
-
-  fn parse_string_bytes(data: Vec<u16>) -> Option<Vec<u8>> {
-    let mut bytes = Vec::with_capacity(data.len() * 2);
-
-    #[cfg(target_endian = "little")]
-    {
-      for value in data.into_iter() {
-        bytes.push((value >> 8) as u8);
-        bytes.push((value & 0xFF) as u8);
-      }
-    }
-    #[cfg(target_endian = "big")]
-    {
-      for value in data.into_iter() {
-        bytes.push((value & 0xFF) as u8);
-        bytes.push((value >> 8) as u8);
-      }
-    }
-
-    Some(bytes)
-  }
-}
-
-pub fn registers_to_json(registers: Vec<RegisterData>) -> serde_json::Value {
-  serde_json::Value::Object(
-    registers
-      .iter()
-      .map(
-        |RegisterData {
-           register: RegisterConfig { name, .. },
-           value,
-         }| {
-          (
-            name.clone(),
-            match value {
-              RegisterValue::U16(value) => serde_json::json!(value),
-              RegisterValue::U32(value) => serde_json::json!(value),
-              RegisterValue::U64(value) => serde_json::json!(value),
-              RegisterValue::S16(value) => serde_json::json!(value),
-              RegisterValue::S32(value) => serde_json::json!(value),
-              RegisterValue::S64(value) => serde_json::json!(value),
-              RegisterValue::F32(value) => serde_json::json!(value),
-              RegisterValue::F64(value) => serde_json::json!(value),
-              RegisterValue::String(value) => serde_json::json!(value),
-            },
-          )
-        },
-      )
-      .collect::<serde_json::Map<String, serde_json::Value>>(),
-  )
 }
