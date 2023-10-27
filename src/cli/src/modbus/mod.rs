@@ -14,21 +14,50 @@ use tokio_modbus::{
   Address, Quantity, Slave, SlaveId,
 };
 
+macro_rules! parse_integer_register_kind {
+  ($variant: ident, $type: ty, $data: ident, $multiplier: ident) => {{
+    let bytes = Self::parse_numeric_bytes($data)?;
+    let slice = bytes.as_slice().try_into().ok()?;
+    let value = <$type>::from_ne_bytes(slice);
+    RegisterValue::$variant(match $multiplier {
+      Some($multiplier) => ((value as f64) * $multiplier).round() as $type,
+      None => value,
+    })
+  }};
+}
+
+macro_rules! parse_floating_register_kind {
+  ($variant: ident, $type: ty, $data: ident, $multiplier: ident) => {{
+    let bytes = Self::parse_numeric_bytes($data)?;
+    let slice = bytes.as_slice().try_into().ok()?;
+    let value = <$type>::from_ne_bytes(slice);
+    RegisterValue::$variant(match $multiplier {
+      Some($multiplier) => ((value as f64) * $multiplier) as $type,
+      None => value,
+    })
+  }};
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct StringRegisterKind {
   pub length: Quantity,
 }
 
 #[derive(Debug, Clone, Copy)]
+pub struct NumericRegisterKind {
+  pub multiplier: Option<f64>,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub enum RegisterKind {
-  U16,
-  U32,
-  U64,
-  S16,
-  S32,
-  S64,
-  F32,
-  F64,
+  U16(NumericRegisterKind),
+  U32(NumericRegisterKind),
+  U64(NumericRegisterKind),
+  S16(NumericRegisterKind),
+  S32(NumericRegisterKind),
+  S64(NumericRegisterKind),
+  F32(NumericRegisterKind),
+  F64(NumericRegisterKind),
   String(StringRegisterKind),
 }
 
@@ -61,7 +90,7 @@ pub struct DeviceConfig {
 }
 
 #[derive(Debug, Clone)]
-struct NetworkDevice {
+struct Device {
   connection_id: ConnectionId,
   id: String,
   config: DeviceConfig,
@@ -106,6 +135,13 @@ struct ConnectionId {
   framer: Framer,
 }
 
+#[derive(Debug, Clone)]
+struct BatchRequestDefinition {
+  address: Address,
+  size: Quantity,
+  registers: Vec<RegisterConfig>,
+}
+
 #[derive(Debug)]
 struct Connection {
   ctx: Context,
@@ -115,8 +151,9 @@ struct Connection {
 pub struct ModbusClient {
   timeout: futures_time::time::Duration,
   retries: u64,
+  batching_threshold: usize,
   devices: Vec<DeviceConfig>,
-  network_devices: Arc<Mutex<Vec<NetworkDevice>>>,
+  network_devices: Arc<Mutex<Vec<Device>>>,
   pool: Arc<Mutex<HashMap<ConnectionId, Arc<Mutex<Connection>>>>>,
 }
 
@@ -136,12 +173,14 @@ impl ModbusClient {
   pub fn new(
     timeout: u64,
     retries: u64,
+    batching_threshold: usize,
     devices: Vec<DeviceConfig>,
   ) -> Result<Self, ModbusClientError> {
     Ok(Self {
       timeout: futures_time::time::Duration::from_millis(timeout),
       retries,
       devices,
+      batching_threshold,
       network_devices: Arc::new(Mutex::new(Vec::new())),
       pool: Arc::new(Mutex::new(HashMap::new())),
     })
@@ -264,21 +303,188 @@ impl ModbusClient {
     Ok(data)
   }
 
-  fn make_connection_id(
+  async fn match_device(
+    &self,
     ip: IpAddr,
     slave: Option<SlaveId>,
-    framer: Framer,
-  ) -> Result<ConnectionId, ModbusClientError> {
-    let id = ConnectionId {
-      socket: match ip {
-        IpAddr::V4(ipv4) => SocketAddr::V4(SocketAddrV4::new(ipv4, 502)),
-        IpAddr::V6(_) => return Err(ModbusClientError::Ipv6),
+  ) -> Option<Device> {
+    let tcp_connection_id =
+      match Self::make_connection_id(ip, slave, Framer::Tcp) {
+        Ok(connection_id) => connection_id,
+        _ => return None,
+      };
+
+    if let Some(device) = self.match_framed_device(tcp_connection_id).await {
+      return Some(device);
+    }
+
+    let rtu_connection_id =
+      match Self::make_connection_id(ip, slave, Framer::Rtu) {
+        Ok(connection_id) => connection_id,
+        _ => return None,
+      };
+
+    self.match_framed_device(rtu_connection_id).await
+  }
+
+  async fn match_framed_device(
+    &self,
+    connection_id: ConnectionId,
+  ) -> Option<Device> {
+    for config in self.devices.iter() {
+      let mutex = match self.connect(connection_id).await {
+        Ok(mutex) => mutex,
+        Err(err) => {
+          tracing::trace! {
+            %err,
+            "Failed connecting to device on {:?}",
+            connection_id
+          };
+          continue;
+        }
+      };
+
+      let mut detected = true;
+      for detect in config.detect.iter() {
+        if !Self::detect_register(
+          mutex.clone(),
+          self.timeout,
+          self.retries,
+          detect.clone(),
+        )
+        .await
+        {
+          detected = false;
+          break;
+        }
+      }
+      if !detected {
+        continue;
+      }
+
+      let id = Self::get_id(
+        mutex.clone(),
+        self.timeout,
+        self.retries,
+        config.kind.clone(),
+        config.id.clone(),
+      )
+      .await;
+      match id {
+        None => continue,
+        Some(id) => {
+          return Some(Device {
+            config: config.clone(),
+            connection_id,
+            id,
+          })
+        }
+      }
+    }
+
+    None
+  }
+
+  async fn get_id(
+    mutex: Arc<Mutex<Connection>>,
+    timeout: futures_time::time::Duration,
+    retries: u64,
+    kind: String,
+    registers: Vec<IdRegister>,
+  ) -> Option<String> {
+    let mut id = format!("{kind}-");
+
+    for register in registers {
+      let value = Self::read_register(
+        mutex.clone(),
+        timeout,
+        retries,
+        RegisterConfig {
+          name: "id".to_string(),
+          address: register.address,
+          kind: register.kind,
+        },
+      )
+      .await
+      .ok();
+
+      match value {
+        None => return None,
+        Some(value) => {
+          id += Self::register_to_string(value).as_str();
+        }
+      }
+    }
+
+    Some(id)
+  }
+
+  async fn detect_register(
+    mutex: Arc<Mutex<Connection>>,
+    timeout: futures_time::time::Duration,
+    retries: u64,
+    detect: DetectRegister,
+  ) -> bool {
+    let value = match Self::read_register(
+      mutex.clone(),
+      timeout,
+      retries,
+      RegisterConfig {
+        name: "detect".to_string(),
+        address: detect.address,
+        kind: detect.kind,
       },
-      slave_id: slave,
-      framer,
+    )
+    .await
+    {
+      Ok(value) => value,
+      Err(_) => {
+        return false;
+      }
     };
 
-    Ok(id)
+    Self::match_register(value, detect.r#match.clone())
+  }
+
+  async fn read_register(
+    mutex: Arc<Mutex<Connection>>,
+    timeout: futures_time::time::Duration,
+    retries: u64,
+    register: RegisterConfig,
+  ) -> Result<RegisterValue, ModbusClientError> {
+    let register_size = Self::register_size(register.kind);
+
+    let response = {
+      let mut conn = mutex.lock().await;
+      let mut response = conn
+        .ctx
+        .read_holding_registers(register.address, register_size)
+        .timeout(timeout)
+        .await;
+      let mut remaining = retries;
+      while remaining > 0 {
+        response = conn
+          .ctx
+          .read_holding_registers(register.address, register_size)
+          .timeout(timeout)
+          .await;
+        match response {
+          Ok(Ok(_)) => {
+            remaining = 0;
+          }
+          _ => {
+            remaining -= 1;
+          }
+        };
+      }
+
+      response
+    }??;
+
+    match Self::parse_register(response, register.kind) {
+      Some(register) => Ok(register),
+      None => Err(ModbusClientError::Parse),
+    }
   }
 
   async fn connect(
@@ -347,147 +553,38 @@ impl ModbusClient {
     Ok(mutex)
   }
 
-  async fn match_device(
-    &self,
-    ip: IpAddr,
-    slave: Option<SlaveId>,
-  ) -> Option<NetworkDevice> {
-    let tcp_connection_id =
-      match Self::make_connection_id(ip, slave, Framer::Tcp) {
-        Ok(connection_id) => connection_id,
-        _ => return None,
-      };
-
-    if let Some(device) = self.match_framed_device(tcp_connection_id).await {
-      return Some(device);
-    }
-
-    let rtu_connection_id =
-      match Self::make_connection_id(ip, slave, Framer::Rtu) {
-        Ok(connection_id) => connection_id,
-        _ => return None,
-      };
-
-    self.match_framed_device(rtu_connection_id).await
-  }
-
-  async fn match_framed_device(
-    &self,
-    connection_id: ConnectionId,
-  ) -> Option<NetworkDevice> {
-    for config in self.devices.iter() {
-      let mutex = match self.connect(connection_id).await {
-        Ok(mutex) => mutex,
-        Err(err) => {
-          tracing::trace! {
-            %err,
-            "Failed connecting to device on {:?}",
-            connection_id
-          };
-          continue;
-        }
-      };
-
-      let mut detected = true;
-      for detect in config.detect.iter() {
-        if !Self::detect_register(
-          mutex.clone(),
-          self.timeout,
-          self.retries,
-          detect.clone(),
-        )
-        .await
-        {
-          detected = false;
-          break;
-        }
-      }
-      if !detected {
-        continue;
-      }
-
-      let id = Self::get_id(
-        mutex.clone(),
-        self.timeout,
-        self.retries,
-        config.kind.clone(),
-        config.id.clone(),
-      )
-      .await;
-      match id {
-        None => continue,
-        Some(id) => {
-          return Some(NetworkDevice {
-            config: config.clone(),
-            connection_id,
-            id,
-          })
-        }
-      }
-    }
-
-    None
-  }
-
-  async fn detect_register(
-    mutex: Arc<Mutex<Connection>>,
-    timeout: futures_time::time::Duration,
-    retries: u64,
-    detect: DetectRegister,
-  ) -> bool {
-    let value = match Self::read_register(
-      mutex.clone(),
-      timeout,
-      retries,
-      RegisterConfig {
-        name: "detect".to_string(),
-        address: detect.address,
-        kind: detect.kind,
-      },
-    )
-    .await
-    {
-      Ok(value) => value,
-      Err(_) => {
-        return false;
-      }
+  fn make_batch_request_definitions(
+    registers: Vec<RegisterConfig>,
+    threshold: usize,
+  ) -> Vec<BatchRequestDefinition> {
+    registers.as_mut().sort_by_key(|register| register.address);
+    let result = Vec::new();
+    let mut current_batch = BatchRequestDefinition {
+      address: registers[0].address,
+      size: Self::register_size(registers[0].kind),
+      registers: vec![registers[0]],
     };
 
-    Self::match_register(value, detect.r#match.clone())
+    for register in registers.drain(1..) {}
+
+    result
   }
 
-  async fn get_id(
-    mutex: Arc<Mutex<Connection>>,
-    timeout: futures_time::time::Duration,
-    retries: u64,
-    kind: String,
-    registers: Vec<IdRegister>,
-  ) -> Option<String> {
-    let mut id = format!("{kind}-");
+  fn make_connection_id(
+    ip: IpAddr,
+    slave: Option<SlaveId>,
+    framer: Framer,
+  ) -> Result<ConnectionId, ModbusClientError> {
+    let id = ConnectionId {
+      socket: match ip {
+        IpAddr::V4(ipv4) => SocketAddr::V4(SocketAddrV4::new(ipv4, 502)),
+        IpAddr::V6(_) => return Err(ModbusClientError::Ipv6),
+      },
+      slave_id: slave,
+      framer,
+    };
 
-    for register in registers {
-      let value = Self::read_register(
-        mutex.clone(),
-        timeout,
-        retries,
-        RegisterConfig {
-          name: "id".to_string(),
-          address: register.address,
-          kind: register.kind,
-        },
-      )
-      .await
-      .ok();
-
-      match value {
-        None => return None,
-        Some(value) => {
-          id += Self::register_to_string(value).as_str();
-        }
-      }
-    }
-
-    Some(id)
+    Ok(id)
   }
 
   fn match_register(
@@ -516,162 +613,56 @@ impl ModbusClient {
     }
   }
 
-  async fn read_register(
-    mutex: Arc<Mutex<Connection>>,
-    timeout: futures_time::time::Duration,
-    retries: u64,
-    register: RegisterConfig,
-  ) -> Result<RegisterValue, ModbusClientError> {
-    let register_size: Quantity = match register.kind {
-      RegisterKind::U16 => 1,
-      RegisterKind::U32 => 2,
-      RegisterKind::U64 => 4,
-      RegisterKind::S16 => 1,
-      RegisterKind::S32 => 2,
-      RegisterKind::S64 => 4,
-      RegisterKind::F32 => 2,
-      RegisterKind::F64 => 4,
+  fn register_size(kind: RegisterKind) -> Quantity {
+    match kind {
+      RegisterKind::U16(_) => 1,
+      RegisterKind::U32(_) => 2,
+      RegisterKind::U64(_) => 4,
+      RegisterKind::S16(_) => 1,
+      RegisterKind::S32(_) => 2,
+      RegisterKind::S64(_) => 4,
+      RegisterKind::F32(_) => 2,
+      RegisterKind::F64(_) => 4,
       RegisterKind::String(StringRegisterKind { length }) => length,
-    };
-
-    let response = {
-      let mut conn = mutex.lock().await;
-      let mut response = conn
-        .ctx
-        .read_holding_registers(register.address, register_size)
-        .timeout(timeout)
-        .await;
-      let mut remaining = retries;
-      while remaining > 0 {
-        response = conn
-          .ctx
-          .read_holding_registers(register.address, register_size)
-          .timeout(timeout)
-          .await;
-        match response {
-          Ok(Ok(_)) => {
-            remaining = 0;
-          }
-          _ => {
-            remaining -= 1;
-          }
-        };
-      }
-
-      response
-    }??;
-
-    let value = Self::parse_register(response, register.kind)?;
-
-    Ok(value)
+    }
   }
 
   fn parse_register(
     data: Vec<u16>,
     kind: RegisterKind,
-  ) -> Result<RegisterValue, ModbusClientError> {
+  ) -> Option<RegisterValue> {
     let value = match kind {
-      RegisterKind::U16 => match Self::parse_u16_register(data) {
-        Some(value) => RegisterValue::U16(value),
-        None => return Err(ModbusClientError::Parse),
-      },
-      RegisterKind::U32 => match Self::parse_u32_register(data) {
-        Some(value) => RegisterValue::U32(value),
-        None => return Err(ModbusClientError::Parse),
-      },
-      RegisterKind::U64 => match Self::parse_u64_register(data) {
-        Some(value) => RegisterValue::U64(value),
-        None => return Err(ModbusClientError::Parse),
-      },
-      RegisterKind::S16 => match Self::parse_s16_register(data) {
-        Some(value) => RegisterValue::S16(value),
-        None => return Err(ModbusClientError::Parse),
-      },
-      RegisterKind::S32 => match Self::parse_s32_register(data) {
-        Some(value) => RegisterValue::S32(value),
-        None => return Err(ModbusClientError::Parse),
-      },
-      RegisterKind::S64 => match Self::parse_s64_register(data) {
-        Some(value) => RegisterValue::S64(value),
-        None => return Err(ModbusClientError::Parse),
-      },
-      RegisterKind::F32 => match Self::parse_f32_register(data) {
-        Some(value) => RegisterValue::F32(value),
-        None => return Err(ModbusClientError::Parse),
-      },
-      RegisterKind::F64 => match Self::parse_f64_register(data) {
-        Some(value) => RegisterValue::F64(value),
-        None => return Err(ModbusClientError::Parse),
-      },
-      RegisterKind::String(_) => match Self::parse_string_register(data) {
-        Some(value) => RegisterValue::String(value),
-        None => return Err(ModbusClientError::Parse),
-      },
+      RegisterKind::U16(NumericRegisterKind { multiplier }) => {
+        parse_integer_register_kind!(U16, u16, data, multiplier)
+      }
+      RegisterKind::U32(NumericRegisterKind { multiplier }) => {
+        parse_integer_register_kind!(U32, u32, data, multiplier)
+      }
+      RegisterKind::U64(NumericRegisterKind { multiplier }) => {
+        parse_integer_register_kind!(U64, u64, data, multiplier)
+      }
+      RegisterKind::S16(NumericRegisterKind { multiplier }) => {
+        parse_integer_register_kind!(S16, i16, data, multiplier)
+      }
+      RegisterKind::S32(NumericRegisterKind { multiplier }) => {
+        parse_integer_register_kind!(S32, i32, data, multiplier)
+      }
+      RegisterKind::S64(NumericRegisterKind { multiplier }) => {
+        parse_integer_register_kind!(S64, i64, data, multiplier)
+      }
+      RegisterKind::F32(NumericRegisterKind { multiplier }) => {
+        parse_floating_register_kind!(F32, f32, data, multiplier)
+      }
+      RegisterKind::F64(NumericRegisterKind { multiplier }) => {
+        parse_floating_register_kind!(F64, f64, data, multiplier)
+      }
+      RegisterKind::String(_) => {
+        let bytes = Self::parse_string_bytes(data)?;
+        RegisterValue::String(String::from_utf8(bytes).ok()?)
+      }
     };
 
-    Ok(value)
-  }
-
-  fn parse_u16_register(data: Vec<u16>) -> Option<u16> {
-    let bytes = Self::parse_numeric_bytes(data)?;
-    let slice = bytes.as_slice().try_into().ok()?;
-    let result = u16::from_ne_bytes(slice);
-    Some(result)
-  }
-
-  fn parse_u32_register(data: Vec<u16>) -> Option<u32> {
-    let bytes = Self::parse_numeric_bytes(data)?;
-    let slice = bytes.as_slice().try_into().ok()?;
-    let result = u32::from_ne_bytes(slice);
-    Some(result)
-  }
-
-  fn parse_u64_register(data: Vec<u16>) -> Option<u64> {
-    let bytes = Self::parse_numeric_bytes(data)?;
-    let slice = bytes.as_slice().try_into().ok()?;
-    let result = u64::from_ne_bytes(slice);
-    Some(result)
-  }
-
-  fn parse_s16_register(data: Vec<u16>) -> Option<i16> {
-    let bytes = Self::parse_numeric_bytes(data)?;
-    let slice = bytes.as_slice().try_into().ok()?;
-    let result = i16::from_ne_bytes(slice);
-    Some(result)
-  }
-
-  fn parse_s32_register(data: Vec<u16>) -> Option<i32> {
-    let bytes = Self::parse_numeric_bytes(data)?;
-    let slice = bytes.as_slice().try_into().ok()?;
-    let result = i32::from_ne_bytes(slice);
-    Some(result)
-  }
-
-  fn parse_s64_register(data: Vec<u16>) -> Option<i64> {
-    let bytes = Self::parse_numeric_bytes(data)?;
-    let slice = bytes.as_slice().try_into().ok()?;
-    let result = i64::from_ne_bytes(slice);
-    Some(result)
-  }
-
-  fn parse_f32_register(data: Vec<u16>) -> Option<f32> {
-    let bytes = Self::parse_numeric_bytes(data)?;
-    let slice = bytes.as_slice().try_into().ok()?;
-    let result = f32::from_ne_bytes(slice);
-    Some(result)
-  }
-
-  fn parse_f64_register(data: Vec<u16>) -> Option<f64> {
-    let bytes = Self::parse_numeric_bytes(data)?;
-    let slice = bytes.as_slice().try_into().ok()?;
-    let result = f64::from_ne_bytes(slice);
-    Some(result)
-  }
-
-  fn parse_string_register(data: Vec<u16>) -> Option<String> {
-    let bytes = Self::parse_string_bytes(data)?;
-    let result = String::from_utf8(bytes).ok()?;
-    Some(result)
+    Some(value)
   }
 
   fn parse_numeric_bytes(data: Vec<u16>) -> Option<Vec<u8>> {

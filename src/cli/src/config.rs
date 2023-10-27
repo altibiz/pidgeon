@@ -58,16 +58,21 @@ pub struct StringRegisterKind {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct NumericRegisterKind {
+  pub multiplier: Option<f64>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum RegisterKind {
-  U16,
-  U32,
-  U64,
-  S16,
-  S32,
-  S64,
-  F32,
-  F64,
+  U16(NumericRegisterKind),
+  U32(NumericRegisterKind),
+  U64(NumericRegisterKind),
+  S16(NumericRegisterKind),
+  S32(NumericRegisterKind),
+  S64(NumericRegisterKind),
+  F32(NumericRegisterKind),
+  F64(NumericRegisterKind),
   String(StringRegisterKind),
 }
 
@@ -109,6 +114,7 @@ pub struct DeviceConfig {
 struct ModbusFile {
   timeout: u64,
   retries: u64,
+  batch_threshold: usize,
   devices: HashMap<String, DeviceConfig>,
 }
 
@@ -203,6 +209,7 @@ pub struct ParsedCloudConfig {
 pub struct ParsedModbusConfig {
   pub timeout: u64,
   pub retries: u64,
+  pub batchind_threshold: usize,
   pub devices: HashMap<String, DeviceConfig>,
 }
 
@@ -332,6 +339,7 @@ impl ConfigManager {
         timeout: config.from_file.modbus.timeout,
         retries: config.from_file.modbus.retries,
         devices: config.from_file.modbus.devices,
+        batchind_threshold: config.from_file.modbus.batch_threshold,
       },
       runtime: ParsedRuntimeConfig {
         log_level: config.from_file.runtime.log_level.unwrap_or(

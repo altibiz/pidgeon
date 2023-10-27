@@ -51,6 +51,7 @@ impl Services {
     let modbus_client = ModbusClient::new(
       config.modbus.timeout,
       config.modbus.retries,
+      config.modbus.batching_threshold,
       config
         .modbus
         .devices
@@ -232,14 +233,30 @@ impl Services {
     register: config::RegisterKind,
   ) -> modbus::RegisterKind {
     match register {
-      config::RegisterKind::U16 => modbus::RegisterKind::U16,
-      config::RegisterKind::U32 => modbus::RegisterKind::U32,
-      config::RegisterKind::U64 => modbus::RegisterKind::U64,
-      config::RegisterKind::S16 => modbus::RegisterKind::S16,
-      config::RegisterKind::S32 => modbus::RegisterKind::S32,
-      config::RegisterKind::S64 => modbus::RegisterKind::S64,
-      config::RegisterKind::F32 => modbus::RegisterKind::F32,
-      config::RegisterKind::F64 => modbus::RegisterKind::F64,
+      config::RegisterKind::U16(config::NumericRegisterKind { multiplier }) => {
+        modbus::RegisterKind::U16(modbus::NumericRegisterKind { multiplier })
+      }
+      config::RegisterKind::U32(config::NumericRegisterKind { multiplier }) => {
+        modbus::RegisterKind::U32(modbus::NumericRegisterKind { multiplier })
+      }
+      config::RegisterKind::U64(config::NumericRegisterKind { multiplier }) => {
+        modbus::RegisterKind::U64(modbus::NumericRegisterKind { multiplier })
+      }
+      config::RegisterKind::S16(config::NumericRegisterKind { multiplier }) => {
+        modbus::RegisterKind::S16(modbus::NumericRegisterKind { multiplier })
+      }
+      config::RegisterKind::S32(config::NumericRegisterKind { multiplier }) => {
+        modbus::RegisterKind::S32(modbus::NumericRegisterKind { multiplier })
+      }
+      config::RegisterKind::S64(config::NumericRegisterKind { multiplier }) => {
+        modbus::RegisterKind::S64(modbus::NumericRegisterKind { multiplier })
+      }
+      config::RegisterKind::F32(config::NumericRegisterKind { multiplier }) => {
+        modbus::RegisterKind::F32(modbus::NumericRegisterKind { multiplier })
+      }
+      config::RegisterKind::F64(config::NumericRegisterKind { multiplier }) => {
+        modbus::RegisterKind::F64(modbus::NumericRegisterKind { multiplier })
+      }
       config::RegisterKind::String(config::StringRegisterKind { length }) => {
         modbus::RegisterKind::String(modbus::StringRegisterKind { length })
       }
