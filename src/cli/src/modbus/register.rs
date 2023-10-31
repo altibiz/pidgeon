@@ -5,33 +5,14 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use tokio_modbus::{Address, Quantity};
 
+use super::span::*;
+
 pub trait RegisterStorage {
   fn quantity(&self) -> Quantity;
 }
 
-pub trait Register {
-  fn address(&self) -> Address;
-
-  fn quantity(&self) -> Quantity;
-
-  fn storage(&self) -> &dyn RegisterStorage;
-}
-
-pub trait UnparsedRegister<TParsed: Register>: Register {
-  #[cfg(target_endian = "little")]
-  fn parse<
-    TIterator: DoubleEndedIterator<Item = u16>,
-    TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
-  >(
-    &self,
-    data: TIntoIterator,
-  ) -> Option<TParsed>;
-
-  #[cfg(target_endian = "big")]
-  fn parse<TIntoIterator: IntoIterator<Item = u16>>(
-    &self,
-    data: TIntoIterator,
-  ) -> Option<TParsed>;
+pub trait Register: Span {
+  fn storage<'a>(&'a self) -> &'a dyn RegisterStorage;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -152,12 +133,6 @@ impl DetectRegister<RegisterValue> {
   }
 }
 
-impl IdRegister<RegisterValue> {
-  pub fn id(&self) -> String {
-    self.storage.to_string()
-  }
-}
-
 pub fn serialize_registers<T>(registers: T) -> serde_json::Value
 where
   T: IntoIterator<Item = MeasurementRegister<RegisterValue>>,
@@ -176,7 +151,7 @@ where
 
 macro_rules! impl_register {
   ($type: ident) => {
-    impl<T: RegisterStorage> Register for $type<T> {
+    impl<T: RegisterStorage> Span for $type<T> {
       fn address(&self) -> Address {
         self.address
       }
@@ -184,8 +159,10 @@ macro_rules! impl_register {
       fn quantity(&self) -> Quantity {
         self.storage.quantity()
       }
+    }
 
-      fn storage(&self) -> &dyn RegisterStorage {
+    impl<T: RegisterStorage> Register for $type<T> {
+      fn storage<'a>(&'a self) -> &'a dyn RegisterStorage {
         &self.storage
       }
     }
@@ -269,24 +246,15 @@ macro_rules! parse_register {
 macro_rules! impl_parse_register {
   ($type: ident, $result: expr) => {
     #[cfg(target_endian = "little")]
-    impl UnparsedRegister<$type<RegisterValue>> for $type<RegisterKind> {
-      fn parse<
+    impl UnparsedSpan<$type<RegisterValue>> for $type<RegisterKind> {
+      fn parse<TIterator, TIntoIterator>(
+        &self,
+        data: TIntoIterator,
+      ) -> Option<$type<RegisterValue>>
+      where
         TIterator: DoubleEndedIterator<Item = u16>,
         TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
-      >(
-        &self,
-        data: TIntoIterator,
-      ) -> Option<$type<RegisterValue>> {
-        parse_register!(self, data, $result)
-      }
-    }
-
-    #[cfg(target_endian = "big")]
-    impl UnparsedRegister<$type<RegisterValue>> for $type<RegisterKind> {
-      fn parse<TIntoIterator: IntoIterator<Item = u16>>(
-        &self,
-        data: TIntoIterator,
-      ) -> Option<$type<RegisterValue>> {
+      {
         parse_register!(self, data, $result)
       }
     }
@@ -322,12 +290,11 @@ impl_parse_register!(IdRegister, |register: &IdRegister::<RegisterKind>,
 });
 
 #[cfg(target_endian = "little")]
-fn parse_numeric_bytes<
+fn parse_numeric_bytes<TIterator, TIntoIterator>(data: TIntoIterator) -> Vec<u8>
+where
   TIterator: DoubleEndedIterator<Item = u16>,
   TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
->(
-  data: TIntoIterator,
-) -> Vec<u8> {
+{
   data
     .into_iter()
     .rev()
@@ -336,20 +303,21 @@ fn parse_numeric_bytes<
 }
 
 #[cfg(target_endian = "big")]
-fn parse_numeric_bytes<TIntoIterator: IntoIterator<Item = u16>>(
-  data: TIntoIterator,
-) -> Vec<u8> {
+fn parse_numeric_bytes<TIntoIterator>(data: TIntoIterator) -> Vec<u8>
+where
+  TIntoIterator: IntoIterator<Item = u16>,
+{
   data
     .into_iter()
-    .map(|value| [(value & 0xFF) as u8, (value >> 8) as u8])
-    .flatten()
+    .flat_map(|value| [(value & 0xFF) as u8, (value >> 8) as u8])
     .collect()
 }
 
 #[cfg(target_endian = "little")]
-fn parse_string_bytes<TIntoIterator: IntoIterator<Item = u16>>(
-  data: TIntoIterator,
-) -> Vec<u8> {
+fn parse_string_bytes<TIntoIterator>(data: TIntoIterator) -> Vec<u8>
+where
+  TIntoIterator: IntoIterator<Item = u16>,
+{
   data
     .into_iter()
     .flat_map(|value| [(value >> 8) as u8, (value & 0xFF) as u8])
@@ -357,12 +325,12 @@ fn parse_string_bytes<TIntoIterator: IntoIterator<Item = u16>>(
 }
 
 #[cfg(target_endian = "big")]
-fn parse_string_bytes<TIntoIterator: IntoIterator<Item = u16>>(
-  data: TIntoIterator,
-) -> Vec<u8> {
+fn parse_string_bytes<TIntoIterator>(data: TIntoIterator) -> Vec<u8>
+where
+  TIntoIterator: IntoIterator<Item = u16>,
+{
   data
     .into_iter()
-    .map(|value| [(value & 0xFF) as u8, (value >> 8) as u8])
-    .flatten()
+    .flat_map(|value| [(value & 0xFF) as u8, (value >> 8) as u8])
     .collect()
 }

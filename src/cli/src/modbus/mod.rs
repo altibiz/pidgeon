@@ -1,8 +1,11 @@
 pub mod batch;
+pub mod conn;
 pub mod register;
+pub mod span;
 
 use futures_time::future::FutureExt;
 use register::*;
+use span::*;
 use std::{
   collections::HashMap,
   net::{IpAddr, SocketAddr, SocketAddrV4},
@@ -15,6 +18,8 @@ use tokio_modbus::{
   prelude::{rtu, tcp, Reader},
   Slave, SlaveId,
 };
+
+use self::span::UnparsedSpan;
 
 #[derive(Debug, Clone)]
 pub struct DeviceConfig {
@@ -172,7 +177,7 @@ impl ModbusClient {
         registers: Vec::new(),
       };
       for register in device.config.measurement.iter() {
-        let value = match Self::read_register(
+        let value = match Self::read_span(
           mutex.clone(),
           self.timeout,
           self.retries,
@@ -300,10 +305,9 @@ impl ModbusClient {
     let mut id = format!("{kind}-");
 
     for register in registers {
-      let value =
-        Self::read_register(mutex.clone(), timeout, retries, register)
-          .await
-          .ok();
+      let value = Self::read_span(mutex.clone(), timeout, retries, register)
+        .await
+        .ok();
 
       match value {
         None => return None,
@@ -322,27 +326,18 @@ impl ModbusClient {
     retries: u64,
     register: DetectRegister<RegisterKind>,
   ) -> bool {
-    let value = match Self::read_register(
-      mutex.clone(),
-      timeout,
-      retries,
-      register,
-    )
-    .await
-    {
-      Ok(value) => value,
-      Err(_) => {
-        return false;
-      }
-    };
+    let value =
+      match Self::read_span(mutex.clone(), timeout, retries, register).await {
+        Ok(value) => value,
+        Err(_) => {
+          return false;
+        }
+      };
 
     value.matches()
   }
 
-  async fn read_register<
-    TParsed: Register,
-    TRegister: UnparsedRegister<TParsed>,
-  >(
+  async fn read_span<TParsed: Span, TRegister: UnparsedSpan<TParsed>>(
     mutex: Arc<Mutex<Connection>>,
     timeout: futures_time::time::Duration,
     retries: u64,
@@ -350,18 +345,26 @@ impl ModbusClient {
   ) -> Result<TParsed, ModbusClientError> {
     let response = {
       let mut conn = mutex.lock().await;
-      let mut response = conn
-        .ctx
-        .read_holding_registers(register.address(), register.quantity())
-        .timeout(timeout)
-        .await;
+      let mut response = {
+        let address = register.address();
+        let quantity = register.quantity();
+        conn
+          .ctx
+          .read_holding_registers(address, quantity)
+          .timeout(timeout)
+          .await
+      };
       let mut remaining = retries;
       while remaining > 0 {
-        response = conn
-          .ctx
-          .read_holding_registers(register.address(), register.quantity())
-          .timeout(timeout)
-          .await;
+        let address = register.address();
+        let quantity = register.quantity();
+        response = {
+          conn
+            .ctx
+            .read_holding_registers(address, quantity)
+            .timeout(timeout)
+            .await
+        };
         match response {
           Ok(Ok(_)) => {
             remaining = 0;
@@ -376,7 +379,7 @@ impl ModbusClient {
     }??;
 
     register
-      .parse(response)
+      .parse(response.iter().cloned())
       .ok_or_else(|| ModbusClientError::Parse)
   }
 
