@@ -20,10 +20,11 @@ pub struct Measurement {
 #[derive(Debug, Clone)]
 pub struct Discovery {}
 
+#[async_trait::async_trait]
 pub trait Server {
   fn address(&self) -> SocketAddr;
 
   fn slaves(&self) -> Vec<Slave>;
 
-  fn measure(&mut self) -> Pin<Box<dyn Future<Output = Vec<Measurement>>>>;
+  async fn measure(&mut self) -> Vec<Measurement>;
 }
