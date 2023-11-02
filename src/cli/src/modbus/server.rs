@@ -1,4 +1,4 @@
-use std::{future::Future, net::SocketAddr, pin::Pin};
+use std::net::SocketAddr;
 
 use tokio_modbus::SlaveId;
 

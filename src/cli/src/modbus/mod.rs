@@ -1,5 +1,6 @@
 pub mod batch;
 pub mod conn;
+pub mod gateway;
 pub mod register;
 pub mod server;
 pub mod span;
