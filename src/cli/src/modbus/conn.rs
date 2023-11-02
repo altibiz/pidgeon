@@ -15,13 +15,30 @@ pub struct Connection {
   retries: usize,
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum ConnectError {
+  #[error("Failed converting timeout")]
+  TimeoutConversion(#[from] std::num::TryFromIntError),
+
+  #[error("Failed converting backoff")]
+  BackoffConversion(#[from] chrono::OutOfRangeError),
+
+  #[error("Failed connecting to device")]
+  Connect(#[from] std::io::Error),
+}
+
 impl Connection {
   pub async fn connect(
     socket: SocketAddr,
-    timeout: futures_time::time::Duration,
-    backoff: tokio::time::Duration,
+    timeout: chrono::Duration,
+    backoff: chrono::Duration,
     retries: usize,
-  ) -> Result<Self, std::io::Error> {
+  ) -> Result<Self, ConnectError> {
+    let timeout: futures_time::time::Duration =
+      futures_time::time::Duration::from_millis(
+        timeout.num_milliseconds().try_into()?,
+      );
+    let backoff: std::time::Duration = backoff.to_std()?;
     let stream = TcpStream::connect(socket).await?;
     let ctx = tokio_modbus::prelude::tcp::attach(stream);
     Ok(Self {
@@ -35,10 +52,15 @@ impl Connection {
   pub async fn connect_slave(
     socket: SocketAddr,
     slave: Slave,
-    timeout: futures_time::time::Duration,
-    backoff: tokio::time::Duration,
+    timeout: chrono::Duration,
+    backoff: chrono::Duration,
     retries: usize,
-  ) -> Result<Self, std::io::Error> {
+  ) -> Result<Self, ConnectError> {
+    let timeout: futures_time::time::Duration =
+      futures_time::time::Duration::from_millis(
+        timeout.num_milliseconds().try_into()?,
+      );
+    let backoff: std::time::Duration = backoff.to_std()?;
     let stream = TcpStream::connect(socket).await?;
     let ctx = tokio_modbus::prelude::rtu::attach_slave(stream, slave);
     Ok(Self {

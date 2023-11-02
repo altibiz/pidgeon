@@ -18,7 +18,17 @@ pub struct Measurement {
 }
 
 #[derive(Debug, Clone)]
-pub struct Discovery {}
+pub struct DiscoveryDevice {
+  pub kind: String,
+  pub detect: Vec<DetectRegister<RegisterKind>>,
+  pub id: Vec<IdRegister<RegisterKind>>,
+  pub measurement: Vec<MeasurementRegister<RegisterKind>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Discovery {
+  pub devices: DiscoveryDevice,
+}
 
 #[async_trait::async_trait]
 pub trait Server {
@@ -26,5 +36,5 @@ pub trait Server {
 
   fn slaves(&self) -> Vec<Slave>;
 
-  async fn measure(&mut self) -> Vec<Measurement>;
+  async fn measure(&self) -> Vec<Measurement>;
 }
