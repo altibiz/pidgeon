@@ -82,7 +82,7 @@ pub enum ModbusClientError {
   Ipv6,
 
   #[error("Failed to parse response")]
-  Parse,
+  Parse(#[from] anyhow::Error),
 }
 
 impl ModbusClient {
@@ -380,9 +380,9 @@ impl ModbusClient {
       response
     }??;
 
-    register
-      .parse(response.iter().cloned())
-      .ok_or_else(|| ModbusClientError::Parse)
+    let parsed = register.parse(response.iter().cloned())?;
+
+    Ok(parsed)
   }
 
   async fn connect(

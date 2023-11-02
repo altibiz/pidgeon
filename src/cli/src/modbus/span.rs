@@ -10,7 +10,7 @@ pub trait SpanParser<TParsed: Span>: Span {
   fn parse<TIterator, TIntoIterator>(
     &self,
     data: TIntoIterator,
-  ) -> Option<TParsed>
+  ) -> anyhow::Result<TParsed>
   where
     TIterator: DoubleEndedIterator<Item = u16>,
     TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>;

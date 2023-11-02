@@ -24,7 +24,7 @@ impl<TSpan: Span, TSpanParser: SpanParser<TSpan>> SpanParser<Batch<TSpan>>
   fn parse<TIterator, TIntoIterator>(
     &self,
     data: TIntoIterator,
-  ) -> Option<Batch<TSpan>>
+  ) -> anyhow::Result<Batch<TSpan>>
   where
     TIterator: DoubleEndedIterator<Item = u16>,
     TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
@@ -40,7 +40,7 @@ impl<TSpan: Span, TSpanParser: SpanParser<TSpan>> SpanParser<Batch<TSpan>>
       registers.push(parsed);
     }
 
-    Some(Batch::<TSpan> {
+    Ok(Batch::<TSpan> {
       address: self.address,
       quantity: self.quantity,
       spans: registers,

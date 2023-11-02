@@ -188,7 +188,7 @@ impl_register!(IdRegister);
 macro_rules! parse_integer_register {
   ($variant: ident, $type: ty, $data: ident, $multiplier: ident) => {{
     let bytes = parse_numeric_bytes($data);
-    let slice = bytes.as_slice().try_into().ok()?;
+    let slice = bytes.as_slice().try_into()?;
     let value = <$type>::from_ne_bytes(slice);
     RegisterValue::$variant(match $multiplier {
       Some($multiplier) => ((value as f64) * $multiplier).round() as $type,
@@ -200,7 +200,7 @@ macro_rules! parse_integer_register {
 macro_rules! parse_floating_register {
   ($variant: ident, $type: ty, $data: ident, $multiplier: ident) => {{
     let bytes = parse_numeric_bytes($data);
-    let slice = bytes.as_slice().try_into().ok()?;
+    let slice = bytes.as_slice().try_into()?;
     let value = <$type>::from_ne_bytes(slice);
     RegisterValue::$variant(match $multiplier {
       Some($multiplier) => ((value as f64) * $multiplier) as $type,
@@ -238,11 +238,11 @@ macro_rules! parse_register {
       }
       RegisterKind::String(_) => {
         let bytes = parse_string_bytes($data);
-        RegisterValue::String(String::from_utf8(bytes).ok()?)
+        RegisterValue::String(String::from_utf8(bytes)?)
       }
     };
 
-    Some($result($self, value))
+    Ok($result($self, value))
   }};
 }
 
@@ -253,7 +253,7 @@ macro_rules! impl_parse_register {
       fn parse<TIterator, TIntoIterator>(
         &self,
         data: TIntoIterator,
-      ) -> Option<$type<RegisterValue>>
+      ) -> anyhow::Result<$type<RegisterValue>>
       where
         TIterator: DoubleEndedIterator<Item = u16>,
         TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,

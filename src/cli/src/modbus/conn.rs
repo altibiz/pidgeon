@@ -53,7 +53,7 @@ impl ConnectionReadParams {
   ) -> Result<Self, ConnectionReadParamsError> {
     let timeout: futures_time::time::Duration =
       futures_time::time::Duration::from_millis(
-        timeout.num_milliseconds().try_into()?,
+        timeout.num_milliseconds() as u64
       );
     let backoff: std::time::Duration = backoff.to_std()?;
     Ok(Self {
@@ -61,6 +61,20 @@ impl ConnectionReadParams {
       backoff,
       retries,
     })
+  }
+
+  pub fn timeout(self) -> Result<chrono::Duration, std::num::TryFromIntError> {
+    Ok(chrono::Duration::milliseconds(
+      self.timeout.as_millis().try_into()?,
+    ))
+  }
+
+  pub fn backoff(self) -> Result<chrono::Duration, chrono::OutOfRangeError> {
+    Ok(chrono::Duration::from_std(self.backoff)?)
+  }
+
+  pub fn retries(self) -> usize {
+    self.retries
   }
 }
 
@@ -70,7 +84,7 @@ pub enum ConnectionReadError {
   Connection(#[from] std::io::Error),
 
   #[error("Failed to parse response")]
-  Parse,
+  Parse(#[from] anyhow::Error),
 }
 
 impl Connection {
@@ -137,7 +151,9 @@ impl Connection {
       }
       result
     }?;
-    let parsed = register.parse(data.iter().cloned());
-    parsed.ok_or_else(|| ConnectionReadError::Parse)
+
+    let parsed = register.parse(data.iter().cloned())?;
+
+    Ok(parsed)
   }
 }
