@@ -1,6 +1,7 @@
 pub mod batch;
 pub mod conn;
 pub mod register;
+pub mod server;
 pub mod span;
 
 use futures_time::future::FutureExt;
@@ -19,7 +20,7 @@ use tokio_modbus::{
   Slave, SlaveId,
 };
 
-use self::span::UnparsedSpan;
+use self::span::SpanParser;
 
 #[derive(Debug, Clone)]
 pub struct DeviceConfig {
@@ -337,7 +338,7 @@ impl ModbusClient {
     value.matches()
   }
 
-  async fn read_span<TParsed: Span, TRegister: UnparsedSpan<TParsed>>(
+  async fn read_span<TParsed: Span, TRegister: SpanParser<TParsed>>(
     mutex: Arc<Mutex<Connection>>,
     timeout: futures_time::time::Duration,
     retries: u64,

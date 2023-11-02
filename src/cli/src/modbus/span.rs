@@ -6,7 +6,7 @@ pub trait Span {
   fn quantity(&self) -> Quantity;
 }
 
-pub trait UnparsedSpan<TParsed: Span>: Span {
+pub trait SpanParser<TParsed: Span>: Span {
   fn parse<TIterator, TIntoIterator>(
     &self,
     data: TIntoIterator,

@@ -61,15 +61,15 @@ pub enum ConnectionReadError {
 
 impl Connection {
   pub async fn read_spans<
-    TParsedSpan: Span,
-    TUnparsedSpan: UnparsedSpan<TParsedSpan>,
+    TSpan: Span,
+    TSpanParser: SpanParser<TSpan>,
     TIntoIterator,
   >(
     &mut self,
     spans: TIntoIterator,
-  ) -> Vec<Result<TParsedSpan, ConnectionReadError>>
+  ) -> Vec<Result<TSpan, ConnectionReadError>>
   where
-    for<'a> &'a TIntoIterator: IntoIterator<Item = &'a TUnparsedSpan>,
+    for<'a> &'a TIntoIterator: IntoIterator<Item = &'a TSpanParser>,
   {
     let mut results = Vec::new();
     let backoff = self.backoff;
@@ -81,13 +81,10 @@ impl Connection {
     results
   }
 
-  pub async fn read_span<
-    TParsedSpan: Span,
-    TUnparsedSpan: UnparsedSpan<TParsedSpan>,
-  >(
+  pub async fn read_span<TSpan: Span, TSpanParser: SpanParser<TSpan>>(
     &mut self,
-    register: &TUnparsedSpan,
-  ) -> Result<TParsedSpan, ConnectionReadError> {
+    register: &TSpanParser,
+  ) -> Result<TSpan, ConnectionReadError> {
     fn flatten_result<T, E1, E2>(
       result: Result<Result<T, E1>, E2>,
     ) -> Result<T, E1>

@@ -18,13 +18,13 @@ impl<TSpan: Span> Span for Batch<TSpan> {
   }
 }
 
-impl<TParsedSpan: Span, TUnparsedSpan: UnparsedSpan<TParsedSpan>>
-  UnparsedSpan<Batch<TParsedSpan>> for Batch<TUnparsedSpan>
+impl<TSpan: Span, TSpanParser: SpanParser<TSpan>> SpanParser<Batch<TSpan>>
+  for Batch<TSpanParser>
 {
   fn parse<TIterator, TIntoIterator>(
     &self,
     data: TIntoIterator,
-  ) -> Option<Batch<TParsedSpan>>
+  ) -> Option<Batch<TSpan>>
   where
     TIterator: DoubleEndedIterator<Item = u16>,
     TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
@@ -40,7 +40,7 @@ impl<TParsedSpan: Span, TUnparsedSpan: UnparsedSpan<TParsedSpan>>
       registers.push(parsed);
     }
 
-    Some(Batch::<TParsedSpan> {
+    Some(Batch::<TSpan> {
       address: self.address,
       quantity: self.quantity,
       spans: registers,

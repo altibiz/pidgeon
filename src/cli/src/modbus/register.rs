@@ -133,9 +133,12 @@ impl DetectRegister<RegisterValue> {
   }
 }
 
-pub fn serialize_registers<T>(registers: T) -> serde_json::Value
+pub fn serialize_registers<TIntoIterator>(
+  registers: TIntoIterator,
+) -> serde_json::Value
 where
-  T: IntoIterator<Item = MeasurementRegister<RegisterValue>>,
+  for<'a> &'a TIntoIterator:
+    IntoIterator<Item = &'a MeasurementRegister<RegisterValue>>,
 {
   serde_json::Value::Object(
     registers
@@ -246,7 +249,7 @@ macro_rules! parse_register {
 macro_rules! impl_parse_register {
   ($type: ident, $result: expr) => {
     #[cfg(target_endian = "little")]
-    impl UnparsedSpan<$type<RegisterValue>> for $type<RegisterKind> {
+    impl SpanParser<$type<RegisterValue>> for $type<RegisterKind> {
       fn parse<TIterator, TIntoIterator>(
         &self,
         data: TIntoIterator,
