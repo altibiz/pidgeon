@@ -4,7 +4,7 @@ use tokio::task::JoinHandle;
 
 use super::*;
 
-// TODO: bounded channels
+// TODO: bounded channels?
 
 #[derive(Debug, Clone)]
 pub struct Request {
@@ -55,6 +55,7 @@ impl Worker {
 #[derive(Debug, Clone)]
 struct WorkerTask {
   // TODO: investigate if arc mutex is correct here
+  // TODO: make a tunable connection and store read params in it
   connections: HashMap<String, Arc<Mutex<Connection>>>,
   receiver: flume::Receiver<(Request, flume::Sender<Response>)>,
 }
@@ -84,6 +85,7 @@ impl WorkerTask {
                 }
               };
               data.push(read);
+              // TODO: call connection.tune() here
             }
           };
 
@@ -109,6 +111,4 @@ impl WorkerTask {
       }
     }
   }
-
-  fn tune() {}
 }
