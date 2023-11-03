@@ -2,8 +2,10 @@ pub mod batch;
 pub mod conn;
 pub mod gateway;
 pub mod register;
+pub mod request;
 pub mod server;
 pub mod span;
+pub mod worker;
 
 use futures_time::future::FutureExt;
 use register::*;

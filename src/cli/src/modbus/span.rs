@@ -1,6 +1,6 @@
 use tokio_modbus::{Address, Quantity};
 
-pub trait Span {
+pub trait Span: Clone + Debug + Send {
   fn address(&self) -> Address;
 
   fn quantity(&self) -> Quantity;

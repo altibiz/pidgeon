@@ -9,23 +9,56 @@ use super::span::*;
 
 #[derive(Debug)]
 pub struct Connection {
+  socket: SocketAddr,
+  slave: Option<Slave>,
   ctx: Context,
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum ConnectError {
+  #[error("Failed to connect")]
+  Connect(#[from] std::io::Error),
+
+  #[error("Wrong slave number")]
+  Slave,
+}
+
 impl Connection {
-  pub async fn connect(socket: SocketAddr) -> Result<Self, std::io::Error> {
+  pub async fn connect_standalone(
+    socket: SocketAddr,
+  ) -> Result<Self, ConnectError> {
     let stream = TcpStream::connect(socket).await?;
     let ctx = tokio_modbus::prelude::tcp::attach(stream);
-    Ok(Self { ctx })
+    Ok(Self {
+      socket,
+      slave: None,
+      ctx,
+    })
   }
 
   pub async fn connect_slave(
     socket: SocketAddr,
     slave: Slave,
-  ) -> Result<Self, std::io::Error> {
+  ) -> Result<Self, ConnectError> {
+    if slave < Slave::min_device() || slave > Slave::max_device() {
+      return Err(ConnectError::Slave);
+    }
+
     let stream = TcpStream::connect(socket).await?;
     let ctx = tokio_modbus::prelude::rtu::attach_slave(stream, slave);
-    Ok(Self { ctx })
+    Ok(Self {
+      socket,
+      slave: Some(slave),
+      ctx,
+    })
+  }
+
+  pub fn socket(&self) -> SocketAddr {
+    self.socket
+  }
+
+  pub fn slave(&self) -> Option<Slave> {
+    self.slave
   }
 }
 
@@ -88,33 +121,11 @@ pub enum ConnectionReadError {
 }
 
 impl Connection {
-  pub async fn read_spans<
-    TSpan: Span,
-    TSpanParser: SpanParser<TSpan>,
-    TIntoIterator,
-  >(
+  pub async fn read<TSpan: Span>(
     &mut self,
-    spans: TIntoIterator,
+    span: &TSpan,
     params: ConnectionReadParams,
-  ) -> Vec<Result<TSpan, ConnectionReadError>>
-  where
-    for<'a> &'a TIntoIterator: IntoIterator<Item = &'a TSpanParser>,
-  {
-    let mut results = Vec::new();
-    let backoff = params.backoff;
-    for span in spans.into_iter() {
-      let parsed = self.read_span(span, params).await;
-      results.push(parsed);
-      tokio::time::sleep(backoff).await;
-    }
-    results
-  }
-
-  pub async fn read_span<TSpan: Span, TSpanParser: SpanParser<TSpan>>(
-    &mut self,
-    register: &TSpanParser,
-    params: ConnectionReadParams,
-  ) -> Result<TSpan, ConnectionReadError> {
+  ) -> Result<Vec<u16>, ConnectionReadError> {
     fn flatten_result<T, E1, E2>(
       result: Result<Result<T, E1>, E2>,
     ) -> Result<T, E1>
@@ -125,8 +136,8 @@ impl Connection {
     }
 
     let data = {
-      let address = register.address();
-      let quantity = register.quantity();
+      let address = span.address();
+      let quantity = span.quantity();
       let timeout = params.timeout;
       let backoff = params.backoff;
       let retries = params.retries;
@@ -152,8 +163,6 @@ impl Connection {
       result
     }?;
 
-    let parsed = register.parse(data.iter().cloned())?;
-
-    Ok(parsed)
+    Ok(data)
   }
 }
