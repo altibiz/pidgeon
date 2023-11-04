@@ -1,9 +1,9 @@
 pub mod batch;
+pub mod client;
 pub mod conn;
 pub mod gateway;
 pub mod register;
 pub mod request;
-pub mod server;
 pub mod span;
 pub mod worker;
 

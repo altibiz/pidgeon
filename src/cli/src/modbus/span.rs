@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use tokio_modbus::{Address, Quantity};
 
 pub trait Span: Clone + Debug + Send {

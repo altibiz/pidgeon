@@ -17,19 +17,6 @@ pub struct Measurement {
   pub registers: MeasurementRegister<RegisterValue>,
 }
 
-#[derive(Debug, Clone)]
-pub struct DiscoveryDevice {
-  pub kind: String,
-  pub detect: Vec<DetectRegister<RegisterKind>>,
-  pub id: Vec<IdRegister<RegisterKind>>,
-  pub measurement: Vec<MeasurementRegister<RegisterKind>>,
-}
-
-#[derive(Debug, Clone)]
-pub struct Discovery {
-  pub devices: DiscoveryDevice,
-}
-
 #[async_trait::async_trait]
 pub trait Server {
   fn address(&self) -> SocketAddr;
