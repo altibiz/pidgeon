@@ -1,12 +1,15 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use sqlx::types::chrono;
 use tokio::sync::Mutex;
 
 use tokio::task::JoinHandle;
 
 // TODO: bounded channels?
 // TODO: trace server info
+// TODO: investigate if arc mutex is correct here
+// TODO: make a tunable connection and store read params in it
 
 #[derive(Debug, Clone)]
 pub struct Request {
@@ -60,14 +63,18 @@ impl Worker {
 
 #[derive(Debug, Clone)]
 struct WorkerTask {
-  // TODO: investigate if arc mutex is correct here
-  // TODO: make a tunable connection and store read params in it
   connections: HashMap<String, Arc<Mutex<super::conn::Connection>>>,
   receiver: flume::Receiver<(Request, flume::Sender<Result<Response, Error>>)>,
 }
 
 impl WorkerTask {
   pub async fn execute(&self) -> () {
+    let mut read_params = super::conn::ConnectionReadParams::new(
+      chrono::Duration::milliseconds(1000),
+      chrono::Duration::milliseconds(50),
+      3,
+    );
+
     loop {
       match self.receiver.recv_async().await {
         Ok((request, sender)) => {
@@ -88,8 +95,10 @@ impl WorkerTask {
             let connection = connection.clone().lock_owned().await;
             let data = Vec::new();
             for span in request.spans {
-              let read = match (*connection).read(span.as_ref(), 
-                super::conn::ConnectionReadParams::new(, , )).await {
+              let read = match (*connection)
+                .read(span.as_ref(), read_params.clone())
+                .await
+              {
                 Ok(read) => read,
                 Err(error) => {
                   tracing::debug! {
@@ -99,7 +108,6 @@ impl WorkerTask {
                 }
               };
               data.push(read);
-              // TODO: call connection.tune() here
             }
           };
 
