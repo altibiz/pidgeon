@@ -73,14 +73,21 @@
         marksman
         taplo
       ];
-      shellHook = ''
-        export DATABASE_URL="postgres://pidgeon:@localhost/pidgeon?sslmode=disable"
 
-        export PIDGEON_DB_DOMAIN="localhost"
-        export PIDGEON_DB_USER="pidgeon"
-        export PIDGEON_DB_PASSWORD="pidgeon"
-        export PIDGEON_DB_NAME="pidgeon"
-      '';
+      DATABASE_URL = "postgres://pidgeon:@localhost/pidgeon?sslmode=disable";
+
+      # PIDGEON_CLOUD_SSL = "1";
+      # PIDGEON_CLOUD_DOMAIN = "localhost:5001";
+      # PIDGEON_CLOUD_API_KEY = "pidgeon";
+      # PIDGEON_CLOUD_ID = "pidgeon";
+
+      PIDGEON_DB_DOMAIN = "localhost";
+      PIDGEON_DB_USER = "pidgeon";
+      PIDGEON_DB_PASSWORD = "pidgeon";
+      PIDGEON_DB_NAME = "pidgeon";
+
+      # PIDGEON_NETWORK_IP_RANGE_START = "192.168.1.0";
+      # PIDGEON_NETWORK_IP_RANGE_END = "192.168.1.255";
     };
   };
 }
