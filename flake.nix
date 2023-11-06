@@ -73,6 +73,14 @@
         marksman
         taplo
       ];
+      shellHook = ''
+        export DATABASE_URL="postgres://pidgeon:@localhost/pidgeon?sslmode=disable"
+
+        export PIDGEON_DB_DOMAIN="localhost"
+        export PIDGEON_DB_USER="pidgeon"
+        export PIDGEON_DB_PASSWORD="pidgeon"
+        export PIDGEON_DB_NAME="pidgeon"
+      '';
     };
   };
 }
