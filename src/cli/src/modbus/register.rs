@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::fmt::Display;
 
 use either::Either;
@@ -7,12 +8,8 @@ use tokio_modbus::{Address, Quantity};
 
 use super::span::*;
 
-pub trait RegisterStorage: Send {
+pub trait RegisterStorage: Clone + Debug + Send {
   fn quantity(&self) -> Quantity;
-}
-
-pub trait Register: Span {
-  fn storage<'a>(&'a self) -> &'a dyn RegisterStorage;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -110,15 +107,15 @@ impl Display for RegisterValue {
     f: &mut std::fmt::Formatter<'_>,
   ) -> Result<(), std::fmt::Error> {
     match self {
-      RegisterValue::U16(value) => value.fmt(f),
-      RegisterValue::U32(value) => value.fmt(f),
-      RegisterValue::U64(value) => value.fmt(f),
-      RegisterValue::S16(value) => value.fmt(f),
-      RegisterValue::S32(value) => value.fmt(f),
-      RegisterValue::S64(value) => value.fmt(f),
-      RegisterValue::F32(value) => value.fmt(f),
-      RegisterValue::F64(value) => value.fmt(f),
-      RegisterValue::String(value) => value.fmt(f),
+      RegisterValue::U16(value) => std::fmt::Display::fmt(&value, f),
+      RegisterValue::U32(value) => std::fmt::Display::fmt(&value, f),
+      RegisterValue::U64(value) => std::fmt::Display::fmt(&value, f),
+      RegisterValue::S16(value) => std::fmt::Display::fmt(&value, f),
+      RegisterValue::S32(value) => std::fmt::Display::fmt(&value, f),
+      RegisterValue::S64(value) => std::fmt::Display::fmt(&value, f),
+      RegisterValue::F32(value) => std::fmt::Display::fmt(&value, f),
+      RegisterValue::F64(value) => std::fmt::Display::fmt(&value, f),
+      RegisterValue::String(value) => std::fmt::Debug::fmt(&value, f),
     }
   }
 }
@@ -164,18 +161,12 @@ macro_rules! impl_register {
       }
     }
 
-    impl<T: RegisterStorage> Register for $type<T> {
-      fn storage<'a>(&'a self) -> &'a dyn RegisterStorage {
-        &self.storage
-      }
-    }
-
     impl Display for $type<RegisterValue> {
       fn fmt(
         &self,
         f: &mut std::fmt::Formatter<'_>,
       ) -> Result<(), std::fmt::Error> {
-        self.storage.fmt(f)
+        std::fmt::Display::fmt(&self.storage, f)
       }
     }
   };

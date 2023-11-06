@@ -1,9 +1,10 @@
 use std::collections::HashMap;
+use std::net::SocketAddr;
 use std::sync::Arc;
 
 use tokio::sync::Mutex;
 
-use tokio::task::JoinHandle;
+use super::conn::*;
 
 // TODO: bounded channels?
 // TODO: trace server info
@@ -12,121 +13,135 @@ use tokio::task::JoinHandle;
 
 #[derive(Debug, Clone)]
 pub struct Request {
-  pub id: String,
-  pub spans: Vec<Box<dyn super::span::Span>>,
+  pub socket: SocketAddr,
+  pub slave: Option<tokio_modbus::Slave>,
+  pub spans: Vec<(tokio_modbus::Address, tokio_modbus::Quantity)>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Response {
-  pub id: String,
   pub spans: Vec<Vec<u16>>,
 }
 
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
-  InvalidId,
+  #[error("Failed to connect")]
+  FailedToConnect,
+
+  #[error("Channel receive failure")]
+  FailedChannel(#[from] flume::RecvError),
 }
 
 #[derive(Debug, Clone)]
 pub struct Worker {
   sender: flume::Sender<(Request, flume::Sender<Result<Response, Error>>)>,
-  handle: Arc<JoinHandle<()>>,
+  handle: Arc<Mutex<tokio::task::JoinHandle<()>>>,
 }
 
 impl Worker {
-  pub fn new(connections: HashMap<String, super::conn::Connection>) -> Self {
+  pub fn new() -> Self {
     let (sender, receiver) = flume::unbounded();
-    let connections = connections
-      .iter_mut()
-      .map(|(id, connection)| (*id, Arc::new(Mutex::new(*connection))))
-      .collect::<HashMap<_, _>>();
-    let handle = tokio::spawn(async move {
-      let task = WorkerTask {
-        connections,
-        receiver,
-      };
-      task.execute().await
-    });
-    Self { sender, handle }
+    let task = Task {
+      connections: HashMap::new(),
+      receiver,
+    };
+    let handle = tokio::spawn(task.execute());
+    Self {
+      sender,
+      handle: Arc::new(Mutex::new(handle)),
+    }
   }
 
-  pub async fn send(
-    &self,
-    request: Request,
-  ) -> Result<Response, flume::RecvError> {
+  pub async fn send(&self, request: Request) -> Result<Response, Error> {
     let (sender, receiver) = flume::bounded(1);
     self.sender.send_async((request, sender)).await;
     let response = receiver.recv_async().await?;
-    Ok(response)
+    response
   }
 }
 
 #[derive(Debug, Clone)]
-struct WorkerTask {
-  connections: HashMap<String, Arc<Mutex<super::conn::Connection>>>,
+struct Task {
+  connections: HashMap<(SocketAddr, Option<u8>), Arc<Mutex<Connection>>>,
   receiver: flume::Receiver<(Request, flume::Sender<Result<Response, Error>>)>,
+  pending: Vec<(Request, flume::Sender<Result<Response, Error>>)>,
 }
 
-impl WorkerTask {
-  pub async fn execute(&self) -> () {
-    let mut read_params = super::conn::ConnectionReadParams::new(
+impl Task {
+  pub async fn execute(mut self) {
+    let read_params = ConnectionReadParams::new(
       chrono::Duration::milliseconds(1000),
       chrono::Duration::milliseconds(50),
       3,
-    );
+    )
+    .unwrap();
 
     loop {
-      match self.receiver.recv_async().await {
-        Ok((request, sender)) => {
-          let connection = match self.connections.get(&request.id) {
-            Some(connection) => connection.clone(),
-            None => {
-              if let Err(error) = sender.send_async(Err(Error::InvalidId)).await
+      let (request, sender) = match self.receiver.recv_async().await {
+        Ok(received) => received,
+        Err(error) => {
+          tracing::debug! {
+            %error,
+            "Failed receiving request from worker task",
+          };
+          continue;
+        }
+      };
+
+      let connection = match self
+        .connections
+        .get(&(request.socket, request.slave.map(|slave| slave.0)))
+      {
+        Some(connection) => connection.clone(),
+        None => {
+          match Connection::connect(request.socket, request.slave).await {
+            Ok(connection) => {
+              let connection = Arc::new(Mutex::new(connection));
+              self.connections.insert(
+                (request.socket, request.slave.map(|slave| slave.0)),
+                connection.clone(),
+              );
+              connection
+            }
+            Err(_) => {
+              if let Err(error) =
+                sender.send_async(Err(Error::FailedToConnect)).await
               {
                 tracing::debug! {
                   %error,
                   "Failed sending response from worker task"
                 }
               }
-            }
-          };
-
-          let data = {
-            let connection = connection.clone().lock_owned().await;
-            let data = Vec::new();
-            for span in request.spans {
-              let read = match (*connection)
-                .read(span.as_ref(), read_params.clone())
-                .await
-              {
-                Ok(read) => read,
-                Err(error) => {
-                  tracing::debug! {
-                    %error,
-                    "failed reading from connection"
-                  };
-                }
-              };
-              data.push(read);
-            }
-          };
-
-          let response = Response {
-            id: request.id,
-            spans: data,
-          };
-
-          if let Err(error) = sender.send_async(Ok(response)).await {
-            tracing::debug! {
-              %error,
-              "Failed sending response from worker task"
+              continue;
             }
           }
         }
-        Err(error) => {
-          tracing::debug! {
-            %error,
-            "Failed receiving request from worker task",
+      };
+
+      let spans = {
+        let mut connection = connection.clone().lock_owned().await;
+        let mut data = Vec::new();
+        for span in request.spans {
+          let read = match (*connection)
+            .read(span.0, span.1, read_params.clone())
+            .await
+          {
+            Ok(read) => read,
+            Err(_) => {
+              continue;
+            }
           };
+          data.push(read);
+        }
+        data
+      };
+
+      let response = Response { spans };
+
+      if let Err(error) = sender.send_async(Ok(response)).await {
+        tracing::debug! {
+          %error,
+          "Failed sending response from worker task"
         }
       }
     }

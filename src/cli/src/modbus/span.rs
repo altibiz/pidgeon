@@ -2,13 +2,13 @@ use std::fmt::Debug;
 
 use tokio_modbus::{Address, Quantity};
 
-pub trait Span: Clone + Debug + Send {
+pub trait Span: Debug + Send {
   fn address(&self) -> Address;
 
   fn quantity(&self) -> Quantity;
 }
 
-pub trait SpanParser<TParsed: Span>: Span {
+pub trait SpanParser<TParsed: Span>: Span + Clone + Debug + Send {
   fn parse<TIterator, TIntoIterator>(
     &self,
     data: TIntoIterator,

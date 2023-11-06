@@ -2,6 +2,7 @@ use tokio_modbus::{Address, Quantity};
 
 use super::span::*;
 
+#[derive(Clone, Debug)]
 pub struct Batch<TSpan: Span> {
   pub address: Address,
   pub quantity: Quantity,

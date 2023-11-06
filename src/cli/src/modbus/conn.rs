@@ -5,8 +5,6 @@ use thiserror::Error;
 use tokio::net::TcpStream;
 use tokio_modbus::{client::Context, prelude::Reader, Slave};
 
-use super::span::*;
-
 #[derive(Debug)]
 pub struct Connection {
   socket: SocketAddr,
@@ -24,6 +22,16 @@ pub enum ConnectError {
 }
 
 impl Connection {
+  pub async fn connect(
+    socket: SocketAddr,
+    slave: Option<Slave>,
+  ) -> Result<Self, ConnectError> {
+    match slave {
+      Some(slave) => Self::connect_slave(socket, slave).await,
+      None => Self::connect_standalone(socket).await,
+    }
+  }
+
   pub async fn connect_standalone(
     socket: SocketAddr,
   ) -> Result<Self, ConnectError> {
@@ -69,7 +77,7 @@ pub struct ConnectionReadParams {
   retries: usize,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Copy, Clone, Debug, thiserror::Error)]
 pub enum ConnectionReadParamsError {
   #[error("Failed converting timeout")]
   TimeoutConversion(#[from] std::num::TryFromIntError),
@@ -121,9 +129,10 @@ pub enum ConnectionReadError {
 }
 
 impl Connection {
-  pub async fn read<TSpan: Span>(
+  pub async fn read(
     &mut self,
-    span: &TSpan,
+    address: tokio_modbus::Address,
+    quantity: tokio_modbus::Quantity,
     params: ConnectionReadParams,
   ) -> Result<Vec<u16>, ConnectionReadError> {
     fn flatten_result<T, E1, E2>(
@@ -136,8 +145,6 @@ impl Connection {
     }
 
     let data = {
-      let address = span.address();
-      let quantity = span.quantity();
       let timeout = params.timeout;
       let backoff = params.backoff;
       let retries = params.retries;

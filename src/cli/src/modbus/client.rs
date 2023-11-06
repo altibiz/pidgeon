@@ -1,17 +1,15 @@
-use std::collections::HashMap;
 use std::net::SocketAddr;
+
+use super::conn::*;
+use super::worker::*;
 
 #[async_trait::async_trait]
 pub trait Client {
   fn address(&self) -> SocketAddr;
 
-  async fn reset(
-    &mut self,
-    slaves: HashMap<String, super::conn::Connection>,
-  ) -> ();
+  async fn add(&mut self, id: String, connection: Connection) -> ();
 
-  async fn send(
-    &self,
-    request: super::worker::Request,
-  ) -> Result<super::worker::Response, super::worker::Error>;
+  async fn remove(&mut self, id: String) -> Option<Connection>;
+
+  async fn send(&self, request: Request) -> Result<Response, Error>;
 }
