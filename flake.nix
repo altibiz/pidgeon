@@ -14,7 +14,7 @@
       packages = with pkgs; let
         pyright = pkgs.writeShellApplication {
           name = "pyright-langserver";
-          runtimeInputs = [ pkgs.poetry pkgs.nodePackages.pyright ];
+          runtimeInputs = [ pkgs.poetry ];
           text = ''
             # shellcheck disable=SC1091
             source "$(poetry env info --path)/bin/activate"
@@ -22,11 +22,23 @@
           '';
         };
 
+        yapf = pkgs.writeShellApplication {
+          name = "yapf";
+          runtimeInputs = [ pkgs.poetry ];
+          text = ''
+            # shellcheck disable=SC1091
+            source "$(poetry env info --path)/bin/activate"
+            yapf "$@"
+          '';
+        };
+
         python = pkgs.writeShellApplication {
           name = "python";
           runtimeInputs = [ pkgs.poetry ];
           text = ''
-            poetry run python "$@"
+            # shellcheck disable=SC1091
+            source "$(poetry env info --path)/bin/activate"
+            python "$@"
           '';
         };
       in
@@ -39,10 +51,7 @@
         poetry
         pyright
         python
-        (python310.withPackages
-          (pythonPackages: with pythonPackages; [
-            yapf
-          ]))
+        yapf
 
         # Rust
         llvmPackages.clangNoLibcxx

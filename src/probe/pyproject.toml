@@ -5,10 +5,23 @@ description = "Pidgeon probe"
 authors = ["Hrvoje Jurić <hrvoje@altibiz.com>"]
 readme = "README.md"
 
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.poetry.dependencies]
 python = "^3.10"
 pymodbus = "^3.5.0"
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.poetry.group.dev.dependencies]
+yapf = "^0.40.2"
+pyright = "^1.1.334"
+
+[tool.yapf]
+based_on_style = "pep8"
+column_limit = 80
+continuation_indent_width = 2
+indent_width = 2
+
+[tool.pyright]
+typeCheckingMode = "strict"
