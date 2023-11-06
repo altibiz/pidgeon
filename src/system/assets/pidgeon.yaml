@@ -88,12 +88,12 @@ modbus:
     abb:
       detect:
         - address: 0x8910
-          kind: 
+          kind:
             string:
               length: 1
           match: "\u0003\0"
         - address: 0x8960
-          kind: 
+          kind:
             string:
               length: 6
           match: "B23 [0-9]12-100\0"

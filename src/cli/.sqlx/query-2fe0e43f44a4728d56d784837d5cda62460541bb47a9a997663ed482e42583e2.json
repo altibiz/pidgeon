@@ -25,17 +25,9 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8",
-        "Int8"
-      ]
+      "Left": ["Int8", "Int8"]
     },
-    "nullable": [
-      false,
-      false,
-      false,
-      false
-    ]
+    "nullable": [false, false, false, false]
   },
   "hash": "2fe0e43f44a4728d56d784837d5cda62460541bb47a9a997663ed482e42583e2"
 }

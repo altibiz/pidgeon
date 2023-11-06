@@ -2,9 +2,7 @@
   "nodes": {
     "home-manager": {
       "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
+        "nixpkgs": ["nixpkgs"]
       },
       "locked": {
         "lastModified": 1692763155,
@@ -79,12 +77,8 @@
     },
     "sops-nix": {
       "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "nixpkgs-stable": [
-          "nixpkgs-stable"
-        ]
+        "nixpkgs": ["nixpkgs"],
+        "nixpkgs-stable": ["nixpkgs-stable"]
       },
       "locked": {
         "lastModified": 1692728678,

@@ -21,12 +21,24 @@ futures-time = "3.0.0"
 ipnet = { version = "2.8.0", features = ["serde"] }
 log = { version = "0.4.20", features = ["serde"] }
 regex = "1.9.4"
-reqwest = { version = "0.11.20", features = ["json", "rustls", "rustls-tls", "gzip"] }
+reqwest = { version = "0.11.20", features = [
+  "json",
+  "rustls",
+  "rustls-tls",
+  "gzip",
+] }
 rustls = "0.21.6"
 serde = { version = "1.0.186", features = ["derive"] }
 serde_json = "1.0.105"
 serde_yaml = "0.9.25"
-sqlx = { version = "0.7.1", features = ["postgres", "runtime-tokio", "tls-rustls", "chrono", "ipnetwork", "json"] }
+sqlx = { version = "0.7.1", features = [
+  "postgres",
+  "runtime-tokio",
+  "tls-rustls",
+  "chrono",
+  "ipnetwork",
+  "json",
+] }
 thiserror = "1.0.47"
 tokio = { version = "1.32.0", features = ["full"] }
 tokio-modbus = { version = "0.9.0", features = ["tcp", "rtu"] }

@@ -11,10 +11,7 @@
           "Custom": {
             "name": "log_kind",
             "kind": {
-              "Enum": [
-                "success",
-                "failure"
-              ]
+              "Enum": ["success", "failure"]
             }
           }
         },
