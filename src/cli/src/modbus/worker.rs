@@ -6,6 +6,8 @@ use tokio::sync::Mutex;
 
 use super::conn::*;
 
+// TODO: save responses/errors across completions
+
 // TODO: tuning
 
 // TODO: optimize
@@ -152,6 +154,8 @@ impl Task {
           .send(request_kind.clone(), sender.clone(), response.clone())
           .await;
       }
+
+      self.tune();
     }
   }
 
@@ -287,23 +291,27 @@ impl Task {
     let spans = {
       let mut connection = connection.clone().lock_owned().await;
       let mut data = Vec::new();
+      let mut completed = true;
       for span in request.spans.iter() {
         let read = match (*connection)
           .read(span.0, span.1, self.params.clone())
           .await
         {
-          Ok(read) => {
-            if let RequestKind::Oneshot(request) = &request_kind {
-              self.oneshots.remove(request);
-            }
-            read
-          }
+          Ok(read) => read,
           Err(_) => {
+            completed = false;
             continue;
           }
         };
         data.push(read);
       }
+
+      if completed {
+        if let RequestKind::Oneshot(request) = &request_kind {
+          self.oneshots.remove(request);
+        }
+      }
+
       data
     };
     let response = Response { spans };
@@ -336,4 +344,6 @@ impl Task {
       }
     }
   }
+
+  fn tune(&mut self) {}
 }
