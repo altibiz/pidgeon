@@ -52,6 +52,14 @@
             python "$@"
           '';
         };
+
+        mkScript = name: pkgs.writeShellApplication {
+          name = "${name}";
+          runtimeInputs = [ pkgs.poetry ];
+          text = ''
+            ${self}/scripts/${name}
+          '';
+        };
       in
       [
         # Nix
@@ -87,6 +95,12 @@
         nodePackages.yaml-language-server
         marksman
         taplo
+
+        # Scripts
+        (mkScript "format")
+        (mkScript "lint")
+        (mkScript "image")
+        (mkScript "mksecrets")
       ];
 
       DATABASE_URL = "postgres://pidgeon:@localhost/pidgeon?sslmode=disable";
