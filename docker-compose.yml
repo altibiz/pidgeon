@@ -7,13 +7,13 @@ services:
     volumes:
       - postgres_data:/home/postgres/pgdata/data
     environment:
-      - POSTGRES_DB=mess
-      - POSTGRES_USER=mess
-      - POSTGRES_PASSWORD=mess
+      - POSTGRES_DB=pidgeon
+      - POSTGRES_USER=pidgeon
+      - POSTGRES_PASSWORD=pidgeon
     ports:
       - 5432:5432
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d mess -U mess"]
+      test: ["CMD-SHELL", "pg_isready -d pidgeon -U pidgeon"]
       interval: 1m
       timeout: 10s
       retries: 10
