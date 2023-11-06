@@ -67,6 +67,7 @@ impl Worker {
   }
 }
 
+#[derive(Clone, Debug)]
 enum RequestKind {
   Oneshot(Request),
   Stream(Request),
@@ -126,139 +127,25 @@ impl Task {
   pub async fn execute(mut self) {
     loop {
       loop {
-        let (request, sender) = match self.receiver.try_recv() {
-          Ok(received) => received,
-          Err(error) => match error {
+        if let Err(error) = self.try_recv() {
+          match error {
             flume::TryRecvError::Empty => break,
             flume::TryRecvError::Disconnected => return,
-          },
-        };
-
-        let (_, receiver) = match &request {
-          RequestKind::Oneshot(request) => match self.oneshots.get(request) {
-            Some(pair) => pair.clone(),
-            None => {
-              let pair = flume::bounded(1);
-              self.oneshots.insert(request.clone(), pair.clone());
-              pair
-            }
-          },
-          RequestKind::Stream(request) => match self.streams.get_mut(request) {
-            Some(pair) => pair.clone(),
-            None => {
-              let pair = flume::unbounded();
-              self.streams.insert(request.clone(), pair.clone());
-              pair
-            }
-          },
-        };
-
-        if let Err(error) = sender.try_send(receiver) {
-          match &request {
-            RequestKind::Oneshot(request) => self.oneshots.remove(request),
-            RequestKind::Stream(request) => self.streams.remove(request),
-          };
-          tracing::debug! {
-            %error,
-            "Failed sending back receiver from worker"
           }
         }
       }
 
-      self.oneshots = self
-        .oneshots
-        .into_iter()
-        .filter(|(_, (_, receiver))| receiver.receiver_count() > 1)
-        .collect::<HashMap<_, _>>();
+      self.filter_requests();
 
-      self.streams = self
-        .streams
-        .into_iter()
-        .filter(|(_, (_, receiver))| receiver.receiver_count() > 1)
-        .collect::<HashMap<_, _>>();
-
-      let current = {
-        let mut current = Vec::new();
-        current.extend(self.oneshots.iter().map(|(request, (sender, _))| {
-          (RequestKind::Oneshot(request.clone()), sender.clone())
-        }));
-        current.extend(self.streams.iter().map(|(request, (sender, _))| {
-          (RequestKind::Stream(request.clone()), sender.clone())
-        }));
-        current
-      };
-
-      for (request_kind, sender) in current {
-        let request = match &request_kind {
-          RequestKind::Oneshot(request) => request,
-          RequestKind::Stream(request) => request,
-        };
-
-        let connection = match self
-          .connections
-          .get(&(request.socket, request.slave))
-        {
-          Some(connection) => connection.clone(),
-          None => {
-            match Connection::connect(
-              request.socket,
-              request.slave.map(|slave| tokio_modbus::Slave(slave)),
-            )
-            .await
-            {
-              Ok(connection) => {
-                let connection = Arc::new(Mutex::new(connection));
-                self
-                  .connections
-                  .insert((request.socket, request.slave), connection.clone());
-                connection
-              }
-              Err(_) => {
-                // NOTE: this logically shouldn't happen
-                if let Err(error) = sender.try_send(Err(Error::FailedToConnect))
-                {
-                  tracing::debug! {
-                    %error,
-                    "Failed sending response from worker task"
-                  }
-                }
-
-                match &request_kind {
-                  RequestKind::Oneshot(request) => {
-                    self.oneshots.remove(request)
-                  }
-                  RequestKind::Stream(request) => self.streams.remove(request),
-                };
-
-                continue;
-              }
-            }
+      for (request_kind, sender) in self.make_current() {
+        let connection = {
+          match self.connect(request_kind.clone(), &sender).await {
+            Some(connection) => connection,
+            None => continue,
           }
         };
 
-        let spans = {
-          let mut connection = connection.clone().lock_owned().await;
-          let mut data = Vec::new();
-          for span in request.spans.iter() {
-            let read = match (*connection)
-              .read(span.0, span.1, self.params.clone())
-              .await
-            {
-              Ok(read) => {
-                if let RequestKind::Oneshot(request) = &request_kind {
-                  self.oneshots.remove(request);
-                }
-                read
-              }
-              Err(_) => {
-                continue;
-              }
-            };
-            data.push(read);
-          }
-          data
-        };
-        let response = Response { spans };
+        let response = self.read(request_kind.clone(), connection).await;
 
         // NOTE: this logically shouldn't happen
         if let Err(error) = sender.try_send(Ok(response.clone())) {
@@ -274,5 +161,159 @@ impl Task {
         }
       }
     }
+  }
+
+  fn try_recv(&mut self) -> Result<(), flume::TryRecvError> {
+    let (request, sender) = self.receiver.try_recv()?;
+
+    let (_, receiver) = match &request {
+      RequestKind::Oneshot(request) => match self.oneshots.get(request) {
+        Some(pair) => pair.clone(),
+        None => {
+          let pair = flume::bounded(1);
+          self.oneshots.insert(request.clone(), pair.clone());
+          pair
+        }
+      },
+      RequestKind::Stream(request) => match self.streams.get_mut(request) {
+        Some(pair) => pair.clone(),
+        None => {
+          let pair = flume::unbounded();
+          self.streams.insert(request.clone(), pair.clone());
+          pair
+        }
+      },
+    };
+
+    if let Err(error) = sender.try_send(receiver) {
+      match &request {
+        RequestKind::Oneshot(request) => self.oneshots.remove(request),
+        RequestKind::Stream(request) => self.streams.remove(request),
+      };
+      tracing::debug! {
+        %error,
+        "Failed sending back receiver from worker"
+      }
+    }
+
+    Ok(())
+  }
+
+  fn filter_requests(&mut self) {
+    self.oneshots = self
+      .oneshots
+      .into_iter()
+      .filter(|(_, (_, receiver))| receiver.receiver_count() > 1)
+      .collect::<HashMap<_, _>>();
+
+    self.streams = self
+      .streams
+      .into_iter()
+      .filter(|(_, (_, receiver))| receiver.receiver_count() > 1)
+      .collect::<HashMap<_, _>>();
+  }
+
+  fn make_current(
+    &self,
+  ) -> Vec<(RequestKind, flume::Sender<Result<Response, Error>>)> {
+    let current = {
+      let mut current = Vec::new();
+      current.extend(self.oneshots.iter().map(|(request, (sender, _))| {
+        (RequestKind::Oneshot(request.clone()), sender.clone())
+      }));
+      current.extend(self.streams.iter().map(|(request, (sender, _))| {
+        (RequestKind::Stream(request.clone()), sender.clone())
+      }));
+      current
+    };
+
+    current
+  }
+
+  async fn connect(
+    &mut self,
+    request_kind: RequestKind,
+    sender: &flume::Sender<Result<Response, Error>>,
+  ) -> Option<Arc<Mutex<Connection>>> {
+    let request = match &request_kind {
+      RequestKind::Oneshot(request) => request,
+      RequestKind::Stream(request) => request,
+    };
+
+    let connection =
+      match self.connections.get(&(request.socket, request.slave)) {
+        Some(connection) => Some(connection.clone()),
+        None => {
+          match Connection::connect(
+            request.socket,
+            request.slave.map(|slave| tokio_modbus::Slave(slave)),
+          )
+          .await
+          {
+            Ok(connection) => {
+              let connection = Arc::new(Mutex::new(connection));
+              self
+                .connections
+                .insert((request.socket, request.slave), connection.clone());
+              Some(connection)
+            }
+            Err(_) => {
+              // NOTE: this logically shouldn't happen
+              if let Err(error) = sender.try_send(Err(Error::FailedToConnect)) {
+                tracing::debug! {
+                  %error,
+                  "Failed sending response from worker task"
+                }
+              }
+
+              match &request_kind {
+                RequestKind::Oneshot(request) => self.oneshots.remove(request),
+                RequestKind::Stream(request) => self.streams.remove(request),
+              };
+
+              None
+            }
+          }
+        }
+      };
+
+    connection
+  }
+
+  async fn read(
+    &mut self,
+    request_kind: RequestKind,
+    connection: Arc<Mutex<Connection>>,
+  ) -> Response {
+    let request = match &request_kind {
+      RequestKind::Oneshot(request) => request,
+      RequestKind::Stream(request) => request,
+    };
+
+    let spans = {
+      let mut connection = connection.clone().lock_owned().await;
+      let mut data = Vec::new();
+      for span in request.spans.iter() {
+        let read = match (*connection)
+          .read(span.0, span.1, self.params.clone())
+          .await
+        {
+          Ok(read) => {
+            if let RequestKind::Oneshot(request) = &request_kind {
+              self.oneshots.remove(request);
+            }
+            read
+          }
+          Err(_) => {
+            continue;
+          }
+        };
+        data.push(read);
+      }
+      data
+    };
+    let response = Response { spans };
+
+    response
   }
 }
