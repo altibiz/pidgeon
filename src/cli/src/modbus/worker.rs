@@ -7,12 +7,10 @@ use tokio::sync::Mutex;
 use super::conn::*;
 
 // TODO: trace server info
-// TODO: investigate if arc mutex is correct for connections
 // TODO: maybe spinning is better for all this?
 // TODO: try removing arc mutex on connection
 // TODO: parameter tuning
 // TODO: optimize
-// TODO: filter requests when making current
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct Request {
@@ -164,6 +162,18 @@ impl Task {
         }
       }
     }
+
+    self.oneshots = self
+      .oneshots
+      .into_iter()
+      .filter(|(_, (_, receiver))| receiver.receiver_count() > 1)
+      .collect::<HashMap<_, _>>();
+
+    self.streams = self
+      .streams
+      .into_iter()
+      .filter(|(_, (_, receiver))| receiver.receiver_count() > 1)
+      .collect::<HashMap<_, _>>();
 
     let current = {
       let mut current = Vec::new();
