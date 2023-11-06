@@ -6,11 +6,12 @@ use tokio::sync::Mutex;
 
 use super::conn::*;
 
-// TODO: trace server info
-// TODO: maybe spinning is better for all this?
-// TODO: try removing arc mutex on connection
-// TODO: parameter tuning
+// TODO: tuning
+
 // TODO: optimize
+// 1. remove cloning as much as possible
+// 2. try removing arc mutex on connection
+// 3. try spinning
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct Request {
@@ -138,26 +139,18 @@ impl Task {
 
       for (request_kind, sender) in self.make_current() {
         let connection = {
-          match self.connect(request_kind.clone(), &sender).await {
+          match self.connect(request_kind.clone(), sender.clone()).await {
             Some(connection) => connection,
             None => continue,
           }
         };
 
-        let response = self.read(request_kind.clone(), connection).await;
+        let response =
+          self.read(request_kind.clone(), connection.clone()).await;
 
-        // NOTE: this logically shouldn't happen
-        if let Err(error) = sender.try_send(Ok(response.clone())) {
-          match &request_kind {
-            RequestKind::Oneshot(request) => self.oneshots.remove(request),
-            RequestKind::Stream(request) => self.streams.remove(request),
-          };
-
-          tracing::debug! {
-            %error,
-            "Failed sending response from worker task"
-          }
-        }
+        self
+          .send(request_kind.clone(), sender.clone(), response.clone())
+          .await;
       }
     }
   }
@@ -191,7 +184,8 @@ impl Task {
       };
       tracing::debug! {
         %error,
-        "Failed sending back receiver from worker"
+        "Failed sending back receiver from worker for {:?}",
+        request
       }
     }
 
@@ -232,7 +226,7 @@ impl Task {
   async fn connect(
     &mut self,
     request_kind: RequestKind,
-    sender: &flume::Sender<Result<Response, Error>>,
+    sender: flume::Sender<Result<Response, Error>>,
   ) -> Option<Arc<Mutex<Connection>>> {
     let request = match &request_kind {
       RequestKind::Oneshot(request) => request,
@@ -261,7 +255,8 @@ impl Task {
               if let Err(error) = sender.try_send(Err(Error::FailedToConnect)) {
                 tracing::debug! {
                   %error,
-                  "Failed sending response from worker task"
+                  "Failed sending connection fail from worker task for {:?}",
+                  request
                 }
               }
 
@@ -314,5 +309,31 @@ impl Task {
     let response = Response { spans };
 
     response
+  }
+
+  async fn send(
+    &mut self,
+    request_kind: RequestKind,
+    sender: flume::Sender<Result<Response, Error>>,
+    response: Response,
+  ) {
+    if let Err(error) = sender.try_send(Ok(response.clone())) {
+      let request = match request_kind {
+        RequestKind::Oneshot(request) => {
+          self.oneshots.remove(&request);
+          request
+        }
+        RequestKind::Stream(request) => {
+          self.streams.remove(&request);
+          request
+        }
+      };
+
+      tracing::debug! {
+        %error,
+        "Failed sending response from worker task for {:?}",
+        request
+      }
+    }
   }
 }
