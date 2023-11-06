@@ -104,7 +104,7 @@
         (mkScript "mksecrets")
       ];
 
-      DATABASE_URL = "postgres://pidgeon:@localhost/pidgeon?sslmode=disable";
+      DATABASE_URL = "postgres://pidgeon:pidgeon@localhost/pidgeon?sslmode=disable";
 
       # PIDGEON_CLOUD_SSL = "1";
       # PIDGEON_CLOUD_DOMAIN = "localhost:5001";
