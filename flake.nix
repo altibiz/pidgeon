@@ -13,7 +13,7 @@
     shell = { pkgs }: pkgs.mkShell {
       packages = with pkgs; let
         pyright = pkgs.writeShellApplication {
-          name = "pyright";
+          name = "pyright-langserver";
           runtimeInputs = [ pkgs.poetry pkgs.nodePackages.pyright ];
           text = ''
             # shellcheck disable=SC1091
