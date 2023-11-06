@@ -192,3 +192,4 @@ cython_debug/
 .env
 secrets/
 nohup.out
+.direnv
