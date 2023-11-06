@@ -74,6 +74,8 @@
         rustfmt
         rust-analyzer
         cargo-edit
+        pkg-config
+        openssl
 
         # Shell
         nodePackages.bash-language-server
