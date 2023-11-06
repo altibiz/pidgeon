@@ -7,7 +7,6 @@ language-server = { command = "nil" }
 [[language]]
 name = "rust"
 auto-format = true
-formatter = { command = "rustfmt" }
 language-server = { command = "rust-analyzer" }
 
 [language-server.config]
@@ -28,7 +27,7 @@ language-server = { command = "pyright-langserver", args = ["--stdio"] }
 name = "bash"
 auto-format = true
 formatter = { command = "shfmt" }
-language-server =  { command = "bash-language-server", args = ["start"] }
+language-server = { command = "bash-language-server", args = ["start"] }
 
 [[language]]
 name = "toml"
@@ -38,11 +37,21 @@ language-server = { command = "taplo", args = ["lsp", "stdio"] }
 [[language]]
 name = "yaml"
 auto-format = true
-formatter = { command = "prettier", args = ["--parser", "yaml", "--prose-wrap", "always"] }
+formatter = { command = "prettier", args = [
+  "--parser",
+  "yaml",
+  "--prose-wrap",
+  "always",
+] }
 language-server = { command = "yaml-language-server", args = ["--stdio"] }
 
 [[language]]
 name = "markdown"
 auto-format = true
-formatter = { command = "prettier", args = ["--parser", "markdown", "--prose-wrap", "always"] }
+formatter = { command = "prettier", args = [
+  "--parser",
+  "markdown",
+  "--prose-wrap",
+  "always",
+] }
 language-server = { command = "marksman", args = ["server"] }
