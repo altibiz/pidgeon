@@ -11,7 +11,6 @@ use super::conn::*;
 // TODO: try removing arc mutex on connection
 // TODO: parameter tuning
 // TODO: optimize
-// TODO: refactor for readability
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct Request {
