@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: timescale/timescaledb-ha:pg14-latest
+    restart: always
+    volumes:
+      - postgres_data:/home/postgres/pgdata/data
+    environment:
+      - POSTGRES_DB=mess
+      - POSTGRES_USER=mess
+      - POSTGRES_PASSWORD=mess
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d mess -U mess"]
+      interval: 1m
+      timeout: 10s
+      retries: 10
+
+volumes:
+  postgres_data:
+    driver: local
