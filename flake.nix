@@ -32,15 +32,16 @@
           '';
         };
 
-        ruff = pkgs.writeShellApplication {
-          name = "ruff";
-          runtimeInputs = [ pkgs.poetry ];
-          text = ''
-            # shellcheck disable=SC1091
-            source "$(poetry env info --path)/bin/activate"
-            ruff "$@"
-          '';
-        };
+        # TODO: https://github.com/astral-sh/ruff/issues/1699
+        # ruff = pkgs.writeShellApplication {
+        #   name = "ruff";
+        #   runtimeInputs = [ pkgs.poetry ];
+        #   text = ''
+        #     # shellcheck disable=SC1091
+        #     source "$(poetry env info --path)/bin/activate"
+        #     ruff "$@"
+        #   '';
+        # };
 
         python = pkgs.writeShellApplication {
           name = "python";
