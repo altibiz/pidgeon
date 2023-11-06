@@ -62,7 +62,14 @@
         rustfmt
         rust-analyzer
         cargo-edit
+
+        # Shell
+        nodePackages.bash-language-server
         shfmt
+
+        # Misc
+        nodePackages.prettier
+        nodePackages.yaml-language-server
         marksman
         taplo
       ];
