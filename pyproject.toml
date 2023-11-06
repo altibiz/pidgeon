@@ -16,6 +16,7 @@ python = "^3.10"
 [tool.poetry.group.dev.dependencies]
 yapf = "^0.40.2"
 pyright = "^1.1.334"
+ruff = "^0.1.4"
 
 [tool.yapf]
 based_on_style = "pep8"
