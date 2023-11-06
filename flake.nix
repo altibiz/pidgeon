@@ -84,6 +84,7 @@
         cargo-edit
         pkg-config
         openssl
+        sqlx-cli
 
         # Shell
         nodePackages.bash-language-server

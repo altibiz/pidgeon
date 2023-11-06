@@ -1,27 +1,17 @@
+use std::collections::HashMap;
 use std::net::SocketAddr;
 
-use tokio_modbus::SlaveId;
-
-use super::register::*;
-
-#[derive(Debug, Clone)]
-pub struct Slave {
-  pub num: SlaveId,
-  pub id: String,
-  pub kind: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct Measurement {
-  pub slave: Slave,
-  pub registers: MeasurementRegister<RegisterValue>,
-}
-
 #[async_trait::async_trait]
-pub trait Server {
+pub trait Client {
   fn address(&self) -> SocketAddr;
 
-  fn slaves(&self) -> Vec<Slave>;
+  async fn reset(
+    &mut self,
+    slaves: HashMap<String, super::conn::Connection>,
+  ) -> ();
 
-  async fn measure(&self) -> Vec<Measurement>;
+  async fn send(
+    &self,
+    request: super::worker::Request,
+  ) -> Result<super::worker::Response, super::worker::Error>;
 }

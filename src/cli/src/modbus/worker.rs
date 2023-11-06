@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use sqlx::types::chrono;
 use tokio::sync::Mutex;
 
 use tokio::task::JoinHandle;
