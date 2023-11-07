@@ -15,11 +15,11 @@ use super::connection::*;
 // TODO: initial read params from config
 
 // TODO: optimize
-// 1. remove cloning as much as possible
-// 2. use Arc slices instead of vecs
-// 2. try removing arc mutex on connection
-// 3. try spinning
-// 4. use bounded channels
+// 1. use bounded channels for streams
+// 2. remove cloning as much as possible
+// 3. use Arc slices instead of vecs
+// 4. try removing arc mutex on connection
+// 5. try spinning
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct Request {
@@ -118,8 +118,8 @@ type Partial = Vec<Option<super::connection::Response>>;
 
 #[derive(Debug, Clone)]
 struct Storage {
+  id: usize,
   sender: ResponseSender,
-  receiver: ResponseReceiver,
   request: Request,
   kind: RequestKind,
   partial: Partial,
@@ -295,6 +295,7 @@ impl Task {
   }
 
   fn make_current(&self) -> Vec<Storage> {
+    // NOTE: all of this cloning is very costly
     let current = {
       let mut current = Vec::new();
       current.extend(self.oneshots.values().cloned());
