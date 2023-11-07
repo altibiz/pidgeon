@@ -59,12 +59,6 @@ pub enum DeviceReadError {
   ServerRead(#[from] ServerReadError),
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum BindError {
-  #[error("No server in registry for given address")]
-  ServerNotFound(SocketAddr),
-}
-
 #[derive(Clone, Debug)]
 struct Server {
   worker: Worker,
@@ -87,11 +81,7 @@ impl Registry {
     }
   }
 
-  pub async fn bind(
-    &self,
-    id: String,
-    destination: Destination,
-  ) -> Result<(), BindError> {
+  pub async fn bind(&self, id: String, destination: Destination) {
     let server = self.get_server(destination).await;
     {
       let mut devices = self.devices.clone().lock_owned().await;
@@ -103,8 +93,6 @@ impl Registry {
         },
       );
     }
-
-    Ok(())
   }
 
   pub async fn read_from_destination<
