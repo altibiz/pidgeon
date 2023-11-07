@@ -251,64 +251,26 @@ impl Task {
     } = self.receiver.try_recv()?;
 
     let receiver = match &kind {
-      RequestKind::Oneshot => match self.oneshots.get(&request) {
-        Some(Storage { receiver, .. }) => receiver.clone(),
-        None => {
-          let (sender, receiver) = flume::bounded(1);
-          self.oneshots.insert(
-            request.clone(),
-            Storage {
-              sender,
-              receiver: receiver.clone(),
-              request,
-              kind: RequestKind::Oneshot,
-              partial: (0..request.spans.len())
-                .into_iter()
-                .map(|_| None)
-                .collect::<Vec<_>>(),
-            },
-          );
-          receiver
-        }
-      },
-      RequestKind::Stream => match self.streams.get_mut(&request) {
-        Some(Storage { receiver, .. }) => receiver.clone(),
-        None => {
-          let (sender, receiver) = flume::unbounded();
-          self.streams.insert(
-            request.clone(),
-            Storage {
-              sender,
-              receiver: receiver.clone(),
-              request,
-              kind: RequestKind::Stream,
-              partial: (0..request.spans.len())
-                .into_iter()
-                .map(|_| None)
-                .collect::<Vec<_>>(),
-            },
-          );
-          receiver
-        }
-      },
+      RequestKind::Oneshot => self.oneshots.push(Storage {
+        id: Id::new_v4(),
+        sender,
+        request,
+        kind,
+        partial: (0..request.spans.len()).map(|_| None).collect::<Vec<_>>(),
+      }),
+      RequestKind::Stream => self.oneshots.push(Storage {
+        id: Id::new_v4(),
+        sender,
+        request,
+        kind,
+        partial: (0..request.spans.len()).map(|_| None).collect::<Vec<_>>(),
+      }),
     };
-
-    if let Err(error) = sender.try_send(receiver) {
-      match kind {
-        RequestKind::Oneshot => self.oneshots.remove(&request),
-        RequestKind::Stream => self.streams.remove(&request),
-      };
-      tracing::debug! {
-        %error,
-        "Failed sending back receiver from worker for {:?}",
-        request
-      }
-    }
 
     Ok(())
   }
 
-  fn make_current(self) -> Vec<Storage> {
+  fn make_current(&self) -> Vec<Storage> {
     // NOTE: this is a hell of a lot of copying
     let current = {
       let mut current = Vec::new();
@@ -353,8 +315,12 @@ impl Task {
     let partial = {
       let mut connection = connection.clone().lock_owned().await;
       let mut data = Vec::new();
-      for (span, partial) in
-        storage.request.spans.iter().zip(storage.partial.iter())
+      for (span, partial) in storage
+        .request
+        .spans
+        .iter()
+        .cloned()
+        .zip(storage.partial.iter())
       {
         let read = match partial {
           Some(partial) => Some(partial.clone()),
