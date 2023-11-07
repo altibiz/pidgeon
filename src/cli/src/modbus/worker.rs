@@ -196,7 +196,7 @@ impl Task {
       let mut oneshots_to_remove = Vec::new();
       for index in 0..self.oneshots.len() {
         let oneshot = self.oneshots.index(index);
-        let connection = match Task::attempt_connection(
+        let connection = match Self::attempt_connection(
           &mut self.connections,
           oneshot,
         )
@@ -213,7 +213,7 @@ impl Task {
           }
         };
 
-        match Task::read(oneshot, self.params, &mut metrics, connection).await {
+        match Self::read(oneshot, self.params, &mut metrics, connection).await {
           Either::Left(partial) => {
             self.oneshots.index_mut(index).partial = partial
           }
@@ -238,7 +238,7 @@ impl Task {
       for index in 0..self.streams.len() {
         let stream = self.streams.index(index);
         let connection =
-          match Task::attempt_connection(&mut self.connections, stream).await {
+          match Self::attempt_connection(&mut self.connections, stream).await {
             ConnectionAttempt::Existing(connection) => connection,
             ConnectionAttempt::New(connection) => self
               .connections
@@ -250,7 +250,7 @@ impl Task {
             }
           };
 
-        match Task::read(stream, self.params, &mut metrics, connection).await {
+        match Self::read(stream, self.params, &mut metrics, connection).await {
           Either::Left(partial) => {
             self.streams.index_mut(index).partial = partial;
           }
@@ -315,6 +315,7 @@ enum ConnectionAttempt<'a> {
   New(Connection),
   Fail,
 }
+
 impl Task {
   async fn attempt_connection<'a>(
     connections: &'a mut HashMap<Destination, Connection>,

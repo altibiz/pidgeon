@@ -1,8 +1,10 @@
 use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 
+use futures::{StreamExt, TryStreamExt};
+use futures_core::{Future, Stream};
 use tokio::sync::Mutex;
 
-use super::batch::batch_spans;
+use super::batch::*;
 use super::connection::{Destination, Params};
 use super::span::*;
 use super::worker::*;
@@ -67,7 +69,17 @@ impl Registry {
     Ok(response)
   }
 
-  pub async fn stream_from_destination() {}
+  pub async fn stream_from_destination<
+    TSpan: Span,
+    TSpanParser: Clone + Span + SpanParser<TSpan>,
+  >(
+    &self,
+    destination: Destination,
+    spans: Vec<TSpanParser>,
+  ) -> impl Stream<Item = Result<Vec<TSpan>, WorkerReadError>> {
+    let worker = self.get_worker(destination).await;
+    self.stream_from_worker(worker, destination, spans).await
+  }
 
   pub async fn read_from_id<
     TSpan: Span,
@@ -87,7 +99,26 @@ impl Registry {
     Ok(response)
   }
 
-  pub async fn stream_from_id() {}
+  pub async fn stream_from_id<
+    TSpan: Span,
+    TSpanParser: Clone + Span + SpanParser<TSpan>,
+  >(
+    &self,
+    id: &str,
+    spans: Vec<TSpanParser>,
+  ) -> Result<
+    impl Stream<Item = Result<Vec<TSpan>, WorkerReadError>>,
+    DeviceReadError,
+  > {
+    let device = match self.get_device(id).await {
+      Some(device) => device,
+      None => return Err(DeviceReadError::DeviceNotFound(id.to_string())),
+    };
+    let stream = self
+      .stream_from_worker(device.worker, device.destination, spans)
+      .await;
+    Ok(stream)
+  }
 
   async fn read_from_worker<
     TSpan: Span,
@@ -98,9 +129,36 @@ impl Registry {
     destination: Destination,
     spans: Vec<TSpanParser>,
   ) -> Result<Response<TSpan>, WorkerReadError> {
-    let spans_len = spans.len();
+    let len = spans.len();
     let batches = batch_spans(spans.into_iter(), self.batch_threshold);
-    let data = match worker.send(destination, batches.iter()).await {
+    let result = worker.send(destination, batches.iter()).await;
+    let response = Self::parse_worker_result(result, &batches, len)?;
+    Ok(response)
+  }
+
+  async fn stream_from_worker<
+    TSpan: Span,
+    TSpanParser: Clone + Span + SpanParser<TSpan>,
+  >(
+    &self,
+    worker: Worker,
+    destination: Destination,
+    spans: Vec<TSpanParser>,
+  ) -> impl Stream<Item = Result<Response<TSpan>, WorkerReadError>> {
+    let len = spans.len();
+    let batches = batch_spans(spans.into_iter(), self.batch_threshold);
+    worker
+      .stream(destination, batches.clone().into_iter())
+      .await
+      .map(move |result| Self::parse_worker_result(result, &batches, len))
+  }
+
+  fn parse_worker_result<TSpan: Span, TSpanParser: Span + SpanParser<TSpan>>(
+    result: Result<super::worker::Response, super::worker::Error>,
+    batches: &Vec<Batch<TSpanParser>>,
+    len: usize,
+  ) -> Result<Response<TSpan>, WorkerReadError> {
+    let data = match result {
       Ok(response) => response,
       Err(error) => match error {
         super::worker::Error::FailedToConnect(error) => {
@@ -112,7 +170,7 @@ impl Registry {
       },
     };
 
-    let mut response = Vec::with_capacity(spans_len);
+    let mut response = Vec::with_capacity(len);
     for (parser, data) in batches.into_iter().zip(data.into_iter()) {
       let mut parsed = match parser.parse(data) {
         Ok(parsed) => parsed,
