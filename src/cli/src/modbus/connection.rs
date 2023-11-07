@@ -89,7 +89,7 @@ pub struct Params {
 }
 
 #[derive(Copy, Clone, Debug, thiserror::Error)]
-pub enum ConnectionReadParamsError {
+pub enum ParamsError {
   #[error("Failed converting timeout")]
   TimeoutConversion(#[from] std::num::TryFromIntError),
 
@@ -102,7 +102,7 @@ impl Params {
     timeout: chrono::Duration,
     backoff: chrono::Duration,
     retries: usize,
-  ) -> Result<Self, ConnectionReadParamsError> {
+  ) -> Result<Self, ParamsError> {
     let timeout: futures_time::time::Duration =
       futures_time::time::Duration::from_millis(
         timeout.num_milliseconds() as u64
@@ -131,7 +131,7 @@ impl Params {
 }
 
 #[derive(Debug, Error)]
-pub enum Error {
+pub enum ReadError {
   #[error("Failed connecting to device")]
   Connection(#[from] std::io::Error),
 
@@ -144,7 +144,7 @@ impl Connection {
     &mut self,
     span: SimpleSpan,
     params: Params,
-  ) -> Result<Response, Error> {
+  ) -> Result<Response, ReadError> {
     fn flatten_result<T, E1, E2>(
       result: Result<Result<T, E1>, E2>,
     ) -> Result<T, E1>

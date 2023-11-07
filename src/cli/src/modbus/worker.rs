@@ -4,7 +4,6 @@ use std::sync::Arc;
 
 use either::Either;
 use futures::Stream;
-use tokio::sync::Mutex;
 
 use super::connection::*;
 use super::span::SimpleSpan;
@@ -152,6 +151,8 @@ impl Task {
         }
       }
 
+      let mut metrics = Metrics::new();
+
       let mut oneshots_to_remove = Vec::new();
       for index in 0..self.oneshots.len() {
         let oneshot = self.oneshots.index(index);
@@ -172,7 +173,7 @@ impl Task {
           }
         };
 
-        match Task::read(oneshot, self.params, connection).await {
+        match Task::read(oneshot, self.params, &mut metrics, connection).await {
           Either::Left(partial) => {
             self.oneshots.index_mut(index).partial = partial
           }
@@ -209,7 +210,7 @@ impl Task {
             }
           };
 
-        match Task::read(stream, self.params, connection).await {
+        match Task::read(stream, self.params, &mut metrics, connection).await {
           Either::Left(partial) => {
             self.streams.index_mut(index).partial = partial;
           }
@@ -230,7 +231,7 @@ impl Task {
         .streams
         .retain(|stream| !streams_to_remove.iter().any(|id| *id == stream.id));
 
-      self.tune();
+      self.tune(metrics);
     }
   }
 
@@ -295,6 +296,7 @@ impl Task {
   async fn read(
     storage: &Storage,
     params: Params,
+    metrics: &mut Metrics,
     connection: &mut Connection,
   ) -> Either<Partial, Response> {
     let partial = {
@@ -310,7 +312,14 @@ impl Task {
           Some(partial) => Some(partial.clone()),
           None => match (*connection).read(span, params).await {
             Ok(read) => Some(read),
-            Err(_) => None,
+            Err(error) => {
+              metrics
+                .errors
+                .entry(storage.request.destination)
+                .or_insert_with(|| Vec::new())
+                .push(error);
+              None
+            }
           },
         };
 
@@ -334,6 +343,19 @@ impl Task {
   }
 }
 
+#[derive(Debug)]
+struct Metrics {
+  errors: HashMap<Destination, Vec<ReadError>>,
+}
+
+impl Metrics {
+  fn new() -> Self {
+    Self {
+      errors: HashMap::new(),
+    }
+  }
+}
+
 impl Task {
-  fn tune(&mut self) {}
+  fn tune(&mut self, metrics: Metrics) {}
 }
