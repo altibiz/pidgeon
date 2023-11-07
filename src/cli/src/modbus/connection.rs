@@ -5,16 +5,12 @@ use thiserror::Error;
 use tokio::net::TcpStream;
 use tokio_modbus::{client::Context, prelude::Reader, Slave};
 
+use super::span::SimpleSpan;
+
 #[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
 pub struct Destination {
   pub socket: SocketAddr,
   pub slave: Option<u8>,
-}
-
-#[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
-pub struct Span {
-  pub address: u16,
-  pub quantity: u16,
 }
 
 pub type Response = Vec<u16>;
@@ -146,7 +142,7 @@ pub enum Error {
 impl Connection {
   pub async fn read(
     &mut self,
-    span: Span,
+    span: SimpleSpan,
     params: Params,
   ) -> Result<Response, Error> {
     fn flatten_result<T, E1, E2>(

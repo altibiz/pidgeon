@@ -5,6 +5,7 @@ use either::Either;
 use tokio::sync::Mutex;
 
 use super::connection::*;
+use super::span::SimpleSpan;
 
 // TODO: fix broadcasting
 
@@ -24,7 +25,7 @@ use super::connection::*;
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct Request {
   pub destination: Destination,
-  pub spans: Vec<Span>,
+  pub spans: Vec<SimpleSpan>,
 }
 
 pub type Response = Vec<super::connection::Response>;
@@ -73,7 +74,6 @@ impl Worker {
         sender,
       })
       .await;
-    let receiver = receiver.recv_async().await?;
     let response = receiver.recv_async().await?;
     response
   }
@@ -91,7 +91,6 @@ impl Worker {
         sender,
       })
       .await;
-    let receiver = receiver.recv_async().await?;
     Ok(receiver)
   }
 }
@@ -106,7 +105,7 @@ enum RequestKind {
 struct Carrier {
   request: Request,
   kind: RequestKind,
-  sender: flume::Sender<ResponseReceiver>,
+  sender: ResponseSender,
 }
 
 type ResponseSender = flume::Sender<Result<Response, Error>>;
@@ -115,10 +114,11 @@ type RequestSender = flume::Sender<Carrier>;
 type RequestReceiver = flume::Receiver<Carrier>;
 
 type Partial = Vec<Option<super::connection::Response>>;
+type Id = uuid::Uuid;
 
 #[derive(Debug, Clone)]
 struct Storage {
-  id: usize,
+  id: Id,
   sender: ResponseSender,
   request: Request,
   kind: RequestKind,
@@ -129,8 +129,8 @@ struct Storage {
 struct Task {
   connections: HashMap<Destination, Arc<Mutex<Connection>>>,
   receiver: RequestReceiver,
-  oneshots: HashMap<Request, Storage>,
-  streams: HashMap<Request, Storage>,
+  oneshots: Vec<Storage>,
+  streams: Vec<Storage>,
   params: Params,
 }
 
@@ -139,8 +139,8 @@ impl Task {
     Self {
       connections: HashMap::new(),
       receiver,
-      oneshots: HashMap::new(),
-      streams: HashMap::new(),
+      oneshots: Vec::new(),
+      streams: Vec::new(),
       params,
     }
   }
@@ -156,8 +156,6 @@ impl Task {
         }
       }
 
-      self.filter_requests();
-
       for storage in self.make_current() {
         let connection = {
           match self.connect(&storage).await {
@@ -169,8 +167,12 @@ impl Task {
             }
             None => {
               match storage.kind {
-                RequestKind::Oneshot => self.oneshots.remove(&storage.request),
-                RequestKind::Stream => self.streams.remove(&storage.request),
+                RequestKind::Oneshot => {
+                  self.oneshots.retain(|x| x.id != storage.id);
+                }
+                RequestKind::Stream => {
+                  self.streams.retain(|x| x.id != storage.id);
+                }
               };
               continue;
             }
@@ -182,31 +184,58 @@ impl Task {
         match response {
           Either::Left(partial) => match storage.kind {
             RequestKind::Oneshot => {
-              if let Some(storage) = self.oneshots.get_mut(&storage.request) {
+              if let Some(storage) = self
+                .oneshots
+                .iter_mut()
+                .filter(|x| x.id == storage.id)
+                .next()
+              {
                 storage.partial = partial;
               }
             }
             RequestKind::Stream => {
-              if let Some(storage) = self.streams.get_mut(&storage.request) {
+              if let Some(storage) = self
+                .streams
+                .iter_mut()
+                .filter(|x| x.id == storage.id)
+                .next()
+              {
                 storage.partial = partial;
               }
             }
           },
-          Either::Right(response) => {
-            self.send(&storage, response).await;
-            match storage.kind {
-              RequestKind::Oneshot => {
-                self.oneshots.remove(&storage.request);
+          Either::Right(response) => match storage.kind {
+            RequestKind::Oneshot => {
+              if let Err(error) = storage.sender.try_send(Ok(response)) {
+                tracing::debug! {
+                  %error,
+                  "Failed sending oneshot response {:?}",
+                  storage.request
+                }
               }
-              RequestKind::Stream => {
-                if let Some(storage) = self.streams.get_mut(&storage.request) {
-                  storage.partial = (0..storage.request.spans.len())
-                    .map(|_| None)
-                    .collect::<Partial>();
+
+              self.oneshots.retain(|x| x.id != storage.id);
+            }
+            RequestKind::Stream => {
+              match storage.sender.try_send(Ok(response)) {
+                Ok(()) => {
+                  if let Some(storage) = self
+                    .streams
+                    .iter_mut()
+                    .filter(|x| x.id == storage.id)
+                    .next()
+                  {
+                    storage.partial = (0..storage.request.spans.len())
+                      .map(|_| None)
+                      .collect::<Partial>();
+                  }
+                }
+                Err(_) => {
+                  self.streams.retain(|x| x.id != storage.id);
                 }
               }
             }
-          }
+          },
         };
       }
 
@@ -279,37 +308,19 @@ impl Task {
     Ok(())
   }
 
-  fn filter_requests(&mut self) {
-    // NOTE: we filter like this because we always keep a sender/receiver pair
-    self.oneshots = self
-      .oneshots
-      .into_iter()
-      .filter(|(_, Storage { receiver, .. })| receiver.receiver_count() <= 1)
-      .collect::<HashMap<_, _>>();
-
-    self.streams = self
-      .streams
-      .into_iter()
-      .filter(|(_, Storage { receiver, .. })| receiver.receiver_count() <= 1)
-      .collect::<HashMap<_, _>>();
-  }
-
-  fn make_current(&self) -> Vec<Storage> {
-    // NOTE: all of this cloning is very costly
+  fn make_current(self) -> Vec<Storage> {
+    // NOTE: this is a hell of a lot of copying
     let current = {
       let mut current = Vec::new();
-      current.extend(self.oneshots.values().cloned());
-      current.extend(self.streams.values().cloned());
+      current.extend(self.oneshots.iter().cloned());
+      current.extend(self.streams.iter().cloned());
       current
     };
 
     current
   }
 
-  async fn connect<'a>(
-    &'a self,
-    storage: &'a Storage,
-  ) -> Option<Arc<Mutex<Connection>>> {
+  async fn connect(&self, storage: &Storage) -> Option<Arc<Mutex<Connection>>> {
     let connection = match self.connections.get(&storage.request.destination) {
       Some(connection) => Some(connection.clone()),
       None => match Connection::connect(storage.request.destination).await {
@@ -334,38 +345,41 @@ impl Task {
     connection
   }
 
-  async fn read<'a>(
-    &'a self,
-    storage: &'a Storage,
+  async fn read(
+    &self,
+    storage: &Storage,
     connection: Arc<Mutex<Connection>>,
   ) -> Either<Partial, Response> {
-    let response = {
+    let partial = {
       let mut connection = connection.clone().lock_owned().await;
       let mut data = Vec::new();
-      for span in storage.request.spans.iter() {
-        let read = match (*connection).read(*span, self.params.clone()).await {
-          Ok(read) => read,
-          Err(_) => {
-            continue;
-          }
+      for (span, partial) in
+        storage.request.spans.iter().zip(storage.partial.iter())
+      {
+        let read = match partial {
+          Some(partial) => Some(partial.clone()),
+          None => match (*connection).read(span, self.params).await {
+            Ok(read) => Some(read),
+            Err(_) => None,
+          },
         };
+
         data.push(read);
       }
 
       data
     };
 
-    Either::Right(response)
-  }
-
-  async fn send<'a>(&'a self, storage: &'a Storage, response: Response) {
-    // NOTE: this should never really happen because we always keep one sender/receiver pair
-    if let Err(error) = storage.sender.try_send(Ok(response)) {
-      tracing::debug! {
-        %error,
-        "Failed sending response from worker task for {:?}",
-        storage.request
-      }
+    if partial.iter().all(|x| x.is_some()) {
+      Either::Right(
+        partial
+          .iter()
+          .cloned()
+          .filter_map(std::convert::identity)
+          .collect::<Vec<_>>(),
+      )
+    } else {
+      Either::Left(partial)
     }
   }
 
