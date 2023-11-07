@@ -88,41 +88,27 @@ pub struct Params {
   retries: usize,
 }
 
-#[derive(Copy, Clone, Debug, thiserror::Error)]
-pub enum ParamsError {
-  #[error("Failed converting timeout")]
-  TimeoutConversion(#[from] std::num::TryFromIntError),
-
-  #[error("Failed converting backoff")]
-  BackoffConversoin(#[from] chrono::OutOfRangeError),
-}
-
 impl Params {
   pub fn new(
     timeout: chrono::Duration,
     backoff: chrono::Duration,
     retries: usize,
-  ) -> Result<Self, ParamsError> {
-    let timeout: futures_time::time::Duration =
-      futures_time::time::Duration::from_millis(
-        timeout.num_milliseconds() as u64
-      );
-    let backoff: std::time::Duration = backoff.to_std()?;
-    Ok(Self {
+  ) -> Self {
+    let timeout = timeout_from_chrono(timeout);
+    let backoff = backoff_from_chrono(backoff);
+    Self {
       timeout,
       backoff,
       retries,
-    })
+    }
   }
 
-  pub fn timeout(self) -> Result<chrono::Duration, std::num::TryFromIntError> {
-    Ok(chrono::Duration::milliseconds(
-      self.timeout.as_millis().try_into()?,
-    ))
+  pub fn timeout(self) -> chrono::Duration {
+    timeout_to_chrono(self.timeout)
   }
 
-  pub fn backoff(self) -> Result<chrono::Duration, chrono::OutOfRangeError> {
-    Ok(chrono::Duration::from_std(self.backoff)?)
+  pub fn backoff(self) -> chrono::Duration {
+    backoff_to_chrono(self.backoff)
   }
 
   pub fn retries(self) -> usize {
@@ -140,46 +126,79 @@ pub enum ReadError {
 }
 
 impl Connection {
-  pub async fn read(
+  pub async fn parameterized_read(
     &mut self,
     span: SimpleSpan,
     params: Params,
-  ) -> Result<Response, ReadError> {
-    fn flatten_result<T, E1, E2>(
-      result: Result<Result<T, E1>, E2>,
-    ) -> Result<T, E1>
-    where
-      E1: From<E2>,
-    {
-      result?
+  ) -> Result<Response, Vec<ReadError>> {
+    let timeout = params.timeout;
+    let backoff = params.backoff;
+    let retries = params.retries;
+    let mut errors = Vec::new();
+    let mut retried = 0;
+    let mut response = None;
+    while response.is_none() && retried != retries {
+      tokio::time::sleep(backoff).await;
+      match self.simple_read_impl(span, timeout).await {
+        Ok(data) => response = Some(data),
+        Err(error) => errors.push(error),
+      };
+      retried = retried + 1;
     }
 
-    let data = {
-      let timeout = params.timeout;
-      let backoff = params.backoff;
-      let retries = params.retries;
-      let mut retried = 0;
-      let mut result = flatten_result(
-        self
-          .ctx
-          .read_holding_registers(span.address, span.quantity)
-          .timeout(timeout)
-          .await,
-      );
-      while result.is_err() && retried != retries {
-        tokio::time::sleep(backoff).await;
-        result = flatten_result(
-          self
-            .ctx
-            .read_holding_registers(span.address, span.quantity)
-            .timeout(timeout)
-            .await,
-        );
-        retried = retried + 1;
-      }
-      result
-    }?;
-
-    Ok(data)
+    response.ok_or(errors)
   }
+
+  pub async fn simple_read(
+    &mut self,
+    span: SimpleSpan,
+    timeout: chrono::Duration,
+  ) -> Result<Response, ReadError> {
+    let response = self
+      .simple_read_impl(span, timeout_from_chrono(timeout))
+      .await?;
+
+    Ok(response)
+  }
+
+  async fn simple_read_impl(
+    &mut self,
+    span: SimpleSpan,
+    timeout: futures_time::time::Duration,
+  ) -> Result<Response, ReadError> {
+    let response = self
+      .ctx
+      .read_holding_registers(span.address, span.quantity)
+      .timeout(timeout)
+      .await??;
+
+    Ok(response)
+  }
+}
+
+fn flatten_result<T, E1, E2>(result: Result<Result<T, E1>, E2>) -> Result<T, E1>
+where
+  E1: From<E2>,
+{
+  result?
+}
+
+fn timeout_to_chrono(
+  timeout: futures_time::time::Duration,
+) -> chrono::Duration {
+  chrono::Duration::milliseconds(timeout.as_millis() as i64)
+}
+
+fn timeout_from_chrono(
+  timeout: chrono::Duration,
+) -> futures_time::time::Duration {
+  futures_time::time::Duration::from_millis(timeout.num_milliseconds() as u64)
+}
+
+fn backoff_to_chrono(backoff: tokio::time::Duration) -> chrono::Duration {
+  chrono::Duration::milliseconds(backoff.as_millis() as i64)
+}
+
+fn backoff_from_chrono(backoff: chrono::Duration) -> tokio::time::Duration {
+  tokio::time::Duration::from_millis(backoff.num_milliseconds() as u64)
 }

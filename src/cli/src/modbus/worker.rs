@@ -47,8 +47,7 @@ impl Worker {
       chrono::Duration::milliseconds(1000),
       chrono::Duration::milliseconds(50),
       3,
-    )
-    .unwrap();
+    );
     let task = Task::new(params, receiver);
     let handle = tokio::spawn(task.execute());
     Self {
@@ -310,14 +309,14 @@ impl Task {
       {
         let read = match partial {
           Some(partial) => Some(partial.clone()),
-          None => match (*connection).read(span, params).await {
+          None => match (*connection).parameterized_read(span, params).await {
             Ok(read) => Some(read),
-            Err(error) => {
+            Err(mut errors) => {
               metrics
                 .errors
                 .entry(storage.request.destination)
                 .or_insert_with(|| Vec::new())
-                .push(error);
+                .append(&mut errors);
               None
             }
           },
