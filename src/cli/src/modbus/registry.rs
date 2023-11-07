@@ -1,13 +1,16 @@
 use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 
-use futures::{StreamExt, TryStreamExt};
-use futures_core::{Future, Stream};
+use futures::StreamExt;
+use futures_core::Stream;
 use tokio::sync::Mutex;
 
 use super::batch::*;
 use super::connection::{Destination, Params};
 use super::span::*;
 use super::worker::*;
+
+// TODO: add destination <-> id matching
+// TODO: remove cloning
 
 #[derive(Clone, Debug)]
 pub struct Registry {
