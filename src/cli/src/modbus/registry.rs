@@ -35,9 +35,18 @@ pub enum WorkerReadError {
 }
 
 #[derive(Debug, thiserror::Error)]
+pub enum WorkerStreamError {
+  #[error("Worker failure")]
+  WorkerFailed(anyhow::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum DeviceStreamError {
   #[error("No device in registry for given id")]
   DeviceNotFound(String),
+
+  #[error("Failed streaming from worker")]
+  WorkerStream(#[from] WorkerStreamError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -85,9 +94,13 @@ impl Registry {
     &self,
     destination: Destination,
     spans: Vec<TSpanParser>,
-  ) -> impl Stream<Item = Result<Vec<TSpan>, WorkerReadError>> {
+  ) -> Result<
+    impl Stream<Item = Result<Vec<TSpan>, WorkerReadError>>,
+    WorkerStreamError,
+  > {
     let worker = self.get_worker(destination).await;
-    self.stream_from_worker(worker, destination, spans).await
+    let stream = self.stream_from_worker(worker, destination, spans).await?;
+    Ok(stream)
   }
 
   pub async fn read_from_id<
@@ -125,7 +138,7 @@ impl Registry {
     };
     let stream = self
       .stream_from_worker(device.worker, device.destination, spans)
-      .await;
+      .await?;
     Ok(stream)
   }
 
@@ -153,27 +166,36 @@ impl Registry {
     worker: Worker,
     destination: Destination,
     spans: Vec<TSpanParser>,
-  ) -> impl Stream<Item = Result<Response<TSpan>, WorkerReadError>> {
+  ) -> Result<
+    impl Stream<Item = Result<Response<TSpan>, WorkerReadError>>,
+    WorkerStreamError,
+  > {
     let len = spans.len();
     let batches = batch_spans(spans.into_iter(), self.batch_threshold);
-    worker
+    let stream = match worker
       .stream(destination, batches.clone().into_iter())
       .await
-      .map(move |result| Self::parse_worker_result(result, &batches, len))
+    {
+      Ok(stream) => stream,
+      Err(error) => return Err(WorkerStreamError::WorkerFailed(error.into())),
+    };
+    let stream = stream
+      .map(move |result| Self::parse_worker_result(result, &batches, len));
+    Ok(stream)
   }
 
   fn parse_worker_result<TSpan: Span, TSpanParser: Span + SpanParser<TSpan>>(
-    result: Result<super::worker::Response, super::worker::Error>,
+    result: Result<super::worker::Response, super::worker::SendError>,
     batches: &Vec<Batch<TSpanParser>>,
     len: usize,
   ) -> Result<Response<TSpan>, WorkerReadError> {
     let data = match result {
       Ok(response) => response,
       Err(error) => match error {
-        super::worker::Error::FailedToConnect(error) => {
+        super::worker::SendError::FailedToConnect(error) => {
           return Err(WorkerReadError::FailedToConnect(error))
         }
-        super::worker::Error::ChannelDisconnected(error) => {
+        super::worker::SendError::ChannelDisconnected(error) => {
           return Err(WorkerReadError::WorkerFailed(error))
         }
       },

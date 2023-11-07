@@ -18,10 +18,16 @@ use super::span::{SimpleSpan, Span};
 pub type Response = Vec<super::connection::Response>;
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
+pub enum SendError {
   #[error("Failed to connect")]
   FailedToConnect(#[from] ConnectError),
 
+  #[error("Channel was disconnected before the request could be finished")]
+  ChannelDisconnected(anyhow::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum StreamError {
   #[error("Channel was disconnected before the request could be finished")]
   ChannelDisconnected(anyhow::Error),
 }
@@ -55,9 +61,9 @@ impl Worker {
     &self,
     destination: Destination,
     spans: TIntoIterator,
-  ) -> Result<Response, Error> {
+  ) -> Result<Response, SendError> {
     let (sender, receiver) = flume::bounded(1);
-    self
+    if let Err(error) = self
       .sender
       .send_async(Carrier::new(
         destination,
@@ -65,10 +71,13 @@ impl Worker {
         RequestKind::Oneshot,
         sender,
       ))
-      .await;
+      .await
+    {
+      return Err(SendError::ChannelDisconnected(error.into()));
+    };
     let response = match receiver.recv_async().await {
       Ok(response) => response,
-      Err(error) => return Err(Error::ChannelDisconnected(error.into())),
+      Err(error) => return Err(SendError::ChannelDisconnected(error.into())),
     }?;
 
     Ok(response)
@@ -81,10 +90,10 @@ impl Worker {
     &self,
     destination: Destination,
     spans: TIntoIterator,
-  ) -> impl Stream<Item = Result<Response, Error>> {
+  ) -> Result<impl Stream<Item = Result<Response, SendError>>, StreamError> {
     // NOTE: check 1024 is okay
     let (sender, receiver) = flume::bounded(1024);
-    self
+    if let Err(error) = self
       .sender
       .send_async(Carrier::new(
         destination,
@@ -92,8 +101,12 @@ impl Worker {
         RequestKind::Stream,
         sender,
       ))
-      .await;
-    receiver.into_stream()
+      .await
+    {
+      return Err(StreamError::ChannelDisconnected(error.into()));
+    };
+    let stream = receiver.into_stream();
+    Ok(stream)
   }
 }
 
@@ -135,8 +148,8 @@ impl Carrier {
   }
 }
 
-type ResponseSender = flume::Sender<Result<Response, Error>>;
-type ResponseReceiver = flume::Receiver<Result<Response, Error>>;
+type ResponseSender = flume::Sender<Result<Response, SendError>>;
+type ResponseReceiver = flume::Receiver<Result<Response, SendError>>;
 type RequestSender = flume::Sender<Carrier>;
 type RequestReceiver = flume::Receiver<Carrier>;
 

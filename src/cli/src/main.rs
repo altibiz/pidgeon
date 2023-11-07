@@ -6,6 +6,7 @@
   clippy::unwrap_used,
   clippy::expect_used,
   clippy::panic,
+  clippy::unreachable,
   // reason = "We have to handle errors properly"
 )]
 
