@@ -10,8 +10,6 @@ use super::span::SimpleSpan;
 
 // TODO: tuning
 
-// TODO: initial read params from config
-
 // TODO: optimize
 // 1. fix notes
 // 4. use Arc slices instead of Vecs
@@ -41,14 +39,9 @@ pub struct Worker {
 }
 
 impl Worker {
-  pub fn new() -> Self {
+  pub fn new(initial: Params) -> Self {
     let (sender, receiver) = flume::unbounded();
-    let params = Params::new(
-      chrono::Duration::milliseconds(1000),
-      chrono::Duration::milliseconds(50),
-      3,
-    );
-    let task = Task::new(params, receiver);
+    let task = Task::new(initial, receiver);
     let handle = tokio::spawn(task.execute());
     Self {
       sender,
@@ -356,5 +349,7 @@ impl Metrics {
 }
 
 impl Task {
-  fn tune(&mut self, metrics: Metrics) {}
+  fn tune(&mut self, metrics: Metrics) {
+    dbg!(metrics);
+  }
 }
