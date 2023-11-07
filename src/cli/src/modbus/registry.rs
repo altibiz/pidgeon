@@ -2,6 +2,7 @@ use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 
 use futures::StreamExt;
 use futures_core::Stream;
+use log::debug;
 use tokio::sync::Mutex;
 
 use super::batch::*;
@@ -15,7 +16,7 @@ use super::worker::*;
 #[derive(Clone, Debug)]
 pub struct Registry {
   devices: Arc<Mutex<HashMap<String, Device>>>,
-  workers: Arc<Mutex<HashMap<SocketAddr, Worker>>>,
+  servers: Arc<Mutex<HashMap<SocketAddr, Server>>>,
   initial_params: Params,
   batch_threshold: usize,
 }
@@ -23,21 +24,21 @@ pub struct Registry {
 pub type Response<TSpan: Span> = Vec<TSpan>;
 
 #[derive(Debug, thiserror::Error)]
-pub enum WorkerReadError {
+pub enum ServerReadError {
   #[error("Connection failed")]
   FailedToConnect(#[from] super::connection::ConnectError),
 
-  #[error("Worker failure")]
-  WorkerFailed(anyhow::Error),
+  #[error("Server failure")]
+  ServerFailed(anyhow::Error),
 
   #[error("Parsing failure")]
   ParsingFailed(anyhow::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum WorkerStreamError {
-  #[error("Worker failure")]
-  WorkerFailed(anyhow::Error),
+pub enum ServerStreamError {
+  #[error("Server failure")]
+  ServerFailed(anyhow::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -46,7 +47,7 @@ pub enum DeviceStreamError {
   DeviceNotFound(String),
 
   #[error("Failed streaming from worker")]
-  WorkerStream(#[from] WorkerStreamError),
+  ServerStream(#[from] ServerStreamError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -55,7 +56,19 @@ pub enum DeviceReadError {
   DeviceNotFound(String),
 
   #[error("Failed reading from worker")]
-  WorkerRead(#[from] WorkerReadError),
+  ServerRead(#[from] ServerReadError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum BindError {
+  #[error("No server in registry for given address")]
+  ServerNotFound(SocketAddr),
+}
+
+#[derive(Clone, Debug)]
+struct Server {
+  worker: Worker,
+  address: SocketAddr,
 }
 
 #[derive(Clone, Debug)]
@@ -68,10 +81,30 @@ impl Registry {
   pub fn new(initial_params: Params, batch_threshold: usize) -> Self {
     Self {
       devices: Arc::new(Mutex::new(HashMap::new())),
-      workers: Arc::new(Mutex::new(HashMap::new())),
+      servers: Arc::new(Mutex::new(HashMap::new())),
       initial_params,
       batch_threshold,
     }
+  }
+
+  pub async fn bind(
+    &self,
+    id: String,
+    destination: Destination,
+  ) -> Result<(), BindError> {
+    let server = self.get_server(destination).await;
+    {
+      let mut devices = self.devices.clone().lock_owned().await;
+      devices.insert(
+        id,
+        Device {
+          worker: server.worker,
+          destination,
+        },
+      );
+    }
+
+    Ok(())
   }
 
   pub async fn read_from_destination<
@@ -81,9 +114,11 @@ impl Registry {
     &self,
     destination: Destination,
     spans: Vec<TSpanParser>,
-  ) -> Result<Response<TSpan>, WorkerReadError> {
-    let worker = self.get_worker(destination).await;
-    let response = self.read_from_worker(worker, destination, spans).await?;
+  ) -> Result<Response<TSpan>, ServerReadError> {
+    let server = self.get_server(destination).await;
+    let response = self
+      .read_from_worker(server.worker, destination, spans)
+      .await?;
     Ok(response)
   }
 
@@ -95,11 +130,13 @@ impl Registry {
     destination: Destination,
     spans: Vec<TSpanParser>,
   ) -> Result<
-    impl Stream<Item = Result<Vec<TSpan>, WorkerReadError>>,
-    WorkerStreamError,
+    impl Stream<Item = Result<Vec<TSpan>, ServerReadError>>,
+    ServerStreamError,
   > {
-    let worker = self.get_worker(destination).await;
-    let stream = self.stream_from_worker(worker, destination, spans).await?;
+    let server = self.get_server(destination).await;
+    let stream = self
+      .stream_from_worker(server.worker, destination, spans)
+      .await?;
     Ok(stream)
   }
 
@@ -129,7 +166,7 @@ impl Registry {
     id: &str,
     spans: Vec<TSpanParser>,
   ) -> Result<
-    impl Stream<Item = Result<Vec<TSpan>, WorkerReadError>>,
+    impl Stream<Item = Result<Vec<TSpan>, ServerReadError>>,
     DeviceStreamError,
   > {
     let device = match self.get_device(id).await {
@@ -150,7 +187,7 @@ impl Registry {
     worker: Worker,
     destination: Destination,
     spans: Vec<TSpanParser>,
-  ) -> Result<Response<TSpan>, WorkerReadError> {
+  ) -> Result<Response<TSpan>, ServerReadError> {
     let len = spans.len();
     let batches = batch_spans(spans.into_iter(), self.batch_threshold);
     let result = worker.send(destination, batches.iter()).await;
@@ -167,8 +204,8 @@ impl Registry {
     destination: Destination,
     spans: Vec<TSpanParser>,
   ) -> Result<
-    impl Stream<Item = Result<Response<TSpan>, WorkerReadError>>,
-    WorkerStreamError,
+    impl Stream<Item = Result<Response<TSpan>, ServerReadError>>,
+    ServerStreamError,
   > {
     let len = spans.len();
     let batches = batch_spans(spans.into_iter(), self.batch_threshold);
@@ -177,7 +214,7 @@ impl Registry {
       .await
     {
       Ok(stream) => stream,
-      Err(error) => return Err(WorkerStreamError::WorkerFailed(error.into())),
+      Err(error) => return Err(ServerStreamError::ServerFailed(error.into())),
     };
     let stream = stream
       .map(move |result| Self::parse_worker_result(result, &batches, len));
@@ -188,15 +225,15 @@ impl Registry {
     result: Result<super::worker::Response, super::worker::SendError>,
     batches: &Vec<Batch<TSpanParser>>,
     len: usize,
-  ) -> Result<Response<TSpan>, WorkerReadError> {
+  ) -> Result<Response<TSpan>, ServerReadError> {
     let data = match result {
       Ok(response) => response,
       Err(error) => match error {
         super::worker::SendError::FailedToConnect(error) => {
-          return Err(WorkerReadError::FailedToConnect(error))
+          return Err(ServerReadError::FailedToConnect(error))
         }
         super::worker::SendError::ChannelDisconnected(error) => {
-          return Err(WorkerReadError::WorkerFailed(error))
+          return Err(ServerReadError::ServerFailed(error))
         }
       },
     };
@@ -205,7 +242,7 @@ impl Registry {
     for (parser, data) in batches.into_iter().zip(data.into_iter()) {
       let mut parsed = match parser.parse(data) {
         Ok(parsed) => parsed,
-        Err(error) => return Err(WorkerReadError::ParsingFailed(error)),
+        Err(error) => return Err(ServerReadError::ParsingFailed(error)),
       };
       response.append(&mut parsed.spans);
     }
@@ -213,11 +250,14 @@ impl Registry {
     Ok(response)
   }
 
-  async fn get_worker(&self, destination: Destination) -> Worker {
-    let mut workers = self.workers.clone().lock_owned().await;
+  async fn get_server(&self, destination: Destination) -> Server {
+    let mut workers = self.servers.clone().lock_owned().await;
     let worker = workers
-      .entry(destination.socket)
-      .or_insert_with(|| Worker::new(self.initial_params))
+      .entry(destination.address)
+      .or_insert_with(|| Server {
+        worker: Worker::new(self.initial_params),
+        address: destination.address,
+      })
       .clone();
     worker
   }

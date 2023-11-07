@@ -9,7 +9,7 @@ use super::span::SimpleSpan;
 
 #[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
 pub struct Destination {
-  pub socket: SocketAddr,
+  pub address: SocketAddr,
   pub slave: Option<u8>,
 }
 
@@ -33,8 +33,8 @@ pub enum ConnectError {
 impl Connection {
   pub async fn connect(destination: Destination) -> Result<Self, ConnectError> {
     match destination.slave {
-      Some(slave) => Self::connect_slave(destination.socket, slave).await,
-      None => Self::connect_standalone(destination.socket).await,
+      Some(slave) => Self::connect_slave(destination.address, slave).await,
+      None => Self::connect_standalone(destination.address).await,
     }
   }
 
@@ -45,7 +45,7 @@ impl Connection {
     let ctx = tokio_modbus::prelude::tcp::attach(stream);
     Ok(Self {
       destination: Destination {
-        socket,
+        address: socket,
         slave: None,
       },
       ctx,
@@ -65,7 +65,7 @@ impl Connection {
     let ctx = tokio_modbus::prelude::rtu::attach_slave(stream, Slave(slave));
     Ok(Self {
       destination: Destination {
-        socket,
+        address: socket,
         slave: Some(slave),
       },
       ctx,
@@ -73,7 +73,7 @@ impl Connection {
   }
 
   pub fn socket(&self) -> SocketAddr {
-    self.destination.socket
+    self.destination.address
   }
 
   pub fn slave(&self) -> Option<u8> {
