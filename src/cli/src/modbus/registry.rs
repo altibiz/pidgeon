@@ -2,7 +2,6 @@ use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 
 use futures::StreamExt;
 use futures_core::Stream;
-use log::debug;
 use tokio::sync::Mutex;
 
 use super::batch::*;
