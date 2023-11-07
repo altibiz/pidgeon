@@ -3,6 +3,7 @@ use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
 use either::Either;
+use futures::Stream;
 use tokio::sync::Mutex;
 
 use super::connection::*;
@@ -14,7 +15,6 @@ use super::span::SimpleSpan;
 
 // TODO: optimize
 // 1. fix notes
-// 2. use bounded channels for streams
 // 4. use Arc slices instead of Vecs
 // 6. try spinning
 
@@ -38,7 +38,7 @@ pub enum Error {
 #[derive(Debug, Clone)]
 pub struct Worker {
   sender: RequestSender,
-  handle: Arc<Mutex<tokio::task::JoinHandle<()>>>,
+  handle: Arc<tokio::task::JoinHandle<()>>,
 }
 
 impl Worker {
@@ -54,7 +54,7 @@ impl Worker {
     let handle = tokio::spawn(task.execute());
     Self {
       sender,
-      handle: Arc::new(Mutex::new(handle)),
+      handle: Arc::new(handle),
     }
   }
 }
@@ -77,7 +77,7 @@ impl Worker {
   pub async fn stream(
     &self,
     request: Request,
-  ) -> Result<flume::Receiver<Result<Response, Error>>, flume::RecvError> {
+  ) -> impl Stream<Item = Result<Response, Error>> {
     // NOTE: check 1024 is okay
     let (sender, receiver) = flume::bounded(1024);
     self
@@ -88,7 +88,7 @@ impl Worker {
         sender,
       })
       .await;
-    Ok(receiver)
+    receiver.into_stream()
   }
 }
 
@@ -130,12 +130,6 @@ struct Task {
   params: Params,
 }
 
-enum ConnectionAttempt<'a> {
-  Existing(&'a mut Connection),
-  New(Connection),
-  Fail,
-}
-
 impl Task {
   pub fn new(params: Params, receiver: RequestReceiver) -> Self {
     Self {
@@ -161,20 +155,22 @@ impl Task {
       let mut oneshots_to_remove = Vec::new();
       for index in 0..self.oneshots.len() {
         let oneshot = self.oneshots.index(index);
-        let connection =
-          match Task::get_connection_or_connect(&mut self.connections, oneshot)
-            .await
-          {
-            ConnectionAttempt::Existing(connection) => connection,
-            ConnectionAttempt::New(connection) => self
-              .connections
-              .entry(oneshot.request.destination)
-              .or_insert(connection),
-            ConnectionAttempt::Fail => {
-              oneshots_to_remove.push(oneshot.id);
-              continue;
-            }
-          };
+        let connection = match Task::attempt_connection(
+          &mut self.connections,
+          oneshot,
+        )
+        .await
+        {
+          ConnectionAttempt::Existing(connection) => connection,
+          ConnectionAttempt::New(connection) => self
+            .connections
+            .entry(oneshot.request.destination)
+            .or_insert(connection),
+          ConnectionAttempt::Fail => {
+            oneshots_to_remove.push(oneshot.id);
+            continue;
+          }
+        };
 
         match Task::read(oneshot, self.params, connection).await {
           Either::Left(partial) => {
@@ -201,9 +197,7 @@ impl Task {
       for index in 0..self.streams.len() {
         let stream = self.streams.index(index);
         let connection =
-          match Task::get_connection_or_connect(&mut self.connections, stream)
-            .await
-          {
+          match Task::attempt_connection(&mut self.connections, stream).await {
             ConnectionAttempt::Existing(connection) => connection,
             ConnectionAttempt::New(connection) => self
               .connections
@@ -223,9 +217,7 @@ impl Task {
             match stream.sender.try_send(Ok(response)) {
               Ok(()) => {
                 self.streams.index_mut(index).partial =
-                  (0..stream.request.spans.len())
-                    .map(|_| None)
-                    .collect::<Partial>();
+                  vec![None; stream.request.spans.len()];
               }
               Err(_) => {
                 streams_to_remove.push(stream.id);
@@ -254,20 +246,27 @@ impl Task {
         id: Id::new_v4(),
         sender,
         request,
-        partial: (0..request.spans.len()).map(|_| None).collect::<Vec<_>>(),
+        partial: vec![None; request.spans.len()],
       }),
       RequestKind::Stream => self.oneshots.push(Storage {
         id: Id::new_v4(),
         sender,
         request,
-        partial: (0..request.spans.len()).map(|_| None).collect::<Vec<_>>(),
+        partial: vec![None; request.spans.len()],
       }),
     };
 
     Ok(())
   }
+}
 
-  async fn get_connection_or_connect<'a>(
+enum ConnectionAttempt<'a> {
+  Existing(&'a mut Connection),
+  New(Connection),
+  Fail,
+}
+impl Task {
+  async fn attempt_connection<'a>(
     connections: &'a mut HashMap<Destination, Connection>,
     storage: &Storage,
   ) -> ConnectionAttempt<'a> {
@@ -289,8 +288,10 @@ impl Task {
       },
     }
   }
+}
 
-  // NOTE: try remove the copying here
+impl Task {
+  // NOTE: remove the copying here
   async fn read(
     storage: &Storage,
     params: Params,
@@ -331,6 +332,8 @@ impl Task {
       Either::Left(partial)
     }
   }
+}
 
+impl Task {
   fn tune(&mut self) {}
 }
