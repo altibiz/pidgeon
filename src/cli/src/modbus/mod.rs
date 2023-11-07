@@ -1,9 +1,7 @@
 pub mod batch;
-pub mod client;
 pub mod connection;
 pub mod register;
 pub mod registry;
-pub mod request;
 pub mod span;
 pub mod worker;
 
@@ -341,7 +339,7 @@ impl ModbusClient {
     value.matches()
   }
 
-  async fn read_span<TParsed: Span, TRegister: SpanParser<TParsed>>(
+  async fn read_span<TParsed: Span, TRegister: Span + SpanParser<TParsed>>(
     mutex: Arc<Mutex<Connection>>,
     timeout: futures_time::time::Duration,
     retries: u64,

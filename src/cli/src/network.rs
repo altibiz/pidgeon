@@ -43,7 +43,7 @@ impl NetworkScanner {
 
   #[tracing::instrument(skip(self))]
   pub async fn scan(&self) -> Vec<IpAddr> {
-    let mut matched_ips: Vec<IpAddr> = Vec::new();
+    let mut matched_ips = Vec::new();
     let ip_scans = self
       .ip_range
       .map(|ip| (ip, tokio::spawn(Self::scan_port(ip, 502, self.timeout))))

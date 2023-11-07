@@ -118,11 +118,11 @@ impl Params {
 
 #[derive(Debug, Error)]
 pub enum ReadError {
-  #[error("Failed connecting to device")]
-  Connection(#[from] std::io::Error),
+  #[error("Failed connecting")]
+  Connection(std::io::Error),
 
-  #[error("Failed to parse response")]
-  Parse(#[from] anyhow::Error),
+  #[error("Connection timed out")]
+  Timeout(std::io::Error),
 }
 
 impl Connection {
@@ -166,11 +166,18 @@ impl Connection {
     span: SimpleSpan,
     timeout: futures_time::time::Duration,
   ) -> Result<Response, ReadError> {
-    let response = self
+    let response = match self
       .ctx
       .read_holding_registers(span.address, span.quantity)
       .timeout(timeout)
-      .await??;
+      .await
+    {
+      Ok(timeout_response) => match timeout_response {
+        Ok(response) => Ok(response),
+        Err(timeout_error) => Err(ReadError::Timeout(timeout_error)),
+      },
+      Err(connection_error) => Err(ReadError::Connection(connection_error)),
+    }?;
 
     Ok(response)
   }

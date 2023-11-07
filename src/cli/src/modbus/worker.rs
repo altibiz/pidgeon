@@ -6,7 +6,7 @@ use either::Either;
 use futures::Stream;
 
 use super::connection::*;
-use super::span::SimpleSpan;
+use super::span::{SimpleSpan, Span};
 
 // TODO: tuning
 
@@ -15,12 +15,6 @@ use super::span::SimpleSpan;
 // 4. use Arc slices instead of Vecs
 // 6. try spinning
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
-pub struct Request {
-  pub destination: Destination,
-  pub spans: Vec<SimpleSpan>,
-}
-
 pub type Response = Vec<super::connection::Response>;
 
 #[derive(Debug, thiserror::Error)]
@@ -28,8 +22,8 @@ pub enum Error {
   #[error("Failed to connect")]
   FailedToConnect(#[from] ConnectError),
 
-  #[error("Channel receive failure")]
-  FailedChannel(#[from] flume::RecvError),
+  #[error("Channel was disconnected before the request could be finished")]
+  ChannelDisconnected(anyhow::Error),
 }
 
 #[derive(Debug, Clone)]
@@ -38,10 +32,16 @@ pub struct Worker {
   handle: Arc<tokio::task::JoinHandle<()>>,
 }
 
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+struct SimpleRequest {
+  destination: Destination,
+  spans: Vec<SimpleSpan>,
+}
+
 impl Worker {
-  pub fn new(initial: Params) -> Self {
+  pub fn new(initial_params: Params) -> Self {
     let (sender, receiver) = flume::unbounded();
-    let task = Task::new(initial, receiver);
+    let task = Task::new(initial_params, receiver);
     let handle = tokio::spawn(task.execute());
     Self {
       sender,
@@ -51,33 +51,47 @@ impl Worker {
 }
 
 impl Worker {
-  pub async fn send(&self, request: Request) -> Result<Response, Error> {
+  pub async fn send<TSpan: Span, TIntoIterator: IntoIterator<Item = TSpan>>(
+    &self,
+    destination: Destination,
+    spans: TIntoIterator,
+  ) -> Result<Response, Error> {
     let (sender, receiver) = flume::bounded(1);
     self
       .sender
-      .send_async(Carrier {
-        request,
-        kind: RequestKind::Oneshot,
+      .send_async(Carrier::new(
+        destination,
+        spans,
+        RequestKind::Oneshot,
         sender,
-      })
+      ))
       .await;
-    let response = receiver.recv_async().await?;
-    response
+    let response = match receiver.recv_async().await {
+      Ok(response) => response,
+      Err(error) => return Err(Error::ChannelDisconnected(error.into())),
+    }?;
+
+    Ok(response)
   }
 
-  pub async fn stream(
+  pub async fn stream<
+    TSpan: Span,
+    TIntoIterator: IntoIterator<Item = TSpan>,
+  >(
     &self,
-    request: Request,
+    destination: Destination,
+    spans: TIntoIterator,
   ) -> impl Stream<Item = Result<Response, Error>> {
     // NOTE: check 1024 is okay
     let (sender, receiver) = flume::bounded(1024);
     self
       .sender
-      .send_async(Carrier {
-        request,
-        kind: RequestKind::Stream,
+      .send_async(Carrier::new(
+        destination,
+        spans,
+        RequestKind::Stream,
         sender,
-      })
+      ))
       .await;
     receiver.into_stream()
   }
@@ -89,11 +103,36 @@ enum RequestKind {
   Stream,
 }
 
+type Spans = Vec<SimpleSpan>;
+
 #[derive(Clone, Debug)]
 struct Carrier {
-  request: Request,
+  destination: Destination,
+  spans: Spans,
   kind: RequestKind,
   sender: ResponseSender,
+}
+
+impl Carrier {
+  fn new<TSpan: Span, TIntoIterator: IntoIterator<Item = TSpan>>(
+    destination: Destination,
+    spans: TIntoIterator,
+    kind: RequestKind,
+    sender: ResponseSender,
+  ) -> Self {
+    Self {
+      destination,
+      spans: spans
+        .into_iter()
+        .map(|span| SimpleSpan {
+          address: span.address(),
+          quantity: span.quantity(),
+        })
+        .collect::<Vec<_>>(),
+      kind,
+      sender,
+    }
+  }
 }
 
 type ResponseSender = flume::Sender<Result<Response, Error>>;
@@ -108,7 +147,8 @@ type Id = uuid::Uuid;
 struct Storage {
   id: Id,
   sender: ResponseSender,
-  request: Request,
+  destination: Destination,
+  spans: Spans,
   partial: Partial,
 }
 
@@ -134,6 +174,14 @@ impl Task {
 
   pub async fn execute(mut self) {
     loop {
+      if self.oneshots.is_empty() && self.streams.is_empty() {
+        if let Err(error) = self.recv_async_new_request().await {
+          match error {
+            flume::RecvError::Disconnected => return,
+          }
+        }
+      }
+
       loop {
         if let Err(error) = self.try_recv_new_request() {
           match error {
@@ -157,7 +205,7 @@ impl Task {
           ConnectionAttempt::Existing(connection) => connection,
           ConnectionAttempt::New(connection) => self
             .connections
-            .entry(oneshot.request.destination)
+            .entry(oneshot.destination)
             .or_insert(connection),
           ConnectionAttempt::Fail => {
             oneshots_to_remove.push(oneshot.id);
@@ -173,8 +221,8 @@ impl Task {
             if let Err(error) = oneshot.sender.try_send(Ok(response)) {
               tracing::debug! {
                 %error,
-                "Failed sending oneshot response {:?}",
-                oneshot.request
+                "Failed sending oneshot response to {:?}",
+                oneshot.destination
               }
             }
 
@@ -194,7 +242,7 @@ impl Task {
             ConnectionAttempt::Existing(connection) => connection,
             ConnectionAttempt::New(connection) => self
               .connections
-              .entry(stream.request.destination)
+              .entry(stream.destination)
               .or_insert(connection),
             ConnectionAttempt::Fail => {
               oneshots_to_remove.push(stream.id);
@@ -210,7 +258,7 @@ impl Task {
             match stream.sender.try_send(Ok(response)) {
               Ok(()) => {
                 self.streams.index_mut(index).partial =
-                  vec![None; stream.request.spans.len()];
+                  vec![None; stream.spans.len()];
               }
               Err(_) => {
                 streams_to_remove.push(stream.id);
@@ -228,28 +276,37 @@ impl Task {
   }
 
   fn try_recv_new_request(&mut self) -> Result<(), flume::TryRecvError> {
+    let carrier = self.receiver.try_recv()?;
+    self.add_new_request(carrier);
+    Ok(())
+  }
+
+  async fn recv_async_new_request(&mut self) -> Result<(), flume::RecvError> {
+    let carrier = self.receiver.recv_async().await?;
+    self.add_new_request(carrier);
+    Ok(())
+  }
+
+  fn add_new_request(&mut self, carrier: Carrier) {
     let Carrier {
-      request,
+      destination,
+      spans,
       kind,
       sender,
-    } = self.receiver.try_recv()?;
-
-    match kind {
-      RequestKind::Oneshot => self.oneshots.push(Storage {
-        id: Id::new_v4(),
-        sender,
-        request,
-        partial: vec![None; request.spans.len()],
-      }),
-      RequestKind::Stream => self.oneshots.push(Storage {
-        id: Id::new_v4(),
-        sender,
-        request,
-        partial: vec![None; request.spans.len()],
-      }),
+    } = carrier;
+    let spans_len = spans.len();
+    let storage = Storage {
+      id: Id::new_v4(),
+      sender,
+      destination,
+      spans,
+      partial: vec![None; spans_len],
     };
 
-    Ok(())
+    match kind {
+      RequestKind::Oneshot => self.oneshots.push(storage),
+      RequestKind::Stream => self.oneshots.push(storage),
+    };
   }
 }
 
@@ -263,16 +320,16 @@ impl Task {
     connections: &'a mut HashMap<Destination, Connection>,
     storage: &Storage,
   ) -> ConnectionAttempt<'a> {
-    match connections.get_mut(&storage.request.destination) {
+    match connections.get_mut(&storage.destination) {
       Some(connection) => ConnectionAttempt::Existing(connection),
-      None => match Connection::connect(storage.request.destination).await {
+      None => match Connection::connect(storage.destination).await {
         Ok(connection) => ConnectionAttempt::New(connection),
         Err(error) => {
           if let Err(error) = storage.sender.try_send(Err(error.into())) {
             tracing::debug! {
               %error,
-              "Failed sending connection fail from worker task for {:?}",
-              storage.request
+              "Failed sending connection fail from worker task to {:?}",
+              storage.destination
             }
           }
 
@@ -293,12 +350,8 @@ impl Task {
   ) -> Either<Partial, Response> {
     let partial = {
       let mut data = Vec::new();
-      for (span, partial) in storage
-        .request
-        .spans
-        .iter()
-        .cloned()
-        .zip(storage.partial.iter())
+      for (span, partial) in
+        storage.spans.iter().cloned().zip(storage.partial.iter())
       {
         let read = match partial {
           Some(partial) => Some(partial.clone()),
@@ -307,7 +360,7 @@ impl Task {
             Err(mut errors) => {
               metrics
                 .errors
-                .entry(storage.request.destination)
+                .entry(storage.destination)
                 .or_insert_with(|| Vec::new())
                 .append(&mut errors);
               None

@@ -161,6 +161,16 @@ macro_rules! impl_register {
       }
     }
 
+    impl<T: RegisterStorage> Span for &$type<T> {
+      fn address(&self) -> Address {
+        self.address
+      }
+
+      fn quantity(&self) -> Quantity {
+        self.storage.quantity()
+      }
+    }
+
     impl Display for $type<RegisterValue> {
       fn fmt(
         &self,
@@ -239,8 +249,20 @@ macro_rules! parse_register {
 
 macro_rules! impl_parse_register {
   ($type: ident, $result: expr) => {
-    #[cfg(target_endian = "little")]
     impl SpanParser<$type<RegisterValue>> for $type<RegisterKind> {
+      fn parse<TIterator, TIntoIterator>(
+        &self,
+        data: TIntoIterator,
+      ) -> anyhow::Result<$type<RegisterValue>>
+      where
+        TIterator: DoubleEndedIterator<Item = u16>,
+        TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
+      {
+        parse_register!(self, data, $result)
+      }
+    }
+
+    impl SpanParser<$type<RegisterValue>> for &$type<RegisterKind> {
       fn parse<TIterator, TIntoIterator>(
         &self,
         data: TIntoIterator,
