@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use tokio::sync::Mutex;
 
-use super::conn::*;
+use super::connection::*;
 
 // TODO: save responses/errors across completions
 
@@ -22,7 +22,7 @@ pub struct Request {
   pub spans: Vec<Span>,
 }
 
-pub type Response = Vec<super::conn::Response>;
+pub type Response = Vec<super::connection::Response>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

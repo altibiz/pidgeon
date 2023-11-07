@@ -1,6 +1,6 @@
 pub mod batch;
 pub mod client;
-pub mod conn;
+pub mod connection;
 pub mod register;
 pub mod registry;
 pub mod request;
