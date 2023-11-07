@@ -35,6 +35,12 @@ pub enum WorkerReadError {
 }
 
 #[derive(Debug, thiserror::Error)]
+pub enum DeviceStreamError {
+  #[error("No device in registry for given id")]
+  DeviceNotFound(String),
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum DeviceReadError {
   #[error("No device in registry for given id")]
   DeviceNotFound(String),
@@ -111,11 +117,11 @@ impl Registry {
     spans: Vec<TSpanParser>,
   ) -> Result<
     impl Stream<Item = Result<Vec<TSpan>, WorkerReadError>>,
-    DeviceReadError,
+    DeviceStreamError,
   > {
     let device = match self.get_device(id).await {
       Some(device) => device,
-      None => return Err(DeviceReadError::DeviceNotFound(id.to_string())),
+      None => return Err(DeviceStreamError::DeviceNotFound(id.to_string())),
     };
     let stream = self
       .stream_from_worker(device.worker, device.destination, spans)
