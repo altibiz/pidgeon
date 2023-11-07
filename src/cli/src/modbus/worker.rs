@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use either::Either;
 use tokio::sync::Mutex;
 
 use super::connection::*;
+
+// TODO: fix broadcasting
 
 // TODO: save responses/errors across completions
 
@@ -13,8 +16,10 @@ use super::connection::*;
 
 // TODO: optimize
 // 1. remove cloning as much as possible
+// 2. use Arc slices instead of vecs
 // 2. try removing arc mutex on connection
 // 3. try spinning
+// 4. use bounded channels
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct Request {
@@ -109,13 +114,15 @@ type ResponseReceiver = flume::Receiver<Result<Response, Error>>;
 type RequestSender = flume::Sender<Carrier>;
 type RequestReceiver = flume::Receiver<Carrier>;
 
+type Partial = Vec<Option<super::connection::Response>>;
+
 #[derive(Debug, Clone)]
 struct Storage {
   sender: ResponseSender,
   receiver: ResponseReceiver,
   request: Request,
   kind: RequestKind,
-  partial: Vec<Option<super::connection::Response>>,
+  partial: Partial,
 }
 
 #[derive(Debug, Clone)]
@@ -153,15 +160,54 @@ impl Task {
 
       for storage in self.make_current() {
         let connection = {
-          match self.connect(storage).await {
-            Some(connection) => connection,
-            None => continue,
+          match self.connect(&storage).await {
+            Some(connection) => {
+              self
+                .connections
+                .insert(storage.request.destination, connection.clone());
+              connection
+            }
+            None => {
+              match storage.kind {
+                RequestKind::Oneshot => self.oneshots.remove(&storage.request),
+                RequestKind::Stream => self.streams.remove(&storage.request),
+              };
+              continue;
+            }
           }
         };
 
-        if let Some(response) = self.read(storage, connection.clone()).await {
-          self.send(storage, response).await;
-        }
+        let response = { self.read(&storage, connection.clone()).await };
+
+        match response {
+          Either::Left(partial) => match storage.kind {
+            RequestKind::Oneshot => {
+              if let Some(storage) = self.oneshots.get_mut(&storage.request) {
+                storage.partial = partial;
+              }
+            }
+            RequestKind::Stream => {
+              if let Some(storage) = self.streams.get_mut(&storage.request) {
+                storage.partial = partial;
+              }
+            }
+          },
+          Either::Right(response) => {
+            self.send(&storage, response).await;
+            match storage.kind {
+              RequestKind::Oneshot => {
+                self.oneshots.remove(&storage.request);
+              }
+              RequestKind::Stream => {
+                if let Some(storage) = self.streams.get_mut(&storage.request) {
+                  storage.partial = (0..storage.request.spans.len())
+                    .map(|_| None)
+                    .collect::<Partial>();
+                }
+              }
+            }
+          }
+        };
       }
 
       self.tune();
@@ -234,6 +280,7 @@ impl Task {
   }
 
   fn filter_requests(&mut self) {
+    // NOTE: we filter like this because we always keep a sender/receiver pair
     self.oneshots = self
       .oneshots
       .into_iter()
@@ -247,29 +294,26 @@ impl Task {
       .collect::<HashMap<_, _>>();
   }
 
-  fn make_current(&self) -> Vec<&Storage> {
+  fn make_current(&self) -> Vec<Storage> {
     let current = {
       let mut current = Vec::new();
-      current.extend(self.oneshots.values());
-      current.extend(self.streams.values());
+      current.extend(self.oneshots.values().cloned());
+      current.extend(self.streams.values().cloned());
       current
     };
 
     current
   }
 
-  async fn connect(
-    &mut self,
-    storage: &Storage,
+  async fn connect<'a>(
+    &'a self,
+    storage: &'a Storage,
   ) -> Option<Arc<Mutex<Connection>>> {
     let connection = match self.connections.get(&storage.request.destination) {
       Some(connection) => Some(connection.clone()),
       None => match Connection::connect(storage.request.destination).await {
         Ok(connection) => {
           let connection = Arc::new(Mutex::new(connection));
-          self
-            .connections
-            .insert(storage.request.destination, connection.clone());
           Some(connection)
         }
         Err(error) => {
@@ -281,11 +325,6 @@ impl Task {
             }
           }
 
-          match storage.kind {
-            RequestKind::Oneshot => self.oneshots.remove(&storage.request),
-            RequestKind::Stream => self.streams.remove(&storage.request),
-          };
-
           None
         }
       },
@@ -294,45 +333,33 @@ impl Task {
     connection
   }
 
-  async fn read(
-    &mut self,
-    storage: &Storage,
+  async fn read<'a>(
+    &'a self,
+    storage: &'a Storage,
     connection: Arc<Mutex<Connection>>,
-  ) -> Option<Response> {
+  ) -> Either<Partial, Response> {
     let response = {
       let mut connection = connection.clone().lock_owned().await;
       let mut data = Vec::new();
-      let mut completed = true;
       for span in storage.request.spans.iter() {
         let read = match (*connection).read(*span, self.params.clone()).await {
           Ok(read) => read,
           Err(_) => {
-            completed = false;
             continue;
           }
         };
         data.push(read);
       }
 
-      if completed {
-        if let RequestKind::Oneshot = storage.kind {
-          self.oneshots.remove(&storage.request);
-        }
-      }
-
       data
     };
 
-    Some(response)
+    Either::Right(response)
   }
 
-  async fn send(&mut self, storage: &Storage, response: Response) {
+  async fn send<'a>(&'a self, storage: &'a Storage, response: Response) {
+    // NOTE: this should never really happen because we always keep one sender/receiver pair
     if let Err(error) = storage.sender.try_send(Ok(response)) {
-      match storage.kind {
-        RequestKind::Oneshot => self.oneshots.remove(&storage.request),
-        RequestKind::Stream => self.streams.remove(&storage.request),
-      };
-
       tracing::debug! {
         %error,
         "Failed sending response from worker task for {:?}",
