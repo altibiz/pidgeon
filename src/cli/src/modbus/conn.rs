@@ -5,10 +5,23 @@ use thiserror::Error;
 use tokio::net::TcpStream;
 use tokio_modbus::{client::Context, prelude::Reader, Slave};
 
+#[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
+pub struct Destination {
+  pub socket: SocketAddr,
+  pub slave: Option<u8>,
+}
+
+#[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
+pub struct Span {
+  pub address: u16,
+  pub quantity: u16,
+}
+
+pub type Response = Vec<u16>;
+
 #[derive(Debug)]
 pub struct Connection {
-  socket: SocketAddr,
-  slave: Option<Slave>,
+  destination: Destination,
   ctx: Context,
 }
 
@@ -22,13 +35,10 @@ pub enum ConnectError {
 }
 
 impl Connection {
-  pub async fn connect(
-    socket: SocketAddr,
-    slave: Option<Slave>,
-  ) -> Result<Self, ConnectError> {
-    match slave {
-      Some(slave) => Self::connect_slave(socket, slave).await,
-      None => Self::connect_standalone(socket).await,
+  pub async fn connect(destination: Destination) -> Result<Self, ConnectError> {
+    match destination.slave {
+      Some(slave) => Self::connect_slave(destination.socket, slave).await,
+      None => Self::connect_standalone(destination.socket).await,
     }
   }
 
@@ -38,40 +48,45 @@ impl Connection {
     let stream = TcpStream::connect(socket).await?;
     let ctx = tokio_modbus::prelude::tcp::attach(stream);
     Ok(Self {
-      socket,
-      slave: None,
+      destination: Destination {
+        socket,
+        slave: None,
+      },
       ctx,
     })
   }
 
   pub async fn connect_slave(
     socket: SocketAddr,
-    slave: Slave,
+    slave: u8,
   ) -> Result<Self, ConnectError> {
-    if slave < Slave::min_device() || slave > Slave::max_device() {
+    if Slave(slave) < Slave::min_device() || Slave(slave) > Slave::max_device()
+    {
       return Err(ConnectError::Slave);
     }
 
     let stream = TcpStream::connect(socket).await?;
-    let ctx = tokio_modbus::prelude::rtu::attach_slave(stream, slave);
+    let ctx = tokio_modbus::prelude::rtu::attach_slave(stream, Slave(slave));
     Ok(Self {
-      socket,
-      slave: Some(slave),
+      destination: Destination {
+        socket,
+        slave: Some(slave),
+      },
       ctx,
     })
   }
 
   pub fn socket(&self) -> SocketAddr {
-    self.socket
+    self.destination.socket
   }
 
-  pub fn slave(&self) -> Option<Slave> {
-    self.slave
+  pub fn slave(&self) -> Option<u8> {
+    self.destination.slave
   }
 }
 
 #[derive(Copy, Clone, Debug)]
-pub struct ConnectionReadParams {
+pub struct Params {
   timeout: futures_time::time::Duration,
   backoff: tokio::time::Duration,
   retries: usize,
@@ -86,7 +101,7 @@ pub enum ConnectionReadParamsError {
   BackoffConversoin(#[from] chrono::OutOfRangeError),
 }
 
-impl ConnectionReadParams {
+impl Params {
   pub fn new(
     timeout: chrono::Duration,
     backoff: chrono::Duration,
@@ -120,7 +135,7 @@ impl ConnectionReadParams {
 }
 
 #[derive(Debug, Error)]
-pub enum ConnectionReadError {
+pub enum Error {
   #[error("Failed connecting to device")]
   Connection(#[from] std::io::Error),
 
@@ -131,10 +146,9 @@ pub enum ConnectionReadError {
 impl Connection {
   pub async fn read(
     &mut self,
-    address: tokio_modbus::Address,
-    quantity: tokio_modbus::Quantity,
-    params: ConnectionReadParams,
-  ) -> Result<Vec<u16>, ConnectionReadError> {
+    span: Span,
+    params: Params,
+  ) -> Result<Response, Error> {
     fn flatten_result<T, E1, E2>(
       result: Result<Result<T, E1>, E2>,
     ) -> Result<T, E1>
@@ -152,7 +166,7 @@ impl Connection {
       let mut result = flatten_result(
         self
           .ctx
-          .read_holding_registers(address, quantity)
+          .read_holding_registers(span.address, span.quantity)
           .timeout(timeout)
           .await,
       );
@@ -161,7 +175,7 @@ impl Connection {
         result = flatten_result(
           self
             .ctx
-            .read_holding_registers(address, quantity)
+            .read_holding_registers(span.address, span.quantity)
             .timeout(timeout)
             .await,
         );
