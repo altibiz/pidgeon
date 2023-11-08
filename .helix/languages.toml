@@ -1,10 +1,13 @@
 [language-server]
 nil = { command = "nil" }
-pyright-langserver = { command = "pyright-langserver", args = ["--stdio"] }
 bash-language-server = { command = "bash-language-server", args = ["start"] }
 taplo = { command = "taplo", args = ["lsp", "stdio"] }
 yaml-language-server = { command = "yaml-language-server", args = ["--stdio"] }
 marksman =  { command = "marksman", args = ["server"] }
+
+[language-server.pyright-langserver]
+command = "poetry run pyright-langserver"
+args = ["--stdio"]
 
 [language-server.rust-analyzer]
 command = "rust-analyzer"
@@ -31,7 +34,7 @@ language-servers = [ "rust-analyzer" ]
 [[language]]
 name = "python"
 auto-format = true
-formatter = { command = "yapf" }
+formatter = { command = "poetry run yapf" }
 language-servers = [ "pyright-langserver" ]
 
 [[language]]

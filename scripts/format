@@ -6,6 +6,6 @@ ROOT="$(cd "$(dirname "$SCRIPTS")" && pwd)"
 cd "$ROOT"
 
 cargo-fmt --all
-yapf --recursive --in-place --parallel .
+poetry run yapf --recursive --in-place --parallel .
 prettier --write .
 shfmt --write .
