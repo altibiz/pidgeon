@@ -6,6 +6,6 @@ ROOT="$(cd "$(dirname "$SCRIPTS")" && pwd)"
 cd "$ROOT"
 
 cargo-clippy
-poetry run ruff check .
+ruff check .
 shellcheck "$SCRIPTS"/*
 prettier --check .
