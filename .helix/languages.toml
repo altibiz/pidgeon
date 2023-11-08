@@ -1,3 +1,5 @@
+# TODO: migrate to language-servers array instead of language-server
+
 [[language]]
 name = "nix"
 auto-format = true
