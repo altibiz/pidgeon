@@ -6,8 +6,9 @@ yaml-language-server = { command = "yaml-language-server", args = ["--stdio"] }
 marksman =  { command = "marksman", args = ["server"] }
 
 [language-server.pyright-langserver]
-command = "poetry run pyright-langserver"
-args = ["--stdio"]
+command = "poetry"
+args = ["run", "pyright-langserver", "--stdio"]
+timeout = 10000
 
 [language-server.rust-analyzer]
 command = "rust-analyzer"
@@ -34,7 +35,7 @@ language-servers = [ "rust-analyzer" ]
 [[language]]
 name = "python"
 auto-format = true
-formatter = { command = "poetry run yapf" }
+formatter = { command = "poetry", args = ["run", "yapf"] }
 language-servers = [ "pyright-langserver" ]
 
 [[language]]
