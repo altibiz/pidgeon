@@ -1,17 +1,15 @@
-# TODO: migrate to language-servers array instead of language-server
+[language-server]
+nil = { command = "nil" }
+pyright-langserver = { command = "pyright-langserver", args = ["--stdio"] }
+bash-language-server = { command = "bash-language-server", args = ["start"] }
+taplo = { command = "taplo", args = ["lsp", "stdio"] }
+yaml-language-server = { command = "yaml-language-server", args = ["--stdio"] }
+marksman =  { command = "marksman", args = ["server"] }
 
-[[language]]
-name = "nix"
-auto-format = true
-formatter = { command = "nixpkgs-fmt" }
-language-server = { command = "nil" }
+[language-server.rust-analyzer]
+command = "rust-analyzer"
 
-[[language]]
-name = "rust"
-auto-format = true
-language-server = { command = "rust-analyzer" }
-
-[language-server.config]
+[language-server.rust-analyzer.config]
 inlayHints.bindingModeHints.enable = false
 inlayHints.closingBraceHints.minLines = 10
 inlayHints.closureReturnTypeHints.enable = "with_block"
@@ -20,21 +18,32 @@ inlayHints.lifetimeElisionHints.enable = "skip_trivial"
 inlayHints.typeHints.hideClosureInitialization = false
 
 [[language]]
+name = "nix"
+auto-format = true
+formatter = { command = "nixpkgs-fmt" }
+language-servers = [ "nil" ]
+
+[[language]]
+name = "rust"
+auto-format = true
+language-servers = [ "rust-analyzer" ]
+
+[[language]]
 name = "python"
 auto-format = true
 formatter = { command = "yapf" }
-language-server = { command = "pyright-langserver", args = ["--stdio"] }
+language-servers = [ "pyright-langserver" ]
 
 [[language]]
 name = "bash"
 auto-format = true
 formatter = { command = "shfmt" }
-language-server = { command = "bash-language-server", args = ["start"] }
+language-servers = [ "bash-language-server" ]
 
 [[language]]
 name = "toml"
 auto-format = true
-language-server = { command = "taplo", args = ["lsp", "stdio"] }
+language-servers = [ "taplo" ]
 
 [[language]]
 name = "yaml"
@@ -45,7 +54,7 @@ formatter = { command = "prettier", args = [
   "--prose-wrap",
   "always",
 ] }
-language-server = { command = "yaml-language-server", args = ["--stdio"] }
+language-servers = [ "yaml-language-server" ]
 
 [[language]]
 name = "markdown"
@@ -56,4 +65,4 @@ formatter = { command = "prettier", args = [
   "--prose-wrap",
   "always",
 ] }
-language-server = { command = "marksman", args = ["server"] }
+language-servers = [ "marksman" ]
