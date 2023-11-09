@@ -15,6 +15,7 @@ mod config;
 mod db;
 mod modbus;
 mod network;
+mod process;
 mod runtime;
 mod services;
 
