@@ -5,7 +5,7 @@ use crate::{
   service::*,
 };
 
-// TODO: set timeout?
+// TODO: set timeout
 
 pub struct Process {
   config: config::Manager,
