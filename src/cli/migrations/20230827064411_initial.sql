@@ -7,7 +7,7 @@ create table devices (
   id text primary key not null,
   status device_status not null,
   address inet not null,
-  slave int null,
+  slave int null
 );
 
 create table measurements (
