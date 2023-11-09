@@ -33,6 +33,15 @@ pub struct Measurement {
   pub data: serde_json::Value,
 }
 
+#[derive(Debug, Clone, FromRow)]
+pub struct Health {
+  pub id: i64,
+  pub source: String,
+  pub timestamp: DateTime<Utc>,
+  pub status: DeviceStatus,
+  pub data: serde_json::Value,
+}
+
 #[derive(Debug, Clone, Type)]
 #[sqlx(type_name = "log_kind", rename_all = "lowercase")]
 pub enum LogKind {
@@ -259,6 +268,48 @@ impl Client {
     .await?;
 
     Ok(measurements)
+  }
+
+  #[tracing::instrument(skip_all, fields(count = health.len()))]
+  pub async fn insert_health(&self, health: Vec<Health>) -> Result<(), Error> {
+    let mut query_builder =
+      QueryBuilder::new("insert into health (source, timestamp, data)");
+
+    query_builder.push_values(health, |mut builder, health| {
+      builder.push_bind(health.source);
+      builder.push_bind(health.timestamp);
+      builder.push_bind(health.data);
+    });
+
+    let query = query_builder.build();
+
+    query.execute(&self.pool).await?;
+
+    Ok(())
+  }
+
+  #[tracing::instrument(skip(self))]
+  pub async fn get_health(
+    &self,
+    from: i64,
+    limit: i64,
+  ) -> Result<Vec<Health>, Error> {
+    #[allow(clippy::panic)]
+    let health = sqlx::query_as!(
+      Health,
+      r#"
+        select id, source, timestamp, status as "status: DeviceStatus", data
+        from health
+        where health.id > $1 
+        limit $2
+      "#,
+      from,
+      limit
+    )
+    .fetch_all(&self.pool)
+    .await?;
+
+    Ok(health)
   }
 
   #[tracing::instrument(skip(self))]
