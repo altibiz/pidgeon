@@ -40,7 +40,7 @@ pub enum LogKind {
   Failure,
 }
 
-#[derive(Debug, Clone, sqlx::FromRow)]
+#[derive(Debug, Clone, FromRow)]
 pub struct Log {
   pub id: i64,
   pub timestamp: DateTime<Utc>,
