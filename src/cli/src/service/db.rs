@@ -12,7 +12,8 @@ pub struct Client {
   pool: Pool<Postgres>,
 }
 
-#[derive(Debug, Clone, Type)]
+#[derive(Debug, Copy, Clone, Type, Eq, PartialEq)]
+#[sqlx(type_name = "device_status", rename_all = "lowercase")]
 pub enum DeviceStatus {
   Healthy,
   Unreachable,
@@ -46,14 +47,14 @@ pub struct Health {
   pub data: serde_json::Value,
 }
 
-#[derive(Debug, Clone, Type)]
-#[sqlx(type_name = "log_kind", rename_all = "lowercase")]
+#[derive(Debug, Clone, Type, Eq, PartialEq)]
+#[sqlx(type_name = "log_status", rename_all = "lowercase")]
 pub enum LogStatus {
   Success,
   Failure,
 }
 
-#[derive(Debug, Clone, Type)]
+#[derive(Debug, Copy, Clone, Type, Eq, PartialEq)]
 #[sqlx(type_name = "log_kind", rename_all = "lowercase")]
 pub enum LogKind {
   Push,
@@ -168,6 +169,7 @@ impl Client {
       device.id,
       device.kind,
       device.status as DeviceStatus,
+      device.seen,
       device.address,
       device.slave
     )
@@ -178,7 +180,7 @@ impl Client {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn delete_device(&self, id: String) -> Result<(), Error> {
+  pub async fn delete_device(&self, id: &str) -> Result<(), Error> {
     #[allow(clippy::panic)]
     sqlx::query!(
       r#"
@@ -196,7 +198,7 @@ impl Client {
   #[tracing::instrument(skip(self))]
   pub async fn update_device_status(
     &self,
-    id: String,
+    id: &str,
     status: DeviceStatus,
     seen: DateTime<Utc>,
   ) -> Result<(), Error> {
@@ -208,7 +210,7 @@ impl Client {
         where id = $1
       "#,
       id,
-      status,
+      status as DeviceStatus,
       seen
     )
     .execute(&self.pool)
@@ -220,7 +222,7 @@ impl Client {
   #[tracing::instrument(skip(self))]
   pub async fn update_device_destination(
     &self,
-    id: String,
+    id: &str,
     address: IpNetwork,
     slave: Option<i32>,
   ) -> Result<(), Error> {
@@ -286,20 +288,21 @@ impl Client {
     Ok(measurements)
   }
 
-  #[tracing::instrument(skip_all, fields(count = health.len()))]
-  pub async fn insert_health(&self, health: Vec<Health>) -> Result<(), Error> {
-    let mut query_builder =
-      QueryBuilder::new("insert into health (source, timestamp, data)");
-
-    query_builder.push_values(health, |mut builder, health| {
-      builder.push_bind(health.source);
-      builder.push_bind(health.timestamp);
-      builder.push_bind(health.data);
-    });
-
-    let query = query_builder.build();
-
-    query.execute(&self.pool).await?;
+  #[tracing::instrument(skip(self))]
+  pub async fn insert_health(&self, health: Health) -> Result<(), Error> {
+    #[allow(clippy::panic)]
+    sqlx::query!(
+      r#"
+        insert into health (source, timestamp, status, data)
+        values ($1, $2, $3, $4)
+      "#,
+      health.source,
+      health.timestamp,
+      health.status as DeviceStatus,
+      health.data
+    )
+    .execute(&self.pool)
+    .await?;
 
     Ok(())
   }

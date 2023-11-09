@@ -119,6 +119,7 @@ impl Process {
             id: r#match.id,
             kind: r#match.kind,
             status: db::DeviceStatus::Healthy,
+            seen: chrono::Utc::now(),
             address: db::to_network(r#match.destination.address.ip()),
             slave: r#match.destination.slave.map(|slave| slave as i32),
           })

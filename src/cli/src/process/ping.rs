@@ -1,6 +1,9 @@
-use futures::future::join_all;
+use futures::future::{join_all, try_join_all};
 
 use crate::{config, service::*};
+
+// TODO: add timeout
+// TODO: add max unreachable till inactive
 
 pub struct Process {
   config: config::Manager,
@@ -18,15 +21,100 @@ impl super::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
     let devices = self.services.db.get_devices().await?;
 
-    join_all()
+    let config = self.config.reload_async().await?;
+
+    try_join_all(
+      join_all(
+        devices
+          .into_iter()
+          .map(move |device| self.ping_device(config, device)),
+      )
+      .await
+      .into_iter()
+      .zip(devices)
+      .map(|(healthy, device)| self.consolidate(&device, healthy)),
+    )
+    .await?;
 
     Ok(())
   }
 }
 
-
 impl Process {
-  async fn ping_device(device: Device) {
-    
+  async fn ping_device(
+    &self,
+    config: config::Parsed,
+    device: db::Device,
+  ) -> bool {
+    match config
+      .modbus
+      .devices
+      .values()
+      .filter(|device_config| device_config.kind == device.kind)
+      .next()
+    {
+      Some(device_config) => {
+        match self
+          .services
+          .modbus
+          .read_from_id(&device.id, device_config.id.clone())
+          .await
+          .ok()
+        {
+          Some(id_registers) => {
+            modbus::make_id(device.kind, id_registers) == device.id
+          }
+          None => false,
+        }
+      }
+      None => false,
+    }
+  }
+
+  async fn consolidate(
+    &self,
+    device: &db::Device,
+    healthy: bool,
+  ) -> anyhow::Result<()> {
+    let status = if healthy {
+      db::DeviceStatus::Healthy
+    } else {
+      db::DeviceStatus::Unreachable
+    };
+    let seen = if healthy {
+      chrono::Utc::now()
+    } else {
+      device.seen
+    };
+    let update = (healthy && (device.status != db::DeviceStatus::Healthy))
+      || (!healthy && (device.status == db::DeviceStatus::Healthy));
+    let remove = (status == db::DeviceStatus::Inactive)
+      && (device.status != db::DeviceStatus::Unreachable);
+
+    self
+      .services
+      .db
+      .update_device_status(&device.id, status, seen)
+      .await?;
+
+    if remove {
+      self.services.modbus.stop_from_id(&device.id).await;
+    }
+
+    if update {
+      self
+        .services
+        .db
+        .insert_health(db::Health {
+          id: 0,
+          source: device.id.clone(),
+          timestamp: seen,
+          status,
+          data: serde_json::Value::Object(serde_json::Map::new()),
+        })
+        .await?;
+    }
+
+    Ok(())
   }
 }
