@@ -32,7 +32,12 @@ impl Process {
     &self,
     config: &config::Parsed,
     destination: modbus::Destination,
-  ) -> bool {
-    for (kind, device) in config.modbus.devices {}
+  ) -> Option<config::Device> {
+    for (kind, device) in config.modbus.devices {
+      let detect_registers = device.detect.normalize().into_iter().map(|register| modbus::DetectRegister::<modbus::RegisterKind> {
+        address: register.address,
+        storage: modbus::RegisterKind::
+      })
+    }
   }
 }

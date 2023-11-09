@@ -5,6 +5,8 @@ use std::{collections::HashMap, env, fs, sync::Arc};
 use thiserror::Error;
 use tokio::sync::Mutex;
 
+use crate::service::modbus;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Plural<T> {
@@ -386,6 +388,70 @@ impl Manager {
     };
 
     Ok(IpAddrRange::from(Ipv4AddrRange::new(start, end)))
+  }
+
+  fn to_modbus_measurement_register(
+    register: MeasurementRegister,
+  ) -> modbus::MeasurementRegister<modbus::RegisterKind> {
+    modbus::MeasurementRegister::<modbus::RegisterKind> {
+      address: register.address,
+      storage: Self::to_modbus_register_kind(register.kind),
+      name: register.name,
+    }
+  }
+
+  fn to_modbus_detect_register(
+    register: DetectRegister,
+  ) -> modbus::DetectRegister<modbus::RegisterKind> {
+    modbus::DetectRegister::<modbus::RegisterKind> {
+      address: register.address,
+      storage: Self::to_modbus_register_kind(register.kind),
+      r#match: match regex::Regex::new(register.r#match.as_str()) {
+        Ok(regex) => either::Either::Right(regex),
+        _ => either::Either::Left(register.r#match),
+      },
+    }
+  }
+
+  fn to_modbus_id_register(
+    register: IdRegister,
+  ) -> modbus::IdRegister<modbus::RegisterKind> {
+    modbus::IdRegister::<modbus::RegisterKind> {
+      address: register.address,
+      storage: Self::to_modbus_register_kind(register.kind),
+    }
+  }
+
+  fn to_modbus_register_kind(register: RegisterKind) -> modbus::RegisterKind {
+    match register {
+      RegisterKind::U16(NumericRegisterKind { multiplier }) => {
+        modbus::RegisterKind::U16(modbus::NumericRegisterKind { multiplier })
+      }
+      RegisterKind::U32(NumericRegisterKind { multiplier }) => {
+        modbus::RegisterKind::U32(modbus::NumericRegisterKind { multiplier })
+      }
+      RegisterKind::U64(NumericRegisterKind { multiplier }) => {
+        modbus::RegisterKind::U64(modbus::NumericRegisterKind { multiplier })
+      }
+      RegisterKind::S16(NumericRegisterKind { multiplier }) => {
+        modbus::RegisterKind::S16(modbus::NumericRegisterKind { multiplier })
+      }
+      RegisterKind::S32(NumericRegisterKind { multiplier }) => {
+        modbus::RegisterKind::S32(modbus::NumericRegisterKind { multiplier })
+      }
+      RegisterKind::S64(NumericRegisterKind { multiplier }) => {
+        modbus::RegisterKind::S64(modbus::NumericRegisterKind { multiplier })
+      }
+      RegisterKind::F32(NumericRegisterKind { multiplier }) => {
+        modbus::RegisterKind::F32(modbus::NumericRegisterKind { multiplier })
+      }
+      RegisterKind::F64(NumericRegisterKind { multiplier }) => {
+        modbus::RegisterKind::F64(modbus::NumericRegisterKind { multiplier })
+      }
+      RegisterKind::String(StringRegisterKind { length }) => {
+        modbus::RegisterKind::String(modbus::StringRegisterKind { length })
+      }
+    }
   }
 
   fn read() -> Result<Unparsed, ReadError> {

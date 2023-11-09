@@ -20,13 +20,10 @@ impl super::Recurring for Process {
         None => 0,
       };
 
-    let mut measurements_to_push = self
-      .services
-      .db
-      .get_measurements(last_pushed_id, 1000)
-      .await?;
+    let mut health_to_update =
+      self.services.db.get_health(last_pushed_id, 1000).await?;
     let last_push_id =
-      match measurements_to_push.iter().max_by(|x, y| x.id.cmp(&y.id)) {
+      match health_to_update.iter().max_by(|x, y| x.id.cmp(&y.id)) {
         Some(measurement) => measurement.id,
         None => return Ok(()),
       };
@@ -34,13 +31,13 @@ impl super::Recurring for Process {
     let result = self
       .services
       .cloud
-      .push(
-        measurements_to_push
+      .update(
+        health_to_update
           .drain(0..)
-          .map(|measurement| cloud::Measurement {
-            device_id: measurement.source,
-            timestamp: measurement.timestamp,
-            data: measurement.data.to_string(),
+          .map(|health| cloud::Health {
+            device_id: health.source,
+            timestamp: health.timestamp,
+            data: health.data.to_string(),
           })
           .collect(),
       )
