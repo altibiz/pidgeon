@@ -10,6 +10,16 @@ create table devices (
   slave int null
 );
 
+create table health (
+  id bigserial,
+  source text not null,
+  timestamp timestamp with time zone not null,
+  status device_status not null,
+  data jsonb not null,
+  primary key (id, source, timestamp)
+);
+select create_hypertable('health', 'timestamp');
+
 create table measurements (
   id bigserial,
   source text not null,

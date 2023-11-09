@@ -120,6 +120,23 @@ impl Client {
   }
 
   #[tracing::instrument(skip(self))]
+  pub async fn get_device(&self, id: String) -> Result<Vec<Device>, Error> {
+    let devices = sqlx::query_as!(
+      Device,
+      r#"
+        select id, status as "status: DeviceStatus", address, slave
+        from devices
+        where id = $1
+      "#,
+      id
+    )
+    .fetch_all(&self.pool)
+    .await?;
+
+    Ok(devices)
+  }
+
+  #[tracing::instrument(skip(self))]
   pub async fn insert_device(&self, device: Device) -> Result<(), Error> {
     #[allow(clippy::panic)]
     sqlx::query!(
@@ -168,6 +185,30 @@ impl Client {
         where id = $1
       "#,
       id,
+    )
+    .execute(&self.pool)
+    .await?;
+
+    Ok(())
+  }
+
+  #[tracing::instrument(skip(self))]
+  pub async fn update_device_destination(
+    &self,
+    id: String,
+    address: IpNetwork,
+    slave: Option<i32>,
+  ) -> Result<(), Error> {
+    #[allow(clippy::panic)]
+    sqlx::query!(
+      r#"
+        update devices
+        set address = $2, slave = $3
+        where id = $1
+      "#,
+      id,
+      address,
+      slave
     )
     .execute(&self.pool)
     .await?;

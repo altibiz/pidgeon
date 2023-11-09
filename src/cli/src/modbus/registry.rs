@@ -9,7 +9,6 @@ use super::connection::{Destination, Params};
 use super::span::*;
 use super::worker::*;
 
-// TODO: worker removal
 // TODO: remove cloning
 
 #[derive(Clone, Debug)]
