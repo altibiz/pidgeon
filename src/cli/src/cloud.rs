@@ -8,6 +8,8 @@ use reqwest::{
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+// TODO: pidgeon diag in health
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Measurement {
