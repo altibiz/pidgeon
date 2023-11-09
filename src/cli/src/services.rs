@@ -6,14 +6,14 @@ use crate::{
   db::{Client, Error, Log, LogKind, Measurement},
   modbus::{self},
   modbus::{ModbusClient, ModbusClientError},
-  network::{NetworkScanner, NetworkScannerError},
+  network::{Client, Error},
 };
 
 #[derive(Debug, Clone)]
 pub struct Services {
   #[allow(unused)]
   config_manager: Manager,
-  network_scanner: NetworkScanner,
+  network_scanner: Client,
   modbus_client: ModbusClient,
   db_client: Client,
   cloud_client: Client,
@@ -25,7 +25,7 @@ pub enum ServiceError {
   ConfigManager(#[from] ParseError),
 
   #[error("Network scanner error")]
-  NetworkScanner(#[from] NetworkScannerError),
+  NetworkScanner(#[from] Error),
 
   #[error("Modbus error")]
   ModbusClient(#[from] ModbusClientError),
@@ -41,7 +41,7 @@ impl Services {
   pub async fn new(config_manager: Manager) -> Result<Self, ServiceError> {
     let mut config = config_manager.config_async().await?;
 
-    let network_scanner = NetworkScanner::new(
+    let network_scanner = Client::new(
       config.network.ip_range,
       std::time::Duration::from_millis(config.network.timeout),
     )?;

@@ -1,33 +1,30 @@
-use crate::*;
+use crate::{config, service::*};
 
 pub struct Process {
-  db: db::Client,
-  cloud: cloud::Client,
-  modbus: modbus::Client,
+  config: config::Manager,
+  services: super::Services,
 }
 
-impl Process {
-  pub fn new(
-    db: db::Client,
-    cloud: cloud::Client,
-    modbus: modbus::Client,
-  ) -> Self {
-    Self { db, cloud, modbus }
+impl super::Process for Process {
+  fn new(config: config::Manager, services: super::Services) -> Self {
+    Self { config, services }
   }
 }
-
-impl super::Process for Process {}
 
 #[async_trait::async_trait]
 impl super::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
-    let last_pushed_id = match self.db.get_last_successful_log().await? {
-      Some(log) => log.last_measurement,
-      None => 0,
-    };
+    let last_pushed_id =
+      match self.services.db.get_last_successful_push_log().await? {
+        Some(log) => log.last,
+        None => 0,
+      };
 
-    let mut measurements_to_push =
-      self.db.get_measurements(last_pushed_id, 1000).await?;
+    let mut measurements_to_push = self
+      .services
+      .db
+      .get_measurements(last_pushed_id, 1000)
+      .await?;
     let last_push_id =
       match measurements_to_push.iter().max_by(|x, y| x.id.cmp(&y.id)) {
         Some(measurement) => measurement.id,
@@ -35,6 +32,7 @@ impl super::Recurring for Process {
       };
 
     let result = self
+      .services
       .cloud
       .push(
         measurements_to_push
@@ -48,25 +46,26 @@ impl super::Recurring for Process {
       )
       .await;
 
-    let (log_kind, log_response) = match result {
+    let (log_status, log_response) = match result {
       Ok(cloud::Response {
         success: true,
         text,
-      }) => (db::LogKind::Success, text),
+      }) => (db::LogStatus::Success, text),
       Ok(cloud::Response {
         success: false,
         text,
-      }) => (db::LogKind::Failure, text),
-      Err(_) => (db::LogKind::Failure, "connection error".to_string()),
+      }) => (db::LogStatus::Failure, text),
+      Err(_) => (db::LogStatus::Failure, "connection error".to_string()),
     };
     let log = db::Log {
       id: 0,
       timestamp: chrono::Utc::now(),
       last: last_push_id,
-      kind: log_kind,
+      status: log_status,
+      kind: db::LogKind::Push,
       response: serde_json::Value::String(log_response),
     };
-    self.db.insert_log(log).await?;
+    self.services.db.insert_log(log).await?;
 
     Ok(())
   }

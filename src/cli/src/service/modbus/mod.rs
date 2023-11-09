@@ -7,4 +7,5 @@ pub mod worker;
 
 pub use batch::*;
 pub use client::*;
+pub use connection::Destination;
 pub use register::*;

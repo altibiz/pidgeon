@@ -10,13 +10,10 @@
   // reason = "We have to handle errors properly"
 )]
 
-mod cloud;
 mod config;
-mod db;
-mod modbus;
-mod network;
 mod process;
 mod runtime;
+mod service;
 mod services;
 
 use crate::runtime::{Runtime, RuntimeError};

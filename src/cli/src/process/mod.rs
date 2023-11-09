@@ -4,7 +4,18 @@ mod ping;
 mod push;
 mod update;
 
-pub trait Process {}
+use crate::{config, service::*};
+
+pub struct Services {
+  db: db::Client,
+  cloud: cloud::Client,
+  modbus: modbus::Client,
+  network: network::Client,
+}
+
+pub trait Process {
+  fn new(config: config::Manager, services: Services) -> Self;
+}
 
 #[async_trait::async_trait]
 pub trait Recurring: Process {

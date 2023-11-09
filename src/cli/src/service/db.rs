@@ -20,6 +20,7 @@ pub enum DeviceStatus {
 #[derive(Debug, Clone, FromRow)]
 pub struct Device {
   pub id: String,
+  pub kind: String,
   pub status: DeviceStatus,
   pub address: IpNetwork,
   pub slave: Option<i32>,
@@ -126,7 +127,7 @@ impl Client {
     let devices = sqlx::query_as!(
       Device,
       r#"
-        select id, status as "status: DeviceStatus", address, slave
+        select id, kind, status as "status: DeviceStatus", address, slave
         from devices
       "#,
     )
@@ -141,7 +142,7 @@ impl Client {
     let devices = sqlx::query_as!(
       Device,
       r#"
-        select id, status as "status: DeviceStatus", address, slave
+        select id, kind, status as "status: DeviceStatus", address, slave
         from devices
         where id = $1
       "#,
@@ -158,10 +159,11 @@ impl Client {
     #[allow(clippy::panic)]
     sqlx::query!(
       r#"
-        insert into devices (id, status, address, slave)
-        values ($1, $2, $3, $4)
+        insert into devices (id, kind, status, address, slave)
+        values ($1, $2, $3, $4, $5)
       "#,
       device.id,
+      device.kind,
       device.status as DeviceStatus,
       device.address,
       device.slave
@@ -325,11 +327,12 @@ impl Client {
     #[allow(clippy::panic)]
     sqlx::query!(
       r#"
-        insert into logs (timestamp, last_measurement, kind, response)
-        values ($1, $2, $3, $4)
+        insert into logs (timestamp, last, status, kind, response)
+        values ($1, $2, $3, $4, $5)
       "#,
       log.timestamp,
       log.last,
+      log.status as LogStatus,
       log.kind as LogKind,
       log.response
     )
@@ -347,7 +350,7 @@ impl Client {
     let log = sqlx::query_as!(
       Log,
       r#"
-        select id, timestamp, last_measurement, kind as "kind: LogKind", status as "status: LogStatus", response
+        select id, timestamp, last, kind as "kind: LogKind", status as "status: LogStatus", response
         from logs
         where status = 'success'::log_status and kind = 'push'::log_kind
         order by timestamp desc
@@ -368,7 +371,7 @@ impl Client {
     let log = sqlx::query_as!(
       Log,
       r#"
-        select id, timestamp, last_measurement, kind as "kind: LogKind", status as "status: LogStatus", response
+        select id, timestamp, last, kind as "kind: LogKind", status as "status: LogStatus", response
         from logs
         where status = 'success'::log_status and kind = 'update'::log_kind
         order by timestamp desc

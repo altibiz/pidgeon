@@ -5,6 +5,7 @@ create extension if not exists timescaledb cascade;
 create type device_status as enum ('healthy', 'unreachable', 'inactive');
 create table devices (
   id text primary key not null,
+  kind text not null,
   status device_status not null,
   address inet not null,
   slave int null
