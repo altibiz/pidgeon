@@ -1,6 +1,9 @@
 use futures::future::join_all;
 
-use crate::{config, service::*};
+use crate::{
+  config::{self, ParsedDevice},
+  service::*,
+};
 
 // TODO: set timeout?
 
@@ -28,29 +31,12 @@ impl super::Recurring for Process {
           .into_iter()
           .map(modbus::Destination::r#for)
           .flatten()
-          .map(|destination| self.r#match(&config, destination)),
+          .map(|destination| self.match_destination(&config, destination)),
       )
       .await
       .into_iter()
       .flatten()
-      .map(|r#match| async move {
-        match self.services.db.get_device(r#match.id).await {
-          Ok(None) => {
-            self
-              .services
-              .db
-              .insert_device(db::Device {
-                id: r#match.id,
-                kind: r#match.kind,
-                status: db::DeviceStatus::Healthy,
-                address: db::to_network(r#match.destination.address.ip()),
-                slave: r#match.destination.slave.map(|slave| slave as i32),
-              })
-              .await;
-          }
-          _ => {}
-        };
-      }),
+      .map(|r#match| self.consolidate(r#match)),
     )
     .await;
 
@@ -66,59 +52,79 @@ struct DeviceMatch {
 }
 
 impl Process {
-  async fn r#match(
+  async fn match_destination(
     &self,
     config: &config::Parsed,
     destination: modbus::Destination,
   ) -> impl Iterator<Item = DeviceMatch> {
     join_all(
-      join_all(config.modbus.devices.values().map(move |device| {
-        self
-          .services
+      join_all(
+        config
           .modbus
-          .read_from_destination(destination, device.detect.clone())
-      }))
+          .devices
+          .values()
+          .map(move |device| self.match_device(device.clone(), destination)),
+      )
       .await
       .into_iter()
-      .zip(config.modbus.devices.values())
-      .filter_map(|(registers, device)| match registers {
-        Ok(registers) => {
-          if registers.into_iter().all(|register| register.matches()) {
-            Some(device)
-          } else {
-            None
-          }
-        }
-        Err(_) => None,
-      })
-      .map(|device| {
-        let ids = device.id.clone();
-        let kind = device.kind.clone();
-        async move {
-          (
-            self
-              .services
-              .modbus
-              .read_from_destination(destination, ids)
-              .await,
-            destination,
-            kind,
-          )
-        }
-      }),
+      .filter_map(std::convert::identity)
+      .map(|device| self.match_id(device, destination)),
     )
     .await
     .into_iter()
-    .filter_map(|(ids, destination, kind)| match ids {
-      Ok(ids) => Some(DeviceMatch {
-        id: ids
-          .into_iter()
-          .map(|id| id.to_string())
-          .fold("".to_owned(), |acc, next| acc + next.as_str()),
+    .filter_map(std::convert::identity)
+  }
+
+  async fn match_device(
+    &self,
+    device: ParsedDevice,
+    destination: modbus::Destination,
+  ) -> Option<ParsedDevice> {
+    self
+      .services
+      .modbus
+      .read_from_destination(destination, device.detect.clone())
+      .await
+      .ok()?
+      .into_iter()
+      .all(|register| register.matches())
+      .then_some(device)
+  }
+
+  async fn match_id(
+    &self,
+    device: ParsedDevice,
+    destination: modbus::Destination,
+  ) -> Option<DeviceMatch> {
+    self
+      .services
+      .modbus
+      .read_from_destination(destination, device.id)
+      .await
+      .ok()
+      .map(|id_registers| DeviceMatch {
+        kind: device.kind.clone(),
         destination,
-        kind,
-      }),
-      Err(_) => None,
-    })
+        id: modbus::make_id(device.kind, id_registers),
+      })
+  }
+
+  async fn consolidate(&self, r#match: DeviceMatch) {
+    match self.services.db.get_device(r#match.id.as_str()).await {
+      Ok(None) => {
+        self
+          .services
+          .db
+          .insert_device(db::Device {
+            id: r#match.id,
+            kind: r#match.kind,
+            status: db::DeviceStatus::Healthy,
+            address: db::to_network(r#match.destination.address.ip()),
+            slave: r#match.destination.slave.map(|slave| slave as i32),
+          })
+          .await;
+      }
+      _ => {}
+    }
   }
 }

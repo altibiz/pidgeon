@@ -140,7 +140,7 @@ impl Client {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn get_device(&self, id: String) -> Result<Option<Device>, Error> {
+  pub async fn get_device(&self, id: &str) -> Result<Option<Device>, Error> {
     let devices = sqlx::query_as!(
       Device,
       r#"
@@ -388,7 +388,8 @@ impl Client {
 }
 
 pub fn to_network(ip: IpAddr) -> IpNetwork {
-  IpNetwork::new(ip, 24)
+  #[allow(clippy::unwrap_used)]
+  IpNetwork::new(ip, 24).unwrap()
 }
 
 pub fn to_ip(ip: IpNetwork) -> IpAddr {

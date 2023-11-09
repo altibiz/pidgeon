@@ -69,6 +69,18 @@ pub struct IdRegister<T: RegisterStorage> {
   pub storage: T,
 }
 
+pub fn make_id<
+  TIntoIterator: IntoIterator<Item = IdRegister<RegisterValue>>,
+>(
+  kind: String,
+  id_registers: TIntoIterator,
+) -> String {
+  id_registers
+    .into_iter()
+    .map(|id| id.to_string())
+    .fold(kind, |acc, next| acc + next.as_str())
+}
+
 impl RegisterStorage for RegisterKind {
   fn quantity(&self) -> Quantity {
     match self {
