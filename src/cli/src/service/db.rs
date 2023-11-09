@@ -165,7 +165,7 @@ impl Client {
     sqlx::query!(
       r#"
         insert into devices (id, kind, status, seen, pinged, address, slave)
-        values ($1, $2, $3, $4, $5, $6)
+        values ($1, $2, $3, $4, $5, $6, $7)
       "#,
       device.id,
       device.kind,
@@ -203,6 +203,7 @@ impl Client {
     id: &str,
     status: DeviceStatus,
     seen: DateTime<Utc>,
+    pinged: DateTime<Utc>,
   ) -> Result<(), Error> {
     #[allow(clippy::panic)]
     sqlx::query!(
@@ -228,17 +229,21 @@ impl Client {
     id: &str,
     address: IpNetwork,
     slave: Option<i32>,
+    seen: DateTime<Utc>,
+    pinged: DateTime<Utc>,
   ) -> Result<(), Error> {
     #[allow(clippy::panic)]
     sqlx::query!(
       r#"
         update devices
-        set address = $2, slave = $3
+        set address = $2, slave = $3, seen = $4, pinged = $5
         where id = $1
       "#,
       id,
       address,
-      slave
+      slave,
+      seen,
+      pinged
     )
     .execute(&self.pool)
     .await?;

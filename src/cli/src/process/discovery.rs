@@ -109,19 +109,31 @@ impl Process {
       })
   }
 
-  async fn consolidate(&self, r#match: DeviceMatch) {
-    match self.services.db.get_device(r#match.id.as_str()).await {
+  async fn consolidate(&self, device_match: DeviceMatch) {
+    match self.services.db.get_device(device_match.id.as_str()).await {
+      Ok(Some(_)) => {
+        let now = chrono::Utc::now();
+        self.services.db.update_device_destination(
+          &device_match.id,
+          db::to_network(device_match.destination.address.ip()),
+          device_match.destination.slave.map(|slave| slave as i32),
+          now,
+          now,
+        );
+      }
       Ok(None) => {
+        let now = chrono::Utc::now();
         self
           .services
           .db
           .insert_device(db::Device {
-            id: r#match.id,
-            kind: r#match.kind,
+            id: device_match.id,
+            kind: device_match.kind,
             status: db::DeviceStatus::Healthy,
-            seen: chrono::Utc::now(),
-            address: db::to_network(r#match.destination.address.ip()),
-            slave: r#match.destination.slave.map(|slave| slave as i32),
+            seen: now,
+            pinged: now,
+            address: db::to_network(device_match.destination.address.ip()),
+            slave: device_match.destination.slave.map(|slave| slave as i32),
           })
           .await;
       }

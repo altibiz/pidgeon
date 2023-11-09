@@ -76,16 +76,13 @@ impl Process {
     device: &db::Device,
     healthy: bool,
   ) -> anyhow::Result<()> {
+    let now = chrono::Utc::now();
     let status = if healthy {
       db::DeviceStatus::Healthy
     } else {
       db::DeviceStatus::Unreachable
     };
-    let seen = if healthy {
-      chrono::Utc::now()
-    } else {
-      device.seen
-    };
+    let seen = if healthy { now } else { device.seen };
     let update = (healthy && (device.status != db::DeviceStatus::Healthy))
       || (!healthy && (device.status == db::DeviceStatus::Healthy));
     let remove = (status == db::DeviceStatus::Inactive)
@@ -94,7 +91,7 @@ impl Process {
     self
       .services
       .db
-      .update_device_status(&device.id, status, seen)
+      .update_device_status(&device.id, status, seen, now)
       .await?;
 
     if remove {
