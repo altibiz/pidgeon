@@ -1,7 +1,8 @@
-use std::net::IpAddr;
-
 use chrono::{DateTime, Utc};
-use sqlx::{migrate::Migrator, FromRow, Pool, Postgres, QueryBuilder, Type};
+use sqlx::{
+  migrate::Migrator, types::ipnetwork::IpNetwork, FromRow, Pool, Postgres,
+  QueryBuilder, Type,
+};
 use thiserror::Error;
 
 #[derive(Debug, Clone)]
@@ -11,11 +12,8 @@ pub struct Client {
 
 #[derive(Debug, Clone, Type)]
 pub enum DeviceStatus {
-  /// Normal function
   Healthy,
-  /// Still taking measurements even though it is unreachable
   Unreachable,
-  /// Not taking measurements and unreachable
   Inactive,
 }
 
@@ -23,8 +21,8 @@ pub enum DeviceStatus {
 pub struct Device {
   pub id: String,
   pub status: DeviceStatus,
-  pub address: IpAddr,
-  pub slave: Option<u8>,
+  pub address: IpNetwork,
+  pub slave: Option<i32>,
 }
 
 #[derive(Debug, Clone, FromRow)]
@@ -107,11 +105,11 @@ impl Client {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn get_devices(&self) -> Result<(), Error> {
+  pub async fn get_devices(&self) -> Result<Vec<Device>, Error> {
     let devices = sqlx::query_as!(
       Device,
       r#"
-        select id, status, address, slave
+        select id, status as "status: DeviceStatus", address, slave
         from devices
       "#,
     )
@@ -148,7 +146,7 @@ impl Client {
         delete from devices
         where id = $1
       "#,
-      device.id,
+      id,
     )
     .execute(&self.pool)
     .await?;
@@ -166,10 +164,10 @@ impl Client {
     sqlx::query!(
       r#"
         update devices
-        set status = $1
+        set status = $1::device_status
         where id = $1
       "#,
-      device.id,
+      id,
     )
     .execute(&self.pool)
     .await?;
