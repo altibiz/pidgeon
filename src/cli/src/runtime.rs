@@ -3,7 +3,7 @@ use std::time::Duration;
 use thiserror::Error;
 
 use crate::{
-  config::{self, ConfigManager, ConfigManagerError},
+  config::{self, Manager, ParseError},
   services::{ServiceError, Services},
 };
 
@@ -13,7 +13,7 @@ pub struct Runtime {
   pull_interval: Duration,
   push_interval: Duration,
   r#async: tokio::runtime::Runtime,
-  config_manager: ConfigManager,
+  config_manager: Manager,
 }
 
 struct Interval {
@@ -30,7 +30,7 @@ pub enum RuntimeError {
   AsyncRuntime(#[from] std::io::Error),
 
   #[error("Config manager error")]
-  ConfigManager(#[from] ConfigManagerError),
+  ConfigManager(#[from] ParseError),
 
   #[error("Service error")]
   Service(#[from] ServiceError),
@@ -83,7 +83,7 @@ macro_rules! kill_intervals {
 
 impl Runtime {
   pub fn new() -> Result<Self, RuntimeError> {
-    let config_manager = ConfigManager::new()?;
+    let config_manager = Manager::new()?;
     let config = config_manager.config()?;
 
     let subscriber = tracing_subscriber::FmtSubscriber::builder()

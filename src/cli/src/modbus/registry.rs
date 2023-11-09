@@ -95,16 +95,64 @@ impl Registry {
   }
 
   pub async fn stop_from_id(&self, id: &str) {
+    let mut server_to_remove = None;
+
     {
       let mut devices = self.devices.clone().lock_owned().await;
-      devices.retain(|device_id, _| device_id != id);
+      let device = devices.remove(id);
+      if let Some(removed) = device {
+        let should_remove_server = !devices.values().any(|device| {
+          device.destination.address == removed.destination.address
+        });
+
+        if should_remove_server {
+          server_to_remove = Some(removed.destination.address);
+        }
+      }
+    }
+
+    if let Some(server) = server_to_remove {
+      self.stop_from_address(server);
     }
   }
 
   pub async fn stop_from_destination(&self, destination: Destination) {
-    {
+    let ids = {
+      let devices = self.devices.clone().lock_owned().await;
+      devices
+        .iter()
+        .filter(|(_, device)| device.destination == destination)
+        .map(|(id, _)| id.clone())
+        .collect::<Vec<_>>()
+    };
+
+    let servers_to_remove = {
       let mut devices = self.devices.clone().lock_owned().await;
-      devices.retain(|_, device| device.destination != destination);
+      ids
+        .iter()
+        .filter_map(|id| {
+          devices.remove(id).and_then(|removed| {
+            let should_remove_server = !devices.values().any(|device| {
+              device.destination.address == removed.destination.address
+            });
+
+            if should_remove_server {
+              Some(removed.destination.address)
+            } else {
+              None
+            }
+          })
+        })
+        .collect::<Vec<_>>()
+    };
+
+    {
+      let mut servers = self.servers.clone().lock_owned().await;
+      servers.retain(|address, _| {
+        !servers_to_remove
+          .iter()
+          .any(|address_to_remove| address_to_remove == address)
+      });
     }
   }
 

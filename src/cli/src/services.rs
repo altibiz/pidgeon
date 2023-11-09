@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use crate::{
   cloud::{CloudClient, CloudClientError, CloudMeasurement, CloudResponse},
-  config::{self, ConfigManager, ConfigManagerError},
+  config::{self, Manager, ParseError},
   db::{DbClient, DbClientError, DbLog, DbLogKind, DbMeasurement},
   modbus::{self},
   modbus::{ModbusClient, ModbusClientError},
@@ -12,7 +12,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct Services {
   #[allow(unused)]
-  config_manager: ConfigManager,
+  config_manager: Manager,
   network_scanner: NetworkScanner,
   modbus_client: ModbusClient,
   db_client: DbClient,
@@ -22,7 +22,7 @@ pub struct Services {
 #[derive(Debug, Error)]
 pub enum ServiceError {
   #[error("Config error")]
-  ConfigManager(#[from] ConfigManagerError),
+  ConfigManager(#[from] ParseError),
 
   #[error("Network scanner error")]
   NetworkScanner(#[from] NetworkScannerError),
@@ -38,9 +38,7 @@ pub enum ServiceError {
 }
 
 impl Services {
-  pub async fn new(
-    config_manager: ConfigManager,
-  ) -> Result<Self, ServiceError> {
+  pub async fn new(config_manager: Manager) -> Result<Self, ServiceError> {
     let mut config = config_manager.config_async().await?;
 
     let network_scanner = NetworkScanner::new(

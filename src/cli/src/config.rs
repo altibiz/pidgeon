@@ -5,9 +5,25 @@ use std::{collections::HashMap, env, fs, sync::Arc};
 use thiserror::Error;
 use tokio::sync::Mutex;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Plural<T> {
+  One(T),
+  Many(Vec<T>),
+}
+
+impl<T> Plural<T> {
+  pub fn normalize(&self) -> Vec<T> {
+    match self {
+      Plural::One(item) => vec![*item],
+      Plural::Many(items) => *items,
+    }
+  }
+}
+
 #[derive(Debug, Clone, Parser)]
 #[command(author, version, about, long_about = None)]
-struct ConfigFromArgs {
+struct FromArgs {
   /// Run in development mode
   #[arg(short, long)]
   dev: bool,
@@ -84,29 +100,15 @@ pub struct DetectRegister {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum DeviceDetect {
-  One(DetectRegister),
-  Many(Vec<DetectRegister>),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IdRegister {
   pub address: u16,
   pub kind: RegisterKind,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum DeviceId {
-  One(IdRegister),
-  Many(Vec<IdRegister>),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DeviceConfig {
-  pub detect: DeviceDetect,
-  pub id: DeviceId,
+pub struct Device {
+  pub detect: Plural<DetectRegister>,
+  pub id: Plural<IdRegister>,
   pub measurement: Vec<MeasurementRegister>,
 }
 
@@ -115,7 +117,7 @@ struct ModbusFile {
   timeout: u64,
   retries: u64,
   batch_threshold: usize,
-  devices: HashMap<String, DeviceConfig>,
+  devices: HashMap<String, Device>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -124,7 +126,7 @@ struct CloudFile {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct ConfigFromFile {
+struct FromFile {
   runtime: RuntimeFile,
   network: NetworkFile,
   modbus: ModbusFile,
@@ -157,21 +159,21 @@ struct NetworkEnv {
 }
 
 #[derive(Debug, Clone)]
-struct ConfigFromEnv {
+struct FromEnv {
   cloud: CloudEnv,
   db: DbEnv,
   network: NetworkEnv,
 }
 
 #[derive(Debug, Clone)]
-struct Config {
-  from_args: ConfigFromArgs,
-  from_file: ConfigFromFile,
-  from_env: ConfigFromEnv,
+struct Unparsed {
+  from_args: FromArgs,
+  from_file: FromFile,
+  from_env: FromEnv,
 }
 
 #[derive(Debug, Clone)]
-pub struct ParsedRuntimeConfig {
+pub struct ParsedRuntime {
   pub dev: bool,
   pub log_level: LogLevel,
   pub scan_interval: u64,
@@ -180,7 +182,7 @@ pub struct ParsedRuntimeConfig {
 }
 
 #[derive(Debug, Clone)]
-pub struct ParsedDbConfig {
+pub struct ParsedDb {
   pub timeout: u64,
   pub ssl: bool,
   pub domain: String,
@@ -191,13 +193,13 @@ pub struct ParsedDbConfig {
 }
 
 #[derive(Debug, Clone)]
-pub struct ParsedNetworkConfig {
+pub struct ParsedNetwork {
   pub timeout: u64,
   pub ip_range: IpAddrRange,
 }
 
 #[derive(Debug, Clone)]
-pub struct ParsedCloudConfig {
+pub struct ParsedCloud {
   pub timeout: u64,
   pub ssl: bool,
   pub domain: String,
@@ -206,50 +208,62 @@ pub struct ParsedCloudConfig {
 }
 
 #[derive(Debug, Clone)]
-pub struct ParsedModbusConfig {
+pub struct ParsedModbus {
   pub timeout: u64,
   pub retries: u64,
   pub batching_threshold: usize,
-  pub devices: HashMap<String, DeviceConfig>,
+  pub devices: HashMap<String, Device>,
 }
 
 #[derive(Debug, Clone)]
-pub struct ParsedConfig {
-  pub cloud: ParsedCloudConfig,
-  pub db: ParsedDbConfig,
-  pub network: ParsedNetworkConfig,
-  pub modbus: ParsedModbusConfig,
-  pub runtime: ParsedRuntimeConfig,
+pub struct Parsed {
+  pub cloud: ParsedCloud,
+  pub db: ParsedDb,
+  pub network: ParsedNetwork,
+  pub modbus: ParsedModbus,
+  pub runtime: ParsedRuntime,
 }
 
 #[derive(Debug, Clone)]
-pub struct ConfigManager {
-  values: Arc<Mutex<Config>>,
+pub struct Manager {
+  values: Arc<Mutex<Unparsed>>,
 }
 
 #[derive(Debug, Error)]
-pub enum ConfigManagerError {
-  #[error("Failed loading dotenv file")]
-  Dotenv(#[from] dotenv::Error),
+pub enum ParseError {
+  #[error("Failed parsing port")]
+  PortParse(#[from] std::num::ParseIntError),
 
+  #[error("Failed parsing ip range")]
+  IpRangeParse,
+}
+
+#[derive(Debug, Error)]
+pub enum ReadError {
   #[error("Failed creating project directories")]
   MissingProjectDirs,
 
   #[error("Failed reading config file")]
   FileConfigRead(#[from] std::io::Error),
 
-  #[error("Failed serializing config")]
+  #[error("Failed serializing config from file")]
   FileConfigDeserialization(#[from] serde_yaml::Error),
 
   #[error("Failed reading environment variable")]
   Var(#[from] std::env::VarError),
-
-  #[error("Failed parsing port")]
-  PortParse(#[from] std::num::ParseIntError),
 }
 
-impl ConfigManager {
-  pub fn new() -> Result<Self, ConfigManagerError> {
+#[derive(Debug, Error)]
+pub enum RealoadError {
+  #[error("Failed reading config")]
+  ReadError(#[from] ReadError),
+
+  #[error("Failed parsing config")]
+  ParseError(#[from] ParseError),
+}
+
+impl Manager {
+  pub fn new() -> Result<Self, ReadError> {
     let _ = dotenv::dotenv();
 
     let config = Self::read()?;
@@ -262,21 +276,21 @@ impl ConfigManager {
   }
 
   #[allow(unused)]
-  pub fn config(&self) -> Result<ParsedConfig, ConfigManagerError> {
+  pub fn config(&self) -> Result<Parsed, ParseError> {
     let config = self.values.blocking_lock().clone();
     let parsed = Self::parse_config(config)?;
     Ok(parsed)
   }
 
   #[allow(unused)]
-  pub async fn config_async(&self) -> Result<ParsedConfig, ConfigManagerError> {
+  pub async fn config_async(&self) -> Result<Parsed, ParseError> {
     let config = self.values.lock().await.clone();
     let parsed = Self::parse_config(config)?;
     Ok(parsed)
   }
 
   #[allow(unused)]
-  pub fn reload(&self) -> Result<ParsedConfig, ConfigManagerError> {
+  pub fn reload(&self) -> Result<Parsed, RealoadError> {
     let config = {
       let mut values = self.values.blocking_lock();
       let from_file = Self::read_from_file(values.from_args.config.clone())?;
@@ -290,7 +304,7 @@ impl ConfigManager {
   }
 
   #[allow(unused)]
-  pub async fn reload_async(&self) -> Result<ParsedConfig, ConfigManagerError> {
+  pub async fn reload_async(&self) -> Result<Parsed, RealoadError> {
     let config = {
       let mut values = self.values.lock().await;
       let from_file =
@@ -304,18 +318,18 @@ impl ConfigManager {
     Ok(parsed)
   }
 
-  fn parse_config(config: Config) -> Result<ParsedConfig, ConfigManagerError> {
+  fn parse_config(config: Unparsed) -> Result<Parsed, ParseError> {
     let pull_interval = config.from_file.runtime.pull_interval.unwrap_or(1000);
 
-    let parsed = ParsedConfig {
-      cloud: ParsedCloudConfig {
+    let parsed = Parsed {
+      cloud: ParsedCloud {
         timeout: config.from_file.cloud.timeout.unwrap_or(10000),
         ssl: config.from_env.cloud.ssl,
         domain: config.from_env.cloud.domain,
         api_key: config.from_env.cloud.api_key,
         id: config.from_env.cloud.id,
       },
-      db: ParsedDbConfig {
+      db: ParsedDb {
         timeout: config.from_file.db.timeout.unwrap_or(pull_interval),
         ssl: config.from_env.db.ssl,
         domain: config.from_env.db.domain,
@@ -328,20 +342,20 @@ impl ConfigManager {
         password: config.from_env.db.password,
         name: config.from_env.db.name,
       },
-      network: ParsedNetworkConfig {
+      network: ParsedNetwork {
         timeout: config.from_file.network.timeout.unwrap_or(pull_interval),
         ip_range: Self::make_ip_range(
           config.from_env.network.ip_range_start,
           config.from_env.network.ip_range_end,
-        ),
+        )?,
       },
-      modbus: ParsedModbusConfig {
+      modbus: ParsedModbus {
         timeout: config.from_file.modbus.timeout,
         retries: config.from_file.modbus.retries,
         devices: config.from_file.modbus.devices,
         batching_threshold: config.from_file.modbus.batch_threshold,
       },
-      runtime: ParsedRuntimeConfig {
+      runtime: ParsedRuntime {
         log_level: config.from_file.runtime.log_level.unwrap_or(
           if config.from_args.dev {
             LogLevel::Debug
@@ -359,37 +373,27 @@ impl ConfigManager {
     Ok(parsed)
   }
 
-  fn make_ip_range(start: String, end: String) -> IpAddrRange {
-    let parsed_ip_range_start_end = (start.parse(), end.parse());
-    let mut ip_range_start_end = (
-      #[allow(clippy::unwrap_used)]
-      "192.168.1.0".parse().unwrap(),
-      #[allow(clippy::unwrap_used)]
-      "192.168.1.255".parse().unwrap(),
-    );
-    if parsed_ip_range_start_end.0.is_ok()
-      || parsed_ip_range_start_end.1.is_ok()
-    {
-      ip_range_start_end = (
-        #[allow(clippy::unwrap_used)]
-        parsed_ip_range_start_end.0.unwrap(),
-        #[allow(clippy::unwrap_used)]
-        parsed_ip_range_start_end.1.unwrap(),
-      );
-    }
+  fn make_ip_range(
+    start: String,
+    end: String,
+  ) -> Result<IpAddrRange, ParseError> {
+    let (start, end) = match (start.parse(), end.parse()) {
+      (Ok(start), Ok(end)) => (start, end),
+      _ => match ("192.168.1.0".parse(), "192.168.1.255".parse()) {
+        (Ok(start), Ok(end)) => (start, end),
+        _ => return Err(ParseError::IpRangeParse),
+      },
+    };
 
-    IpAddrRange::from(Ipv4AddrRange::new(
-      ip_range_start_end.0,
-      ip_range_start_end.1,
-    ))
+    Ok(IpAddrRange::from(Ipv4AddrRange::new(start, end)))
   }
 
-  fn read() -> Result<Config, ConfigManagerError> {
-    let from_args = Self::read_from_args()?;
+  fn read() -> Result<Unparsed, ReadError> {
+    let from_args = Self::read_from_args();
     let from_file = Self::read_from_file(from_args.config.clone())?;
     let from_env = Self::read_from_env()?;
 
-    let config = Config {
+    let config = Unparsed {
       from_args,
       from_file,
       from_env,
@@ -398,20 +402,18 @@ impl ConfigManager {
     Ok(config)
   }
 
-  fn read_from_file(
-    location: Option<String>,
-  ) -> Result<ConfigFromFile, ConfigManagerError> {
+  fn read_from_file(location: Option<String>) -> Result<FromFile, ReadError> {
     let location = match location {
       Some(location) => std::path::PathBuf::from(location),
       None => match directories::ProjectDirs::from("com", "altibiz", "pidgeon")
       {
         Some(project_dirs) => project_dirs.config_dir().join("config.yaml"),
-        None => return Err(ConfigManagerError::MissingProjectDirs),
+        None => return Err(ReadError::MissingProjectDirs),
       },
     };
     let from_file = {
       let raw = fs::read_to_string(location)?;
-      serde_yaml::from_str::<ConfigFromFile>(raw.as_str())?
+      serde_yaml::from_str::<FromFile>(raw.as_str())?
     };
 
     Ok(from_file)
@@ -419,25 +421,25 @@ impl ConfigManager {
 
   async fn read_from_file_async(
     location: Option<String>,
-  ) -> Result<ConfigFromFile, ConfigManagerError> {
+  ) -> Result<FromFile, ReadError> {
     let location = match location {
       Some(location) => std::path::PathBuf::from(location),
       None => match directories::ProjectDirs::from("com", "altibiz", "pidgeon")
       {
         Some(project_dirs) => project_dirs.config_dir().join("config.yaml"),
-        None => return Err(ConfigManagerError::MissingProjectDirs),
+        None => return Err(ReadError::MissingProjectDirs),
       },
     };
     let from_file = {
       let raw = tokio::fs::read_to_string(location).await?;
-      serde_yaml::from_str::<ConfigFromFile>(raw.as_str())?
+      serde_yaml::from_str::<FromFile>(raw.as_str())?
     };
 
     Ok(from_file)
   }
 
-  fn read_from_env() -> Result<ConfigFromEnv, ConfigManagerError> {
-    let from_env = ConfigFromEnv {
+  fn read_from_env() -> Result<FromEnv, env::VarError> {
+    let from_env = FromEnv {
       cloud: CloudEnv {
         ssl: env::var("PIDGEON_CLOUD_SSL").map_or_else(|_| false, |_| true),
         domain: env::var("PIDGEON_CLOUD_DOMAIN")?,
@@ -461,9 +463,7 @@ impl ConfigManager {
     Ok(from_env)
   }
 
-  fn read_from_args() -> Result<ConfigFromArgs, ConfigManagerError> {
-    let from_args = ConfigFromArgs::parse();
-
-    Ok(from_args)
+  fn read_from_args() -> FromArgs {
+    FromArgs::parse()
   }
 }
