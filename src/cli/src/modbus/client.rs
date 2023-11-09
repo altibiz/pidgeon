@@ -12,7 +12,7 @@ use super::worker::*;
 // TODO: remove cloning
 
 #[derive(Clone, Debug)]
-pub struct Registry {
+pub struct Client {
   devices: Arc<Mutex<HashMap<String, Device>>>,
   servers: Arc<Mutex<HashMap<SocketAddr, Server>>>,
   initial_params: Params,
@@ -69,7 +69,7 @@ struct Device {
   destination: Destination,
 }
 
-impl Registry {
+impl Client {
   pub fn new(initial_params: Params, batch_threshold: usize) -> Self {
     Self {
       devices: Arc::new(Mutex::new(HashMap::new())),

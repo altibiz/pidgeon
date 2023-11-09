@@ -29,13 +29,14 @@ create table measurements (
 );
 select create_hypertable('measurements', 'timestamp');
 
-create type log_kind as enum ('success', 'failure');
+create type log_status as enum ('success', 'failure');
+create type log_kind as enum ('push', 'update');
 create table logs (
   id bigserial primary key not null,
   timestamp timestamp with time zone not null,
-  -- foreign keys to hypertables are not supported
-  last_measurement bigserial not null,
+  last bigserial not null,
   kind log_kind not null,
+  status log_status not null,
   response jsonb not null
 );
 

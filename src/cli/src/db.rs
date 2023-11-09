@@ -44,17 +44,25 @@ pub struct Health {
 
 #[derive(Debug, Clone, Type)]
 #[sqlx(type_name = "log_kind", rename_all = "lowercase")]
-pub enum LogKind {
+pub enum LogStatus {
   Success,
   Failure,
+}
+
+#[derive(Debug, Clone, Type)]
+#[sqlx(type_name = "log_kind", rename_all = "lowercase")]
+pub enum LogKind {
+  Push,
+  Update,
 }
 
 #[derive(Debug, Clone, FromRow)]
 pub struct Log {
   pub id: i64,
   pub timestamp: DateTime<Utc>,
-  pub last_measurement: i64,
+  pub last: i64,
   pub kind: LogKind,
+  pub status: LogStatus,
   pub response: serde_json::Value,
 }
 
@@ -321,7 +329,7 @@ impl Client {
         values ($1, $2, $3, $4)
       "#,
       log.timestamp,
-      log.last_measurement,
+      log.last,
       log.kind as LogKind,
       log.response
     )
@@ -332,14 +340,37 @@ impl Client {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn get_last_successful_log(&self) -> Result<Option<Log>, Error> {
+  pub async fn get_last_successful_push_log(
+    &self,
+  ) -> Result<Option<Log>, Error> {
     #[allow(clippy::panic)]
     let log = sqlx::query_as!(
       Log,
       r#"
-        select id, timestamp, last_measurement, kind as "kind: LogKind", response
+        select id, timestamp, last_measurement, kind as "kind: LogKind", status as "status: LogStatus", response
         from logs
-        where logs.kind = 'success'::log_kind
+        where status = 'success'::log_status and kind = 'push'::log_kind
+        order by timestamp desc
+        limit 1
+      "#
+    )
+    .fetch_optional(&self.pool)
+    .await?;
+
+    Ok(log)
+  }
+
+  #[tracing::instrument(skip(self))]
+  pub async fn get_last_successful_update_log(
+    &self,
+  ) -> Result<Option<Log>, Error> {
+    #[allow(clippy::panic)]
+    let log = sqlx::query_as!(
+      Log,
+      r#"
+        select id, timestamp, last_measurement, kind as "kind: LogKind", status as "status: LogStatus", response
+        from logs
+        where status = 'success'::log_status and kind = 'update'::log_kind
         order by timestamp desc
         limit 1
       "#

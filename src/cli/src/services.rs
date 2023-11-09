@@ -194,7 +194,7 @@ impl Services {
     let log = Log {
       id: 0,
       timestamp: chrono::Utc::now(),
-      last_measurement: last_push_id,
+      last: last_push_id,
       kind: log_kind,
       response: serde_json::Value::String(log_response),
     };
