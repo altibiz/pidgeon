@@ -3,7 +3,7 @@ use thiserror::Error;
 use crate::{
   cloud::{Client, ConstructionError, Measurement, Response},
   config::{self, Manager, ParseError},
-  db::{DbClient, DbClientError, DbLog, DbLogKind, DbMeasurement},
+  db::{Client, Error, Log, LogKind, Measurement},
   modbus::{self},
   modbus::{ModbusClient, ModbusClientError},
   network::{NetworkScanner, NetworkScannerError},
@@ -15,7 +15,7 @@ pub struct Services {
   config_manager: Manager,
   network_scanner: NetworkScanner,
   modbus_client: ModbusClient,
-  db_client: DbClient,
+  db_client: Client,
   cloud_client: Client,
 }
 
@@ -31,7 +31,7 @@ pub enum ServiceError {
   ModbusClient(#[from] ModbusClientError),
 
   #[error("Db error")]
-  DbClient(#[from] DbClientError),
+  DbClient(#[from] Error),
 
   #[error("Cloud error")]
   CloudClient(#[from] ConstructionError),
@@ -83,7 +83,7 @@ impl Services {
         .collect(),
     )?;
 
-    let db_client = DbClient::new(
+    let db_client = Client::new(
       config.db.timeout,
       config.db.ssl,
       config.db.domain,
@@ -133,13 +133,13 @@ impl Services {
     let mut device_data = self.modbus_client.read().await?;
     let measurements = device_data
       .drain(0..)
-      .map(|device_data| DbMeasurement {
+      .map(|device_data| Measurement {
         id: 0,
         source: device_data.id,
         timestamp: chrono::Utc::now(),
         data: modbus::register::serialize_registers(device_data.registers),
       })
-      .collect::<Vec<DbMeasurement>>();
+      .collect::<Vec<Measurement>>();
     if measurements.is_empty() {
       return Ok(());
     }
@@ -184,14 +184,14 @@ impl Services {
       Ok(Response {
         success: true,
         text,
-      }) => (DbLogKind::Success, text),
+      }) => (LogKind::Success, text),
       Ok(Response {
         success: false,
         text,
-      }) => (DbLogKind::Failure, text),
-      Err(_) => (DbLogKind::Failure, "connection error".to_string()),
+      }) => (LogKind::Failure, text),
+      Err(_) => (LogKind::Failure, "connection error".to_string()),
     };
-    let log = DbLog {
+    let log = Log {
       id: 0,
       timestamp: chrono::Utc::now(),
       last_measurement: last_push_id,
