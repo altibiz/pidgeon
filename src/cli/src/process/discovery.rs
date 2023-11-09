@@ -43,7 +43,7 @@ impl super::Recurring for Process {
                 id: r#match.id,
                 kind: r#match.kind,
                 status: db::DeviceStatus::Healthy,
-                address: db::to_network(r#match.destination.address),
+                address: db::to_network(r#match.destination.address.ip()),
                 slave: r#match.destination.slave.map(|slave| slave as i32),
               })
               .await;
