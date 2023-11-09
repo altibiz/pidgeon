@@ -94,13 +94,41 @@ impl Registry {
     }
   }
 
+  pub async fn stop_from_id(&self, id: &str) {
+    {
+      let mut devices = self.devices.clone().lock_owned().await;
+      devices.retain(|device_id, _| device_id != id);
+    }
+  }
+
+  pub async fn stop_from_destination(&self, destination: Destination) {
+    {
+      let mut devices = self.devices.clone().lock_owned().await;
+      devices.retain(|_, device| device.destination != destination);
+    }
+  }
+
+  pub async fn stop_from_address(&self, address: SocketAddr) {
+    {
+      let mut devices = self.devices.clone().lock_owned().await;
+      devices.retain(|_, device| device.destination.address != address);
+    }
+
+    {
+      let mut servers = self.servers.clone().lock_owned().await;
+      servers.remove(&address);
+    }
+  }
+
   pub async fn read_from_destination<
     TSpan: Span,
     TSpanParser: Span + SpanParser<TSpan>,
+    TIterator: ExactSizeIterator<Item = TSpanParser>,
+    TIntoIterator: IntoIterator<Item = TSpanParser, IntoIter = TIterator>,
   >(
     &self,
     destination: Destination,
-    spans: Vec<TSpanParser>,
+    spans: TIntoIterator,
   ) -> Result<Response<TSpan>, ServerReadError> {
     let server = self.get_server(destination).await;
     let response = self
@@ -112,10 +140,12 @@ impl Registry {
   pub async fn stream_from_destination<
     TSpan: Span,
     TSpanParser: Clone + Span + SpanParser<TSpan>,
+    TIterator: ExactSizeIterator<Item = TSpanParser>,
+    TIntoIterator: IntoIterator<Item = TSpanParser, IntoIter = TIterator>,
   >(
     &self,
     destination: Destination,
-    spans: Vec<TSpanParser>,
+    spans: TIntoIterator,
   ) -> Result<
     impl Stream<Item = Result<Vec<TSpan>, ServerReadError>>,
     ServerStreamError,
@@ -130,10 +160,12 @@ impl Registry {
   pub async fn read_from_id<
     TSpan: Span,
     TSpanParser: Span + SpanParser<TSpan>,
+    TIterator: ExactSizeIterator<Item = TSpanParser>,
+    TIntoIterator: IntoIterator<Item = TSpanParser, IntoIter = TIterator>,
   >(
     &self,
     id: &str,
-    spans: Vec<TSpanParser>,
+    spans: TIntoIterator,
   ) -> Result<Response<TSpan>, DeviceReadError> {
     let device = match self.get_device(id).await {
       Some(device) => device,
@@ -148,10 +180,12 @@ impl Registry {
   pub async fn stream_from_id<
     TSpan: Span,
     TSpanParser: Clone + Span + SpanParser<TSpan>,
+    TIterator: ExactSizeIterator<Item = TSpanParser>,
+    TIntoIterator: IntoIterator<Item = TSpanParser, IntoIter = TIterator>,
   >(
     &self,
     id: &str,
-    spans: Vec<TSpanParser>,
+    spans: TIntoIterator,
   ) -> Result<
     impl Stream<Item = Result<Vec<TSpan>, ServerReadError>>,
     DeviceStreamError,
@@ -169,33 +203,39 @@ impl Registry {
   async fn read_from_worker<
     TSpan: Span,
     TSpanParser: Span + SpanParser<TSpan>,
+    TIterator: ExactSizeIterator<Item = TSpanParser>,
+    TIntoIterator: IntoIterator<Item = TSpanParser, IntoIter = TIterator>,
   >(
     &self,
     worker: Worker,
     destination: Destination,
-    spans: Vec<TSpanParser>,
+    spans: TIntoIterator,
   ) -> Result<Response<TSpan>, ServerReadError> {
-    let len = spans.len();
-    let batches = batch_spans(spans.into_iter(), self.batch_threshold);
+    let iter = spans.into_iter();
+    let len = iter.len();
+    let batches = batch_spans(iter, self.batch_threshold);
     let result = worker.send(destination, batches.iter()).await;
-    let response = Self::parse_worker_result(result, &batches, len)?;
+    let response = Self::parse_worker_result(result, batches, len)?;
     Ok(response)
   }
 
   async fn stream_from_worker<
     TSpan: Span,
     TSpanParser: Clone + Span + SpanParser<TSpan>,
+    TIterator: ExactSizeIterator<Item = TSpanParser>,
+    TIntoIterator: IntoIterator<Item = TSpanParser, IntoIter = TIterator>,
   >(
     &self,
     worker: Worker,
     destination: Destination,
-    spans: Vec<TSpanParser>,
+    spans: TIntoIterator,
   ) -> Result<
     impl Stream<Item = Result<Response<TSpan>, ServerReadError>>,
     ServerStreamError,
   > {
-    let len = spans.len();
-    let batches = batch_spans(spans.into_iter(), self.batch_threshold);
+    let iter = spans.into_iter();
+    let len = iter.len();
+    let batches = batch_spans(iter, self.batch_threshold);
     let stream = match worker
       .stream(destination, batches.clone().into_iter())
       .await
@@ -203,14 +243,20 @@ impl Registry {
       Ok(stream) => stream,
       Err(error) => return Err(ServerStreamError::ServerFailed(error.into())),
     };
-    let stream = stream
-      .map(move |result| Self::parse_worker_result(result, &batches, len));
+    let stream = stream.map(move |result| {
+      let batches = batches.clone();
+      Self::parse_worker_result(result, batches, len)
+    });
     Ok(stream)
   }
 
-  fn parse_worker_result<TSpan: Span, TSpanParser: Span + SpanParser<TSpan>>(
+  fn parse_worker_result<
+    TSpan: Span,
+    TSpanParser: Span + SpanParser<TSpan>,
+    TIntoIterator: IntoIterator<Item = Batch<TSpanParser>>,
+  >(
     result: Result<super::worker::Response, super::worker::SendError>,
-    batches: &Vec<Batch<TSpanParser>>,
+    batches: TIntoIterator,
     len: usize,
   ) -> Result<Response<TSpan>, ServerReadError> {
     let data = match result {
