@@ -8,6 +8,7 @@ create table devices (
   kind text not null,
   status device_status not null,
   seen timestamp with time zone not null,
+  pinged timestamp with time zone not null,
   address inet not null,
   slave int null
 );

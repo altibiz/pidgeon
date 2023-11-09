@@ -27,6 +27,7 @@ pub struct Device {
   pub status: DeviceStatus,
   pub address: IpNetwork,
   pub seen: DateTime<Utc>,
+  pub pinged: DateTime<Utc>,
   pub slave: Option<i32>,
 }
 
@@ -131,7 +132,7 @@ impl Client {
     let devices = sqlx::query_as!(
       Device,
       r#"
-        select id, kind, status as "status: DeviceStatus", seen, address, slave
+        select id, kind, status as "status: DeviceStatus", seen, pinged, address, slave
         from devices
       "#,
     )
@@ -146,7 +147,7 @@ impl Client {
     let devices = sqlx::query_as!(
       Device,
       r#"
-        select id, kind, status as "status: DeviceStatus", seen, address, slave
+        select id, kind, status as "status: DeviceStatus", seen, pinged, address, slave
         from devices
         where id = $1
       "#,
@@ -163,13 +164,14 @@ impl Client {
     #[allow(clippy::panic)]
     sqlx::query!(
       r#"
-        insert into devices (id, kind, status, seen, address, slave)
+        insert into devices (id, kind, status, seen, pinged, address, slave)
         values ($1, $2, $3, $4, $5, $6)
       "#,
       device.id,
       device.kind,
       device.status as DeviceStatus,
       device.seen,
+      device.pinged,
       device.address,
       device.slave
     )
@@ -206,12 +208,13 @@ impl Client {
     sqlx::query!(
       r#"
         update devices
-        set status = $2::device_status, seen = $3
+        set status = $2::device_status, seen = $3, pinged = $4
         where id = $1
       "#,
       id,
       status as DeviceStatus,
-      seen
+      seen,
+      pinged
     )
     .execute(&self.pool)
     .await?;
