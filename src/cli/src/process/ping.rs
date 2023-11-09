@@ -1,3 +1,5 @@
+use futures::future::join_all;
+
 use crate::{config, service::*};
 
 pub struct Process {
@@ -14,6 +16,17 @@ impl super::Process for Process {
 #[async_trait::async_trait]
 impl super::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
+    let devices = self.services.db.get_devices().await?;
+
+    join_all()
+
     Ok(())
+  }
+}
+
+
+impl Process {
+  async fn ping_device(device: Device) {
+    
   }
 }
