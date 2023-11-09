@@ -13,6 +13,20 @@ pub struct Destination {
   pub slave: Option<u8>,
 }
 
+impl Destination {
+  pub fn r#for(address: SocketAddr) -> impl Iterator<Item = Destination> {
+    (Slave::min_device().0..Slave::max_device().0)
+      .map(move |slave| Destination {
+        address: address.clone(),
+        slave: Some(slave),
+      })
+      .chain(std::iter::once(Destination {
+        address: address.clone(),
+        slave: None,
+      }))
+  }
+}
+
 pub type Response = Vec<u16>;
 
 #[derive(Debug)]

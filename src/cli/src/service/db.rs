@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use chrono::{DateTime, Utc};
 use sqlx::{
   migrate::Migrator, types::ipnetwork::IpNetwork, FromRow, Pool, Postgres,
@@ -138,7 +140,7 @@ impl Client {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn get_device(&self, id: String) -> Result<Vec<Device>, Error> {
+  pub async fn get_device(&self, id: String) -> Result<Option<Device>, Error> {
     let devices = sqlx::query_as!(
       Device,
       r#"
@@ -148,7 +150,7 @@ impl Client {
       "#,
       id
     )
-    .fetch_all(&self.pool)
+    .fetch_optional(&self.pool)
     .await?;
 
     Ok(devices)
@@ -383,6 +385,14 @@ impl Client {
 
     Ok(log)
   }
+}
+
+pub fn to_network(ip: IpAddr) -> IpNetwork {
+  IpNetwork::new(ip, 24)
+}
+
+pub fn to_ip(ip: IpNetwork) -> IpAddr {
+  ip.ip()
 }
 
 static MIGRATOR: Migrator = sqlx::migrate!("./migrations");

@@ -210,11 +210,19 @@ pub struct ParsedCloud {
 }
 
 #[derive(Debug, Clone)]
+pub struct ParsedDevice {
+  pub kind: String,
+  pub id: Vec<modbus::IdRegister<modbus::RegisterKind>>,
+  pub detect: Vec<modbus::DetectRegister<modbus::RegisterKind>>,
+  pub measurement: Vec<modbus::MeasurementRegister<modbus::RegisterKind>>,
+}
+
+#[derive(Debug, Clone)]
 pub struct ParsedModbus {
   pub timeout: u64,
   pub retries: u64,
   pub batching_threshold: usize,
-  pub devices: HashMap<String, Device>,
+  pub devices: HashMap<String, ParsedDevice>,
 }
 
 #[derive(Debug, Clone)]
@@ -354,7 +362,37 @@ impl Manager {
       modbus: ParsedModbus {
         timeout: config.from_file.modbus.timeout,
         retries: config.from_file.modbus.retries,
-        devices: config.from_file.modbus.devices,
+        devices: config
+          .from_file
+          .modbus
+          .devices
+          .into_iter()
+          .map(|(kind, device)| {
+            (
+              kind.clone(),
+              ParsedDevice {
+                kind,
+                id: device
+                  .id
+                  .normalize()
+                  .into_iter()
+                  .map(Self::to_modbus_id_register)
+                  .collect(),
+                detect: device
+                  .detect
+                  .normalize()
+                  .into_iter()
+                  .map(Self::to_modbus_detect_register)
+                  .collect(),
+                measurement: device
+                  .measurement
+                  .into_iter()
+                  .map(Self::to_modbus_measurement_register)
+                  .collect(),
+              },
+            )
+          })
+          .collect::<HashMap<_, _>>(),
         batching_threshold: config.from_file.modbus.batch_threshold,
       },
       runtime: ParsedRuntime {
