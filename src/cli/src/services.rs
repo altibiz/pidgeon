@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 use crate::{
-  cloud::{CloudClient, CloudClientError, CloudMeasurement, CloudResponse},
+  cloud::{Client, ConstructionError, Measurement, Response},
   config::{self, Manager, ParseError},
   db::{DbClient, DbClientError, DbLog, DbLogKind, DbMeasurement},
   modbus::{self},
@@ -16,7 +16,7 @@ pub struct Services {
   network_scanner: NetworkScanner,
   modbus_client: ModbusClient,
   db_client: DbClient,
-  cloud_client: CloudClient,
+  cloud_client: Client,
 }
 
 #[derive(Debug, Error)]
@@ -34,7 +34,7 @@ pub enum ServiceError {
   DbClient(#[from] DbClientError),
 
   #[error("Cloud error")]
-  CloudClient(#[from] CloudClientError),
+  CloudClient(#[from] ConstructionError),
 }
 
 impl Services {
@@ -93,7 +93,7 @@ impl Services {
       config.db.name,
     )?;
 
-    let cloud_client = CloudClient::new(
+    let cloud_client = Client::new(
       config.cloud.domain,
       config.cloud.ssl,
       config.cloud.api_key,
@@ -168,10 +168,10 @@ impl Services {
 
     let result = self
       .cloud_client
-      .push_measurements(
+      .push(
         measurements_to_push
           .drain(0..)
-          .map(|measurement| CloudMeasurement {
+          .map(|measurement| Measurement {
             device_id: measurement.source,
             timestamp: measurement.timestamp,
             data: measurement.data.to_string(),
@@ -181,11 +181,11 @@ impl Services {
       .await;
 
     let (log_kind, log_response) = match result {
-      Ok(CloudResponse {
+      Ok(Response {
         success: true,
         text,
       }) => (DbLogKind::Success, text),
-      Ok(CloudResponse {
+      Ok(Response {
         success: false,
         text,
       }) => (DbLogKind::Failure, text),
