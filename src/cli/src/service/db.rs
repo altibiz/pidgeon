@@ -411,4 +411,12 @@ pub fn to_ip(ip: IpNetwork) -> IpAddr {
   ip.ip()
 }
 
+pub fn to_modbus_slave(slave: Option<i32>) -> Option<u8> {
+  slave.map(|slave| slave as u8)
+}
+
+pub fn to_db_slave(slave: Option<u8>) -> Option<i32> {
+  slave.map(|slave| slave as i32)
+}
+
 static MIGRATOR: Migrator = sqlx::migrate!("./migrations");

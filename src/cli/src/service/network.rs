@@ -1,5 +1,5 @@
 use ipnet::IpAddrRange;
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
 use tokio::net::TcpStream;
 use tokio::task::JoinHandle;
@@ -22,7 +22,7 @@ impl Client {
     let ip_scans = self
       .ip_range
       .map(|ip| {
-        let socket_address = SocketAddr::new(ip, 502);
+        let socket_address = to_socket(ip);
         (
           socket_address.clone(),
           tokio::spawn(async move {
@@ -50,4 +50,12 @@ impl Client {
 
     matched_ips
   }
+}
+
+pub fn to_socket(ip: IpAddr) -> SocketAddr {
+  SocketAddr::new(ip, 502)
+}
+
+pub fn to_ip(socket: SocketAddr) -> IpAddr {
+  socket.ip()
 }

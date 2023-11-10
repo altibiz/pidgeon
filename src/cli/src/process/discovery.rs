@@ -116,7 +116,7 @@ impl Process {
         self.services.db.update_device_destination(
           &device_match.id,
           db::to_network(device_match.destination.address.ip()),
-          device_match.destination.slave.map(|slave| slave as i32),
+          db::to_db_slave(device_match.destination.slave),
           now,
           now,
         );
@@ -133,7 +133,7 @@ impl Process {
             seen: now,
             pinged: now,
             address: db::to_network(device_match.destination.address.ip()),
-            slave: device_match.destination.slave.map(|slave| slave as i32),
+            slave: db::to_db_slave(device_match.destination.slave),
           })
           .await;
       }
