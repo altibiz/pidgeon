@@ -9,8 +9,6 @@ use super::connection::{Destination, Params};
 use super::span::*;
 use super::worker::*;
 
-// TODO: device change listening
-
 // TODO: remove cloning and clone constraints
 
 #[derive(Clone, Debug)]

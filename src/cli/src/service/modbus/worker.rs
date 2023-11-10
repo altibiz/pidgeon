@@ -11,11 +11,8 @@ use super::connection::*;
 use super::span::{SimpleSpan, Span};
 
 // TODO: inspect errors to terminate/tune
-
-// TODO: optimize
-// 1. fix notes
-// 4. use Arc slices instead of Vecs
-// 6. try spinning
+// TODO: remove copying when reading
+// TODO: check bounded channel length - maybe config?
 
 pub type Response = Vec<super::connection::Response>;
 

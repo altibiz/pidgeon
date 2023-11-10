@@ -11,9 +11,16 @@ impl super::Process for Process {
   }
 }
 
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+struct PidgeonHealth {
+  temperature: f32,
+}
+
 #[async_trait::async_trait]
 impl super::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
+    let temperature = self.services.hardware.temperature().await?;
+
     let last_pushed_id =
       match self.services.db.get_last_successful_update_log().await? {
         Some(log) => log.last,
@@ -32,12 +39,13 @@ impl super::Recurring for Process {
       .services
       .cloud
       .update(
+        serde_json::json!(PidgeonHealth { temperature }),
         health_to_update
           .drain(0..)
           .map(|health| cloud::Health {
             device_id: health.source,
             timestamp: health.timestamp,
-            data: health.data.to_string(),
+            data: serde_json::json!(health.data),
           })
           .collect(),
       )

@@ -40,7 +40,7 @@ impl super::Recurring for Process {
           .map(|measurement| cloud::Measurement {
             device_id: measurement.source,
             timestamp: measurement.timestamp,
-            data: measurement.data.to_string(),
+            data: serde_json::json!(measurement.data),
           })
           .collect(),
       )

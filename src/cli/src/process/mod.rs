@@ -11,6 +11,7 @@ pub struct Services {
   cloud: cloud::Client,
   modbus: modbus::Client,
   network: network::Client,
+  hardware: hardware::Client,
 }
 
 pub trait Process {

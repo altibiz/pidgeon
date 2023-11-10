@@ -15,7 +15,7 @@ use thiserror::Error;
 pub struct Measurement {
   pub device_id: String,
   pub timestamp: DateTime<Utc>,
-  pub data: String,
+  pub data: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -23,7 +23,7 @@ pub struct Measurement {
 pub struct Health {
   pub device_id: String,
   pub timestamp: DateTime<Utc>,
-  pub data: String,
+  pub data: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,6 +37,7 @@ struct PushRequest {
 #[serde(rename_all = "camelCase")]
 struct UpdateRequest {
   timestamp: DateTime<Utc>,
+  pidgeon: serde_json::Value,
   health: Vec<Health>,
 }
 
@@ -172,10 +173,12 @@ impl Client {
   #[tracing::instrument(skip(self))]
   pub async fn update(
     &self,
+    pidgeon: serde_json::Value,
     health: Vec<Health>,
   ) -> Result<Response, PushError> {
     let request = UpdateRequest {
       timestamp: chrono::offset::Utc::now(),
+      pidgeon,
       health,
     };
 
