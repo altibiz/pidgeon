@@ -1,32 +1,46 @@
+use std::pin::Pin;
+use std::sync::Arc;
+
 use either::Either;
-use futures::{future::try_join_all, TryFutureExt};
+use futures::stream::StreamExt;
+use futures::{future::join_all, FutureExt};
 use futures_core::Stream;
+use itertools::Itertools;
+use tokio::sync::Mutex;
 
 use crate::{config, service::*};
 
 pub struct Process {
   config: config::Manager,
   services: super::Services,
+  streams: Arc<Mutex<Vec<DeviceStream>>>,
 }
 
 impl super::Process for Process {
   fn new(config: config::Manager, services: super::Services) -> Self {
-    Self { config, services }
+    Self {
+      config,
+      services,
+      streams: Arc::new(Mutex::new(Vec::new())),
+    }
   }
 }
 
 #[async_trait::async_trait]
-impl super::Background for Process {
-  async fn execute(&self) {
-    let config = self.config.reload_async().await.unwrap();
-
-    let mut stream_devices = Vec::new();
-
-    loop {
-      if let Ok(devices_from_db) = self.get_devices_from_db(config).await {
-        devices_from_db;
+impl super::Recurring for Process {
+  async fn execute(&self) -> anyhow::Result<()> {
+    let measurements = self.get_unprocessed_measurements().await;
+    if let Err(error) = self.consolidate(measurements).await {
+      tracing::debug! {
+        %error,
+        "Failed to send measurements to the db"
       }
     }
+    let config = self.config.reload_async().await?;
+    let devices_from_db = self.get_devices_from_db(config).await?;
+    let streams = self.streams.clone().lock_owned().await;
+    *streams = self.merge_devices(*streams, devices_from_db).await;
+    Ok(())
   }
 }
 
@@ -37,12 +51,15 @@ type MeasurementStreamRegisters = Vec<
   >,
 >;
 
-type BoxedMeasurementStream = Box<
-  dyn Stream<Item = Result<MeasurementStreamRegisters, modbus::ServerReadError>>
-    + Send
-    + Sync,
+type BoxedMeasurementStream = Pin<
+  Box<
+    dyn Stream<Item = Result<MeasurementStreamRegisters, modbus::ServerReadError>>
+      + Send
+      + Sync,
+  >,
 >;
 
+#[derive(Clone, Debug)]
 struct Device {
   id: String,
   kind: String,
@@ -51,12 +68,41 @@ struct Device {
   measurement_registers: Vec<modbus::MeasurementRegister<modbus::RegisterKind>>,
 }
 
-struct StreamDevice {
+struct DeviceStream {
   device: Device,
   stream: BoxedMeasurementStream,
 }
 
+#[derive(Clone, Debug)]
+struct DeviceRegisters {
+  device: Device,
+  registers: MeasurementStreamRegisters,
+}
+
 impl Process {
+  async fn get_unprocessed_measurements(&self) -> Vec<DeviceRegisters> {
+    let mut streams = self.streams.clone().lock_owned().await;
+    let mut measurements = Vec::new();
+    for DeviceStream { device, stream } in streams.iter_mut() {
+      loop {
+        match stream
+          .next()
+          .now_or_never()
+          .flatten()
+          .map(|x| x.ok())
+          .flatten()
+        {
+          Some(registers) => measurements.push(DeviceRegisters {
+            device: device.clone(),
+            registers,
+          }),
+          None => break,
+        }
+      }
+    }
+    measurements
+  }
+
   async fn get_devices_from_db(
     &self,
     config: config::Parsed,
@@ -91,29 +137,66 @@ impl Process {
   }
 
   async fn merge_devices(
-    old_devices: Vec<StreamDevice>,
+    &self,
+    old_devices: Vec<DeviceStream>,
     new_devices: Vec<Device>,
-  ) -> Vec<StreamDevice> {
+  ) -> Vec<DeviceStream> {
+    join_all(
+      old_devices
+        .into_iter()
+        .merge_join_by(new_devices.into_iter(), |x, y| {
+          Ord::cmp(x.device.id.as_str(), y.id.as_str())
+        })
+        .filter_map(|x| match x {
+          itertools::EitherOrBoth::Both(old_device, new_device) => {
+            Some(Either::Left(DeviceStream {
+              device: new_device,
+              stream: old_device.stream,
+            }))
+          }
+          itertools::EitherOrBoth::Left(_old_device) => None,
+          itertools::EitherOrBoth::Right(new_device) => {
+            Some(Either::Right(new_device))
+          }
+        })
+        .map(|x| async move {
+          Ok(match x {
+            Either::Left(stream_device) => stream_device,
+            Either::Right(device) => DeviceStream {
+              stream: match self.make_stream(device.clone()).await {
+                Ok(stream) => stream,
+                Err(error) => {
+                  return Err(std::convert::Into::<anyhow::Error>::into(error))
+                }
+              },
+              device,
+            },
+          })
+        }),
+    )
+    .await
+    .into_iter()
+    .filter_map(|x| x.ok())
+    .collect::<Vec<_>>()
   }
 
   async fn make_stream(
     &self,
-    device: db::Device,
-    config: config::ParsedDevice,
+    device: Device,
   ) -> anyhow::Result<BoxedMeasurementStream> {
-    Ok(Box::new(
+    Ok(Box::pin(
       self
         .services
         .modbus
         .stream_from_id(
           &device.id,
-          config
-            .id
+          device
+            .id_registers
             .into_iter()
             .map(|register| Either::Left(register))
             .chain(
-              config
-                .measurement
+              device
+                .measurement_registers
                 .into_iter()
                 .map(|register| Either::Right(register)),
             )
@@ -125,30 +208,46 @@ impl Process {
 
   async fn consolidate(
     &self,
-    kind: String,
-    id_to_verify: String,
-    registers: MeasurementStreamRegisters,
-  ) -> Result<(), anyhow::Error> {
-    let id_got =
-      modbus::make_id(kind, registers.iter().cloned().filter_map(Either::left));
-
-    if id_got != id_to_verify {
-      return Err(anyhow::anyhow!(format!(
-        "Id register mismatch: expected {id_to_verify} but got {id_got}"
-      )));
-    }
-
+    measurements: Vec<DeviceRegisters>,
+  ) -> anyhow::Result<()> {
     self
       .services
       .db
-      .insert_measurement(db::Measurement {
-        id: 0,
-        source: id_got,
-        timestamp: chrono::Utc::now(),
-        data: modbus::serialize_registers(
-          registers.into_iter().filter_map(Either::right),
-        ),
-      })
+      .insert_measurements(
+        measurements
+          .into_iter()
+          .filter_map(|measurement| {
+            let id = modbus::make_id(
+              measurement.device.kind,
+              measurement
+                .registers
+                .iter()
+                .cloned()
+                .filter_map(Either::left),
+            );
+
+            let expected_id = measurement.device.id;
+            if id != expected_id {
+              tracing::debug! {
+                "Failed verifying measurement of {:?}: got id {:?}",
+                expected_id,
+                id
+              }
+
+              return None;
+            }
+
+            Some(db::Measurement {
+              id: 0,
+              source: id,
+              timestamp: chrono::Utc::now(),
+              data: modbus::serialize_registers(
+                measurement.registers.into_iter().filter_map(Either::right),
+              ),
+            })
+          })
+          .collect::<Vec<_>>(),
+      )
       .await?;
 
     Ok(())

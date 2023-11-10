@@ -2,7 +2,8 @@ use std::net::IpAddr;
 
 use chrono::{DateTime, Utc};
 use sqlx::{
-  migrate::Migrator, types::ipnetwork::IpNetwork, FromRow, Pool, Postgres, Type,
+  migrate::Migrator, types::ipnetwork::IpNetwork, FromRow, Pool, Postgres,
+  QueryBuilder, Type,
 };
 use thiserror::Error;
 
@@ -272,6 +273,25 @@ impl Client {
   }
 
   #[tracing::instrument(skip(self))]
+  pub async fn insert_measurements(
+    &self,
+    measurements: Vec<Measurement>,
+  ) -> Result<(), Error> {
+    QueryBuilder::new("insert into measurements (source, timestamp, data)")
+      .push_values(measurements, |mut binder, measurement| {
+        binder
+          .push_bind(measurement.source)
+          .push_bind(measurement.timestamp)
+          .push_bind(measurement.data);
+      })
+      .build()
+      .execute(&self.pool)
+      .await?;
+
+    Ok(())
+  }
+
+  #[tracing::instrument(skip(self))]
   pub async fn get_measurements(
     &self,
     from: i64,
@@ -310,6 +330,26 @@ impl Client {
     )
     .execute(&self.pool)
     .await?;
+
+    Ok(())
+  }
+
+  #[tracing::instrument(skip(self))]
+  pub async fn insert_healths(
+    &self,
+    healths: Vec<Health>,
+  ) -> Result<(), Error> {
+    QueryBuilder::new("insert into health (source, timestamp, status, data)")
+      .push_values(healths, |mut binder, health| {
+        binder
+          .push_bind(health.source)
+          .push_bind(health.timestamp)
+          .push_bind(health.status)
+          .push_bind(health.data);
+      })
+      .build()
+      .execute(&self.pool)
+      .await?;
 
     Ok(())
   }
