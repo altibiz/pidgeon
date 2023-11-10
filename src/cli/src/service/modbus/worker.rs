@@ -4,13 +4,13 @@ use std::sync::Arc;
 
 use either::Either;
 use futures::Stream;
+use futures_time::future::FutureExt;
+use tokio::sync::Mutex;
 
 use super::connection::*;
 use super::span::{SimpleSpan, Span};
 
-// TODO: termination signal
-
-// TODO: tuning
+// TODO: inspect errors to terminate/tune
 
 // TODO: optimize
 // 1. fix notes
@@ -34,10 +34,19 @@ pub enum StreamError {
   ChannelDisconnected(anyhow::Error),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum TerminateError {
+  #[error("Channel was disconnected before the request could be finished")]
+  ChannelDisconnected(anyhow::Error),
+}
+
+type TaskHandle = tokio::task::JoinHandle<()>;
+
 #[derive(Debug, Clone)]
 pub struct Worker {
   sender: RequestSender,
-  handle: Arc<tokio::task::JoinHandle<()>>,
+  handle: Arc<Mutex<Option<TaskHandle>>>,
+  termination_timeout: futures_time::time::Duration,
 }
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
@@ -47,13 +56,19 @@ struct SimpleRequest {
 }
 
 impl Worker {
-  pub fn new(initial_params: Params) -> Self {
+  pub fn new(
+    initial_params: Params,
+    termination_timeout: chrono::Duration,
+  ) -> Self {
     let (sender, receiver) = flume::unbounded();
     let task = Task::new(initial_params, receiver);
     let handle = tokio::spawn(task.execute());
     Self {
       sender,
-      handle: Arc::new(handle),
+      handle: Arc::new(Mutex::new(Some(handle))),
+      termination_timeout: futures_time::time::Duration::from_millis(
+        termination_timeout.num_milliseconds() as u64,
+      ),
     }
   }
 }
@@ -67,12 +82,12 @@ impl Worker {
     let (sender, receiver) = flume::bounded(1);
     if let Err(error) = self
       .sender
-      .send_async(Carrier::new(
+      .send_async(TaskRequest::Carrier(Carrier::new(
         destination,
         spans,
         RequestKind::Oneshot,
         sender,
-      ))
+      )))
       .await
     {
       return Err(SendError::ChannelDisconnected(error.into()));
@@ -100,18 +115,37 @@ impl Worker {
     let (sender, receiver) = flume::bounded(1024);
     if let Err(error) = self
       .sender
-      .send_async(Carrier::new(
+      .send_async(TaskRequest::Carrier(Carrier::new(
         destination,
         spans,
         RequestKind::Stream,
         sender,
-      ))
+      )))
       .await
     {
       return Err(StreamError::ChannelDisconnected(error.into()));
     };
     let stream = receiver.into_stream();
     Ok(stream)
+  }
+
+  pub async fn terminate(&self) -> Result<(), TerminateError> {
+    let result = self.sender.send_async(TaskRequest::Terminate).await;
+
+    let handle = {
+      let mut handle = self.handle.clone().lock_owned().await;
+      std::mem::replace::<Option<TaskHandle>>(&mut *handle, None)
+    };
+    if let Some(handle) = handle {
+      let abort_handle = handle.abort_handle();
+      if let Err(_) =
+        flatten_result(handle.timeout(self.termination_timeout).await)
+      {
+        abort_handle.abort();
+      }
+    }
+
+    result.map_err(|error| TerminateError::ChannelDisconnected(error.into()))
   }
 }
 
@@ -121,14 +155,20 @@ enum RequestKind {
   Stream,
 }
 
-type Spans = Vec<SimpleSpan>;
+type SimpleSpans = Vec<SimpleSpan>;
 
 #[derive(Clone, Debug)]
 struct Carrier {
   destination: Destination,
-  spans: Spans,
+  spans: SimpleSpans,
   kind: RequestKind,
   sender: ResponseSender,
+}
+
+#[derive(Clone, Debug)]
+enum TaskRequest {
+  Carrier(Carrier),
+  Terminate,
 }
 
 impl Carrier {
@@ -155,8 +195,8 @@ impl Carrier {
 
 type ResponseSender = flume::Sender<Result<Response, SendError>>;
 type ResponseReceiver = flume::Receiver<Result<Response, SendError>>;
-type RequestSender = flume::Sender<Carrier>;
-type RequestReceiver = flume::Receiver<Carrier>;
+type RequestSender = flume::Sender<TaskRequest>;
+type RequestReceiver = flume::Receiver<TaskRequest>;
 
 type Partial = Vec<Option<super::connection::Response>>;
 type Id = uuid::Uuid;
@@ -166,7 +206,7 @@ struct Storage {
   id: Id,
   sender: ResponseSender,
   destination: Destination,
-  spans: Spans,
+  spans: SimpleSpans,
   partial: Partial,
 }
 
@@ -177,6 +217,7 @@ struct Task {
   oneshots: Vec<Storage>,
   streams: Vec<Storage>,
   params: Params,
+  terminate: bool,
 }
 
 impl Task {
@@ -187,6 +228,7 @@ impl Task {
       oneshots: Vec::new(),
       streams: Vec::new(),
       params,
+      terminate: false,
     }
   }
 
@@ -252,56 +294,72 @@ impl Task {
         !oneshots_to_remove.iter().any(|id| *id == oneshot.id)
       });
 
-      let mut streams_to_remove = Vec::new();
-      for index in 0..self.streams.len() {
-        let stream = self.streams.index(index);
-        let connection =
-          match Self::attempt_connection(&mut self.connections, stream).await {
-            ConnectionAttempt::Existing(connection) => connection,
-            ConnectionAttempt::New(connection) => self
-              .connections
-              .entry(stream.destination)
-              .or_insert(connection),
-            ConnectionAttempt::Fail => {
-              oneshots_to_remove.push(stream.id);
-              continue;
+      if self.terminate {
+        if !self.streams.is_empty() {
+          self.streams = Vec::new();
+        }
+      } else {
+        let mut streams_to_remove = Vec::new();
+        for index in 0..self.streams.len() {
+          let stream = self.streams.index(index);
+          let connection =
+            match Self::attempt_connection(&mut self.connections, stream).await
+            {
+              ConnectionAttempt::Existing(connection) => connection,
+              ConnectionAttempt::New(connection) => self
+                .connections
+                .entry(stream.destination)
+                .or_insert(connection),
+              ConnectionAttempt::Fail => {
+                oneshots_to_remove.push(stream.id);
+                continue;
+              }
+            };
+
+          match Self::read(stream, self.params, &mut metrics, connection).await
+          {
+            Either::Left(partial) => {
+              self.streams.index_mut(index).partial = partial;
+            }
+            Either::Right(response) => {
+              match stream.sender.try_send(Ok(response)) {
+                Ok(()) => {
+                  self.streams.index_mut(index).partial =
+                    vec![None; stream.spans.len()];
+                }
+                Err(_) => {
+                  streams_to_remove.push(stream.id);
+                }
+              }
             }
           };
-
-        match Self::read(stream, self.params, &mut metrics, connection).await {
-          Either::Left(partial) => {
-            self.streams.index_mut(index).partial = partial;
-          }
-          Either::Right(response) => {
-            match stream.sender.try_send(Ok(response)) {
-              Ok(()) => {
-                self.streams.index_mut(index).partial =
-                  vec![None; stream.spans.len()];
-              }
-              Err(_) => {
-                streams_to_remove.push(stream.id);
-              }
-            }
-          }
-        };
+        }
+        self.streams.retain(|stream| {
+          !streams_to_remove.iter().any(|id| *id == stream.id)
+        });
       }
-      self
-        .streams
-        .retain(|stream| !streams_to_remove.iter().any(|id| *id == stream.id));
 
       self.tune(metrics);
     }
   }
 
   fn try_recv_new_request(&mut self) -> Result<(), flume::TryRecvError> {
-    let carrier = self.receiver.try_recv()?;
-    self.add_new_request(carrier);
+    match self.receiver.try_recv()? {
+      TaskRequest::Carrier(carrier) => self.add_new_request(carrier),
+      TaskRequest::Terminate => {
+        self.terminate = true;
+      }
+    }
     Ok(())
   }
 
   async fn recv_async_new_request(&mut self) -> Result<(), flume::RecvError> {
-    let carrier = self.receiver.recv_async().await?;
-    self.add_new_request(carrier);
+    match self.receiver.recv_async().await? {
+      TaskRequest::Carrier(carrier) => self.add_new_request(carrier),
+      TaskRequest::Terminate => {
+        self.terminate = true;
+      }
+    }
     Ok(())
   }
 
@@ -424,4 +482,14 @@ impl Task {
   fn tune(&mut self, metrics: Metrics) {
     dbg!(metrics);
   }
+}
+
+fn flatten_result<
+  T,
+  E1: std::error::Error + Send + Sync,
+  E2: std::error::Error + Send + Sync,
+>(
+  result: Result<Result<T, E1>, E2>,
+) -> Result<T, anyhow::Error> {
+  Ok(result??)
 }

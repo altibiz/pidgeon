@@ -197,13 +197,6 @@ impl Connection {
   }
 }
 
-fn flatten_result<T, E1, E2>(result: Result<Result<T, E1>, E2>) -> Result<T, E1>
-where
-  E1: From<E2>,
-{
-  result?
-}
-
 fn timeout_to_chrono(
   timeout: futures_time::time::Duration,
 ) -> chrono::Duration {
@@ -222,4 +215,11 @@ fn backoff_to_chrono(backoff: tokio::time::Duration) -> chrono::Duration {
 
 fn backoff_from_chrono(backoff: chrono::Duration) -> tokio::time::Duration {
   tokio::time::Duration::from_millis(backoff.num_milliseconds() as u64)
+}
+
+fn flatten_result<T, E1, E2>(result: Result<Result<T, E1>, E2>) -> Result<T, E1>
+where
+  E1: From<E2>,
+{
+  result?
 }

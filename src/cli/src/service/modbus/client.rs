@@ -9,7 +9,6 @@ use super::connection::{Destination, Params};
 use super::span::*;
 use super::worker::*;
 
-// TODO: termination handling of workers
 // TODO: device change listening
 
 // TODO: remove cloning and clone constraints
@@ -20,6 +19,7 @@ pub struct Client {
   servers: Arc<Mutex<HashMap<SocketAddr, Server>>>,
   initial_params: Params,
   batch_threshold: usize,
+  termination_timeout: chrono::Duration,
 }
 
 pub type Response<TSpan: Span> = Vec<TSpan>;
@@ -73,12 +73,17 @@ struct Device {
 }
 
 impl Client {
-  pub fn new(initial_params: Params, batch_threshold: usize) -> Self {
+  pub fn new(
+    initial_params: Params,
+    batch_threshold: usize,
+    termination_timeout: chrono::Duration,
+  ) -> Self {
     Self {
       devices: Arc::new(Mutex::new(HashMap::new())),
       servers: Arc::new(Mutex::new(HashMap::new())),
       initial_params,
       batch_threshold,
+      termination_timeout,
     }
   }
 
@@ -148,13 +153,19 @@ impl Client {
         .collect::<Vec<_>>()
     };
 
+    let mut removed_servers = Vec::new();
     {
       let mut servers = self.servers.clone().lock_owned().await;
-      servers.retain(|address, _| {
-        !servers_to_remove
-          .iter()
-          .any(|address_to_remove| address_to_remove == address)
-      });
+      for address in servers_to_remove {
+        let server = servers.remove(&address);
+        if let Some(server) = server {
+          removed_servers.push(server);
+        }
+      }
+    }
+
+    for server in removed_servers {
+      server.worker.terminate().await;
     }
   }
 
@@ -164,9 +175,13 @@ impl Client {
       devices.retain(|_, device| device.destination.address != address);
     }
 
-    {
+    let server = {
       let mut servers = self.servers.clone().lock_owned().await;
-      servers.remove(&address);
+      servers.remove(&address)
+    };
+
+    if let Some(server) = server {
+      server.worker.terminate().await;
     }
   }
 
@@ -338,7 +353,7 @@ impl Client {
     let worker = workers
       .entry(destination.address)
       .or_insert_with(|| Server {
-        worker: Worker::new(self.initial_params),
+        worker: Worker::new(self.initial_params, self.termination_timeout),
         address: destination.address,
       })
       .clone();
