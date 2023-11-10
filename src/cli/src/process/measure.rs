@@ -20,12 +20,11 @@ impl super::Background for Process {
   async fn execute(&self) {
     let config = self.config.reload_async().await.unwrap();
 
-    let mut streams = Vec::new();
-    let mut devices = Vec::new();
+    let mut stream_devices = Vec::new();
 
     loop {
       if let Ok(devices_from_db) = self.get_devices_from_db(config).await {
-        devices = devices_from_db;
+        devices_from_db;
       }
     }
   }
@@ -50,6 +49,11 @@ struct Device {
   destination: modbus::Destination,
   id_registers: Vec<modbus::IdRegister<modbus::RegisterKind>>,
   measurement_registers: Vec<modbus::MeasurementRegister<modbus::RegisterKind>>,
+}
+
+struct StreamDevice {
+  device: Device,
+  stream: BoxedMeasurementStream,
 }
 
 impl Process {
@@ -84,6 +88,12 @@ impl Process {
         })
         .collect::<Vec<_>>(),
     )
+  }
+
+  async fn merge_devices(
+    old_devices: Vec<StreamDevice>,
+    new_devices: Vec<Device>,
+  ) -> Vec<StreamDevice> {
   }
 
   async fn make_stream(
