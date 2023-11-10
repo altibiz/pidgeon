@@ -2,8 +2,7 @@ use std::net::IpAddr;
 
 use chrono::{DateTime, Utc};
 use sqlx::{
-  migrate::Migrator, types::ipnetwork::IpNetwork, FromRow, Pool, Postgres,
-  QueryBuilder, Type,
+  migrate::Migrator, types::ipnetwork::IpNetwork, FromRow, Pool, Postgres, Type,
 };
 use thiserror::Error;
 
@@ -251,23 +250,23 @@ impl Client {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all, fields(count = measurements.len()))]
-  pub async fn insert_measurements(
+  #[tracing::instrument(skip(self))]
+  pub async fn insert_measurement(
     &self,
-    measurements: Vec<Measurement>,
+    measurement: Measurement,
   ) -> Result<(), Error> {
-    let mut query_builder =
-      QueryBuilder::new("insert into measurements (source, timestamp, data)");
-
-    query_builder.push_values(measurements, |mut builder, measurement| {
-      builder.push_bind(measurement.source);
-      builder.push_bind(measurement.timestamp);
-      builder.push_bind(measurement.data);
-    });
-
-    let query = query_builder.build();
-
-    query.execute(&self.pool).await?;
+    #[allow(clippy::panic)]
+    sqlx::query!(
+      r#"
+        insert into measurements (source, timestamp, data)
+        values ($1, $2, $3)
+      "#,
+      measurement.source,
+      measurement.timestamp,
+      measurement.data
+    )
+    .execute(&self.pool)
+    .await?;
 
     Ok(())
   }

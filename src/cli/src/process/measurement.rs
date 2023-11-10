@@ -26,18 +26,16 @@ impl super::Background for Process {
   }
 }
 
+type MeasurementStreamRegisters = Vec<
+  Either<
+    modbus::IdRegister<modbus::RegisterValue>,
+    modbus::MeasurementRegister<modbus::RegisterValue>,
+  >,
+>;
+
 type BoxedMeasurementStream = Box<
-  dyn Stream<
-      Item = Result<
-        Vec<
-          Either<
-            modbus::IdRegister<modbus::RegisterValue>,
-            modbus::MeasurementRegister<modbus::RegisterValue>,
-          >,
-        >,
-        modbus::ServerReadError,
-      >,
-    > + Send
+  dyn Stream<Item = Result<MeasurementStreamRegisters, modbus::ServerReadError>>
+    + Send
     + Sync,
 >;
 
@@ -115,5 +113,36 @@ impl Process {
         )
         .await?,
     ))
+  }
+
+  async fn consolidate(
+    &self,
+    kind: String,
+    id_to_verify: String,
+    registers: MeasurementStreamRegisters,
+  ) -> Result<(), anyhow::Error> {
+    let id_got =
+      modbus::make_id(kind, registers.iter().cloned().filter_map(Either::left));
+
+    if id_got != id_to_verify {
+      return Err(anyhow::anyhow!(format!(
+        "Id register mismatch: expected {id_to_verify} but got {id_got}"
+      )));
+    }
+
+    self
+      .services
+      .db
+      .insert_measurement(db::Measurement {
+        id: 0,
+        source: id_got,
+        timestamp: chrono::Utc::now(),
+        data: modbus::serialize_registers(
+          registers.into_iter().filter_map(Either::right),
+        ),
+      })
+      .await?;
+
+    Ok(())
   }
 }

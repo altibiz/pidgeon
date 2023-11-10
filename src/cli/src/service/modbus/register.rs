@@ -6,6 +6,8 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use tokio_modbus::{Address, Quantity};
 
+use crate::config::MeasurementRegister;
+
 use super::span::*;
 
 pub trait RegisterStorage {
@@ -142,13 +144,11 @@ impl DetectRegister<RegisterValue> {
   }
 }
 
-pub fn serialize_registers<TIntoIterator>(
+pub fn serialize_registers<
+  TIntoIterator: IntoIterator<Item = MeasurementRegister<RegisterValue>>,
+>(
   registers: TIntoIterator,
-) -> serde_json::Value
-where
-  for<'a> &'a TIntoIterator:
-    IntoIterator<Item = &'a MeasurementRegister<RegisterValue>>,
-{
+) -> serde_json::Value {
   serde_json::Value::Object(
     registers
       .into_iter()
