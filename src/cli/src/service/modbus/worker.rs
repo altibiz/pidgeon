@@ -8,6 +8,8 @@ use futures::Stream;
 use super::connection::*;
 use super::span::{SimpleSpan, Span};
 
+// TODO: termination signal
+
 // TODO: tuning
 
 // TODO: optimize
