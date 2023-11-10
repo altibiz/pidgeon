@@ -8,7 +8,7 @@ use tokio_modbus::{Address, Quantity};
 
 use super::span::*;
 
-pub trait RegisterStorage: Clone + Debug + Send {
+pub trait RegisterStorage {
   fn quantity(&self) -> Quantity;
 }
 

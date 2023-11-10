@@ -90,7 +90,10 @@ impl Worker {
     &self,
     destination: Destination,
     spans: TIntoIterator,
-  ) -> Result<impl Stream<Item = Result<Response, SendError>>, StreamError> {
+  ) -> Result<
+    impl Stream<Item = Result<Response, SendError>> + Send + Sync,
+    StreamError,
+  > {
     // NOTE: check 1024 is okay
     let (sender, receiver) = flume::bounded(1024);
     if let Err(error) = self

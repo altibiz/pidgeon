@@ -170,10 +170,13 @@ impl Client {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn update(&self, health: Health) -> Result<Response, PushError> {
+  pub async fn update(
+    &self,
+    health: Vec<Health>,
+  ) -> Result<Response, PushError> {
     let request = UpdateRequest {
       timestamp: chrono::offset::Utc::now(),
-      health: vec![health],
+      health,
     };
 
     let http_response = self

@@ -9,7 +9,7 @@ use super::connection::{Destination, Params};
 use super::span::*;
 use super::worker::*;
 
-// TODO: remove cloning
+// TODO: remove cloning and clone constraints
 
 #[derive(Clone, Debug)]
 pub struct Client {
