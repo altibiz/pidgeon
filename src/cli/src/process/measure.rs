@@ -20,9 +20,14 @@ impl super::Background for Process {
   async fn execute(&self) {
     let config = self.config.reload_async().await.unwrap();
 
-    let devices = self.init_devices(config).await;
+    let mut streams = Vec::new();
+    let mut devices = Vec::new();
 
-    loop {}
+    loop {
+      if let Ok(devices_from_db) = self.get_devices_from_db(config).await {
+        devices = devices_from_db;
+      }
+    }
   }
 }
 
@@ -45,53 +50,13 @@ struct Device {
   destination: modbus::Destination,
   id_registers: Vec<modbus::IdRegister<modbus::RegisterKind>>,
   measurement_registers: Vec<modbus::MeasurementRegister<modbus::RegisterKind>>,
-  stream: BoxedMeasurementStream,
 }
 
 impl Process {
-  async fn init_devices(
-    &self,
-    config: config::Parsed,
-  ) -> anyhow::Result<Vec<Device>> {
-    try_join_all(
-      self
-        .services
-        .db
-        .get_devices()
-        .await?
-        .into_iter()
-        .filter_map(|device| {
-          config
-            .modbus
-            .devices
-            .values()
-            .filter(|device_config| device_config.kind == device.kind)
-            .next()
-            .map(|config| (device, config.clone()))
-        })
-        .map(|(device, config)| {
-          self.make_stream(device.clone(), config.clone()).map_ok(
-            move |stream| Device {
-              id: device.id,
-              kind: device.kind,
-              destination: modbus::Destination {
-                address: network::to_socket(db::to_ip(device.address)),
-                slave: db::to_modbus_slave(device.slave),
-              },
-              id_registers: config.id,
-              measurement_registers: config.measurement,
-              stream,
-            },
-          )
-        }),
-    )
-    .await
-  }
-
   async fn get_devices_from_db(
     &self,
     config: config::Parsed,
-  ) -> anyhow::Result<Vec<(db::Device, config::ParsedDevice)>> {
+  ) -> anyhow::Result<Vec<Device>> {
     Ok(
       self
         .services
@@ -106,7 +71,16 @@ impl Process {
             .values()
             .filter(|device_config| device_config.kind == device.kind)
             .next()
-            .map(|config| (device, config.clone()))
+            .map(|config| Device {
+              id: device.id,
+              kind: device.kind,
+              destination: modbus::Destination {
+                address: network::to_socket(db::to_ip(device.address)),
+                slave: db::to_modbus_slave(device.slave),
+              },
+              id_registers: config.id.clone(),
+              measurement_registers: config.measurement.clone(),
+            })
         })
         .collect::<Vec<_>>(),
     )
