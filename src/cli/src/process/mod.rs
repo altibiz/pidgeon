@@ -1,5 +1,5 @@
-mod discovery;
-mod measurement;
+mod discover;
+mod measure;
 mod ping;
 mod push;
 mod update;

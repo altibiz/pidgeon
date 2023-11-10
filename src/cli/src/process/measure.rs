@@ -88,6 +88,30 @@ impl Process {
     .await
   }
 
+  async fn get_devices_from_db(
+    &self,
+    config: config::Parsed,
+  ) -> anyhow::Result<Vec<(db::Device, config::ParsedDevice)>> {
+    Ok(
+      self
+        .services
+        .db
+        .get_devices()
+        .await?
+        .into_iter()
+        .filter_map(|device| {
+          config
+            .modbus
+            .devices
+            .values()
+            .filter(|device_config| device_config.kind == device.kind)
+            .next()
+            .map(|config| (device, config.clone()))
+        })
+        .collect::<Vec<_>>(),
+    )
+  }
+
   async fn make_stream(
     &self,
     device: db::Device,

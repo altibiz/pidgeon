@@ -7,6 +7,8 @@ use tokio::sync::Mutex;
 
 use crate::service::modbus;
 
+// TODO: make unparsed private, parsed to just normal name without parsed prefix
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Plural<T> {
