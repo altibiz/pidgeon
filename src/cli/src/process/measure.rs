@@ -39,7 +39,7 @@ impl super::Recurring for Process {
     let config = self.config.reload_async().await?;
     let devices_from_db = self.get_devices_from_db(config).await?;
     let mut streams = self.streams.clone().lock_owned().await;
-    *streams = self.merge_devices(*streams, devices_from_db).await;
+    self.merge_devices(&mut *streams, devices_from_db).await;
     Ok(())
   }
 }
@@ -138,12 +138,12 @@ impl Process {
 
   async fn merge_devices(
     &self,
-    old_devices: Vec<DeviceStream>,
+    old_devices: &mut Vec<DeviceStream>,
     new_devices: Vec<Device>,
-  ) -> Vec<DeviceStream> {
-    join_all(
+  ) {
+    let devices = join_all(
       old_devices
-        .into_iter()
+        .drain(0..)
         .merge_join_by(new_devices.into_iter(), |x, y| {
           Ord::cmp(x.device.id.as_str(), y.id.as_str())
         })
@@ -177,7 +177,9 @@ impl Process {
     .await
     .into_iter()
     .filter_map(|x| x.ok())
-    .collect::<Vec<_>>()
+    .collect::<Vec<_>>();
+
+    *old_devices = devices;
   }
 
   async fn make_stream(
