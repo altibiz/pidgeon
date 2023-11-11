@@ -131,7 +131,7 @@ impl Worker {
 
     let handle = {
       let mut handle = self.handle.clone().lock_owned().await;
-      std::mem::replace::<Option<TaskHandle>>(&mut *handle, None)
+      (*handle).take()
     };
     if let Some(handle) = handle {
       let abort_handle = handle.abort_handle();
@@ -435,7 +435,7 @@ impl Task {
               metrics
                 .errors
                 .entry(storage.destination)
-                .or_insert_with(|| Vec::new())
+                .or_insert_with(Vec::new)
                 .append(&mut errors);
               None
             }
@@ -452,8 +452,7 @@ impl Task {
       Either::Right(
         partial
           .iter()
-          .cloned()
-          .filter_map(std::convert::identity)
+          .flatten().cloned()
           .collect::<Vec<_>>(),
       )
     } else {

@@ -48,9 +48,7 @@ impl Process {
     match config
       .modbus
       .devices
-      .values()
-      .filter(|device_config| device_config.kind == device.kind)
-      .next()
+      .values().find(|device_config| device_config.kind == device.kind)
     {
       Some(device_config) => {
         match self

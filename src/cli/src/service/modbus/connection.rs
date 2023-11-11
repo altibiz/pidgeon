@@ -17,11 +17,11 @@ impl Destination {
   pub fn r#for(address: SocketAddr) -> impl Iterator<Item = Destination> {
     (Slave::min_device().0..Slave::max_device().0)
       .map(move |slave| Destination {
-        address: address.clone(),
+        address,
         slave: Some(slave),
       })
       .chain(std::iter::once(Destination {
-        address: address.clone(),
+        address,
         slave: None,
       }))
   }
@@ -157,7 +157,7 @@ impl Connection {
         Ok(data) => response = Some(data),
         Err(error) => errors.push(error),
       };
-      retried = retried + 1;
+      retried += 1;
     }
 
     response.ok_or(errors)

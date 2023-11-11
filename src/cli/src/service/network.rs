@@ -24,7 +24,7 @@ impl Client {
       .map(|ip| {
         let socket_address = to_socket(ip);
         (
-          socket_address.clone(),
+          socket_address,
           tokio::spawn(async move {
             let timeout = tokio::time::timeout(
               timeout,

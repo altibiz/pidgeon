@@ -39,7 +39,7 @@ impl super::Recurring for Process {
     let config = self.config.reload_async().await?;
     let devices_from_db = self.get_devices_from_db(config).await?;
     let mut streams = self.streams.clone().lock_owned().await;
-    self.merge_devices(&mut *streams, devices_from_db).await;
+    self.merge_devices(&mut streams, devices_from_db).await;
     Ok(())
   }
 }
@@ -89,8 +89,7 @@ impl Process {
           .next()
           .now_or_never()
           .flatten()
-          .map(|x| x.ok())
-          .flatten()
+          .and_then(|x| x.ok())
         {
           Some(registers) => measurements.push(DeviceRegisters {
             device: device.clone(),
@@ -118,9 +117,7 @@ impl Process {
           config
             .modbus
             .devices
-            .values()
-            .filter(|device_config| device_config.kind == device.kind)
-            .next()
+            .values().find(|device_config| device_config.kind == device.kind)
             .map(|config| Device {
               id: device.id,
               kind: device.kind,
@@ -195,12 +192,12 @@ impl Process {
           device
             .id_registers
             .into_iter()
-            .map(|register| Either::Left(register))
+            .map(Either::Left)
             .chain(
               device
                 .measurement_registers
                 .into_iter()
-                .map(|register| Either::Right(register)),
+                .map(Either::Right),
             )
             .collect::<Vec<_>>(),
         )

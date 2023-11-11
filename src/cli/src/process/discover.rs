@@ -29,8 +29,7 @@ impl super::Recurring for Process {
       join_all(
         addresses
           .into_iter()
-          .map(modbus::Destination::r#for)
-          .flatten()
+          .flat_map(modbus::Destination::r#for)
           .map(|destination| self.match_destination(&config, destination)),
       )
       .await
@@ -67,12 +66,12 @@ impl Process {
       )
       .await
       .into_iter()
-      .filter_map(std::convert::identity)
+      .flatten()
       .map(|device| self.match_id(device, destination)),
     )
     .await
     .into_iter()
-    .filter_map(std::convert::identity)
+    .flatten()
   }
 
   async fn match_device(

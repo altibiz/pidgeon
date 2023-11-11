@@ -115,9 +115,9 @@ impl Client {
 
     let pool = sqlx::Pool::connect_lazy_with(options);
 
-    let client = Self { pool };
+    
 
-    client
+    Self { pool }
   }
 
   #[tracing::instrument(skip(self))]

@@ -20,7 +20,7 @@ pub struct Client {
   termination_timeout: chrono::Duration,
 }
 
-pub type Response<TSpan: Span> = Vec<TSpan>;
+pub type Response<TSpan> = Vec<TSpan>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ServerReadError {
