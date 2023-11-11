@@ -483,8 +483,8 @@ impl Task {
 
 fn flatten_result<
   T,
-  E1: std::error::Error + Send + Sync,
-  E2: std::error::Error + Send + Sync,
+  E1: std::error::Error + Send + Sync + 'static,
+  E2: std::error::Error + Send + Sync + 'static,
 >(
   result: Result<Result<T, E1>, E2>,
 ) -> Result<T, anyhow::Error> {

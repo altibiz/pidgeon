@@ -16,11 +16,11 @@ pub enum Plural<T> {
   Many(Vec<T>),
 }
 
-impl<T> Plural<T> {
+impl<T: Clone> Plural<T> {
   pub fn normalize(&self) -> Vec<T> {
     match self {
-      Plural::One(item) => vec![*item],
-      Plural::Many(items) => *items,
+      Plural::One(item) => vec![item.clone()],
+      Plural::Many(items) => items.clone(),
     }
   }
 }

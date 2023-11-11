@@ -12,13 +12,9 @@
 
 mod config;
 mod process;
-mod runtime;
 mod service;
-mod services;
 
-use crate::runtime::{Runtime, RuntimeError};
-
-fn main() -> Result<(), RuntimeError> {
-  let runtime = Runtime::new()?;
-  runtime.start()
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+  Ok(())
 }

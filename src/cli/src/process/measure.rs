@@ -38,7 +38,7 @@ impl super::Recurring for Process {
     }
     let config = self.config.reload_async().await?;
     let devices_from_db = self.get_devices_from_db(config).await?;
-    let streams = self.streams.clone().lock_owned().await;
+    let mut streams = self.streams.clone().lock_owned().await;
     *streams = self.merge_devices(*streams, devices_from_db).await;
     Ok(())
   }

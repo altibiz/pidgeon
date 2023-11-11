@@ -24,15 +24,14 @@ impl super::Recurring for Process {
     let config = self.config.reload_async().await?;
 
     try_join_all(
-      join_all(
-        devices
-          .into_iter()
-          .map(move |device| self.ping_device(config, device)),
-      )
+      join_all(devices.iter().cloned().map(move |device| {
+        let config = config.clone();
+        self.ping_device(config, device)
+      }))
       .await
       .into_iter()
       .zip(devices)
-      .map(|(healthy, device)| self.consolidate(&device, healthy)),
+      .map(|(healthy, device)| self.consolidate(device, healthy)),
     )
     .await?;
 
@@ -73,7 +72,7 @@ impl Process {
 
   async fn consolidate(
     &self,
-    device: &db::Device,
+    device: db::Device,
     healthy: bool,
   ) -> anyhow::Result<()> {
     let now = chrono::Utc::now();

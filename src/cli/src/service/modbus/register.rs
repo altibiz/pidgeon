@@ -6,8 +6,6 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use tokio_modbus::{Address, Quantity};
 
-use crate::config::MeasurementRegister;
-
 use super::span::*;
 
 pub trait RegisterStorage {
