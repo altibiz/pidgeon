@@ -13,7 +13,7 @@ pub struct Client {
 }
 
 impl Client {
-  pub fn new(config: config::Parsed) -> Self {
+  pub fn new(config: config::Values) -> Self {
     Self {
       ip_range: config.network.ip_range,
       timeout: std::time::Duration::from_millis(config.network.timeout),

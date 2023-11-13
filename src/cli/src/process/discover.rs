@@ -1,9 +1,6 @@
 use futures::future::join_all;
 
-use crate::{
-  config::{self, ParsedDevice},
-  service::*,
-};
+use crate::{config, service::*};
 
 // TODO: set timeout
 
@@ -53,7 +50,7 @@ struct DeviceMatch {
 impl Process {
   async fn match_destination(
     &self,
-    config: &config::Parsed,
+    config: &config::Values,
     destination: modbus::Destination,
   ) -> impl Iterator<Item = DeviceMatch> {
     join_all(
@@ -76,9 +73,9 @@ impl Process {
 
   async fn match_device(
     &self,
-    device: ParsedDevice,
+    device: config::Device,
     destination: modbus::Destination,
-  ) -> Option<ParsedDevice> {
+  ) -> Option<config::Device> {
     self
       .services
       .modbus
@@ -92,7 +89,7 @@ impl Process {
 
   async fn match_id(
     &self,
-    device: ParsedDevice,
+    device: config::Device,
     destination: modbus::Destination,
   ) -> Option<DeviceMatch> {
     self

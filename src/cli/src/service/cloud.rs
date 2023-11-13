@@ -75,7 +75,7 @@ pub enum PushError {
 }
 
 impl Client {
-  pub fn new(config: config::Parsed) -> Result<Self, ConstructionError> {
+  pub fn new(config: config::Values) -> Result<Self, ConstructionError> {
     let id = match config.cloud.id {
       Some(id) => id,
       None => {

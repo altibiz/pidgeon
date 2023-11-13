@@ -87,7 +87,7 @@ pub enum MigrateError {
 }
 
 impl Client {
-  pub fn new(config: config::Parsed) -> Self {
+  pub fn new(config: config::Values) -> Self {
     let mut options = sqlx::postgres::PgConnectOptions::new()
       .host(&config.db.domain)
       .username(&config.db.user)

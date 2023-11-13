@@ -16,9 +16,9 @@ pub enum ReadError {
 }
 
 impl Client {
-  pub fn new(config: config::Parsed) -> Self {
+  pub fn new(config: config::Values) -> Self {
     Self {
-      temperature_monitor: config.hardware.temperature_monitor,
+      temperature_monitor: config.hardware.temperature_monitor.into(),
     }
   }
 

@@ -27,7 +27,7 @@ impl<T: Clone> Plural<T> {
 
 #[derive(Debug, Clone, Parser)]
 #[command(author, version, about, long_about = None)]
-struct FromArgs {
+struct UnparsedArgs {
   /// Run in development mode
   #[arg(short, long)]
   dev: bool,
@@ -38,17 +38,17 @@ struct FromArgs {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct HardwareFile {
+struct UnparsedHardwareFile {
   temperature_monitor: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct NetworkFile {
+struct UnparsedNetworkFile {
   timeout: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct DbFile {
+struct UnparsedDbFile {
   timeout: Option<u64>,
 }
 
@@ -63,86 +63,87 @@ pub enum LogLevel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MeasurementRegister {
+struct UnparsedMeasurementRegister {
   pub name: String,
   pub address: u16,
-  pub kind: RegisterKind,
+  pub kind: UnparsedRegisterKind,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct StringRegisterKind {
+struct UnparsedStringRegisterKind {
   pub length: u16,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct NumericRegisterKind {
+struct UnparsedNumericRegisterKind {
   pub multiplier: Option<f64>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum RegisterKind {
-  U16(NumericRegisterKind),
-  U32(NumericRegisterKind),
-  U64(NumericRegisterKind),
-  S16(NumericRegisterKind),
-  S32(NumericRegisterKind),
-  S64(NumericRegisterKind),
-  F32(NumericRegisterKind),
-  F64(NumericRegisterKind),
-  String(StringRegisterKind),
+enum UnparsedRegisterKind {
+  U16(UnparsedNumericRegisterKind),
+  U32(UnparsedNumericRegisterKind),
+  U64(UnparsedNumericRegisterKind),
+  S16(UnparsedNumericRegisterKind),
+  S32(UnparsedNumericRegisterKind),
+  S64(UnparsedNumericRegisterKind),
+  F32(UnparsedNumericRegisterKind),
+  F64(UnparsedNumericRegisterKind),
+  String(UnparsedStringRegisterKind),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DetectRegister {
+struct UnparsedDetectRegister {
   pub address: u16,
-  pub kind: RegisterKind,
+  pub kind: UnparsedRegisterKind,
   pub r#match: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IdRegister {
+struct UnparsedIdRegister {
   pub address: u16,
-  pub kind: RegisterKind,
+  pub kind: UnparsedRegisterKind,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Device {
-  pub detect: Plural<DetectRegister>,
-  pub id: Plural<IdRegister>,
-  pub measurement: Vec<MeasurementRegister>,
+struct UnparsedDevice {
+  pub detect: Plural<UnparsedDetectRegister>,
+  pub id: Plural<UnparsedIdRegister>,
+  pub measurement: Vec<UnparsedMeasurementRegister>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct ModbusFile {
-  timeout: u64,
-  retries: u64,
+struct UnparsedModbusFile {
+  initial_timeout: u64,
+  initial_backoff: u64,
+  initial_retries: u64,
   batch_threshold: usize,
-  devices: HashMap<String, Device>,
+  devices: HashMap<String, UnparsedDevice>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct CloudFile {
+struct UnparsedCloudFile {
   timeout: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct FromFile {
+struct UnparsedFile {
   log_level: Option<LogLevel>,
   discover_interval: Option<u64>,
   ping_interval: Option<u64>,
   measure_interval: Option<u64>,
   push_interval: Option<u64>,
   update_interval: Option<u64>,
-  hardware: HardwareFile,
-  network: NetworkFile,
-  modbus: ModbusFile,
-  cloud: CloudFile,
-  db: DbFile,
+  hardware: UnparsedHardwareFile,
+  network: UnparsedNetworkFile,
+  modbus: UnparsedModbusFile,
+  cloud: UnparsedCloudFile,
+  db: UnparsedDbFile,
 }
 
 #[derive(Debug, Clone)]
-struct CloudEnv {
+struct UnparsedCloudEnv {
   ssl: bool,
   domain: String,
   api_key: Option<String>,
@@ -150,7 +151,7 @@ struct CloudEnv {
 }
 
 #[derive(Debug, Clone)]
-struct DbEnv {
+struct UnparsedDbEnv {
   ssl: bool,
   domain: String,
   port: Option<String>,
@@ -160,30 +161,27 @@ struct DbEnv {
 }
 
 #[derive(Debug, Clone)]
-struct NetworkEnv {
+struct UnparsedNetworkEnv {
   ip_range_start: String,
   ip_range_end: String,
 }
 
 #[derive(Debug, Clone)]
-struct FromEnv {
-  cloud: CloudEnv,
-  db: DbEnv,
-  network: NetworkEnv,
+struct UnparsedEnv {
+  cloud: UnparsedCloudEnv,
+  db: UnparsedDbEnv,
+  network: UnparsedNetworkEnv,
 }
 
 #[derive(Debug, Clone)]
 struct Unparsed {
-  from_args: FromArgs,
-  from_file: FromFile,
-  from_env: FromEnv,
+  from_args: UnparsedArgs,
+  from_file: UnparsedFile,
+  from_env: UnparsedEnv,
 }
 
 #[derive(Debug, Clone)]
-pub struct ParsedRuntime {}
-
-#[derive(Debug, Clone)]
-pub struct ParsedDb {
+pub struct Db {
   pub timeout: u64,
   pub ssl: bool,
   pub domain: String,
@@ -194,18 +192,18 @@ pub struct ParsedDb {
 }
 
 #[derive(Debug, Clone)]
-pub struct ParsedNetwork {
+pub struct Network {
   pub timeout: u64,
   pub ip_range: IpAddrRange,
 }
 
 #[derive(Debug, Clone)]
-pub struct ParsedHardware {
+pub struct Hardware {
   pub temperature_monitor: String,
 }
 
 #[derive(Debug, Clone)]
-pub struct ParsedCloud {
+pub struct Cloud {
   pub timeout: u64,
   pub ssl: bool,
   pub domain: String,
@@ -214,7 +212,7 @@ pub struct ParsedCloud {
 }
 
 #[derive(Debug, Clone)]
-pub struct ParsedDevice {
+pub struct Device {
   pub kind: String,
   pub id: Vec<modbus::IdRegister<modbus::RegisterKind>>,
   pub detect: Vec<modbus::DetectRegister<modbus::RegisterKind>>,
@@ -222,20 +220,21 @@ pub struct ParsedDevice {
 }
 
 #[derive(Debug, Clone)]
-pub struct ParsedModbus {
-  pub timeout: u64,
-  pub retries: u64,
+pub struct Modbus {
+  pub initial_timeout: u64,
+  pub initial_backoff: u64,
+  pub initial_retries: u64,
   pub batching_threshold: usize,
-  pub devices: HashMap<String, ParsedDevice>,
+  pub devices: HashMap<String, Device>,
 }
 
 #[derive(Debug, Clone)]
-pub struct Parsed {
-  pub cloud: ParsedCloud,
-  pub db: ParsedDb,
-  pub network: ParsedNetwork,
-  pub modbus: ParsedModbus,
-  pub hardware: ParsedHardware,
+pub struct Values {
+  pub cloud: Cloud,
+  pub db: Db,
+  pub network: Network,
+  pub modbus: Modbus,
+  pub hardware: Hardware,
   pub dev: bool,
   pub log_level: LogLevel,
   pub discover_interval: u64,
@@ -297,21 +296,21 @@ impl Manager {
   }
 
   #[allow(unused)]
-  pub fn config(&self) -> Result<Parsed, ParseError> {
+  pub fn config(&self) -> Result<Values, ParseError> {
     let config = self.values.blocking_lock().clone();
     let parsed = Self::parse_config(config)?;
     Ok(parsed)
   }
 
   #[allow(unused)]
-  pub async fn config_async(&self) -> Result<Parsed, ParseError> {
+  pub async fn config_async(&self) -> Result<Values, ParseError> {
     let config = self.values.lock().await.clone();
     let parsed = Self::parse_config(config)?;
     Ok(parsed)
   }
 
   #[allow(unused)]
-  pub fn reload(&self) -> Result<Parsed, RealoadError> {
+  pub fn reload(&self) -> Result<Values, RealoadError> {
     let config = {
       let mut values = self.values.blocking_lock();
       let from_file = Self::read_from_file(values.from_args.config.clone())?;
@@ -325,7 +324,7 @@ impl Manager {
   }
 
   #[allow(unused)]
-  pub async fn reload_async(&self) -> Result<Parsed, RealoadError> {
+  pub async fn reload_async(&self) -> Result<Values, RealoadError> {
     let config = {
       let mut values = self.values.lock().await;
       let from_file =
@@ -339,8 +338,8 @@ impl Manager {
     Ok(parsed)
   }
 
-  fn parse_config(config: Unparsed) -> Result<Parsed, ParseError> {
-    let parsed = Parsed {
+  fn parse_config(config: Unparsed) -> Result<Values, ParseError> {
+    let parsed = Values {
       dev: config.from_args.dev,
       log_level: config.from_file.log_level.unwrap_or(
         if config.from_args.dev {
@@ -354,17 +353,17 @@ impl Manager {
       measure_interval: config.from_file.ping_interval.unwrap_or(60000),
       push_interval: config.from_file.push_interval.unwrap_or(60000),
       update_interval: config.from_file.update_interval.unwrap_or(60000),
-      hardware: ParsedHardware {
+      hardware: Hardware {
         temperature_monitor: config.from_file.hardware.temperature_monitor,
       },
-      cloud: ParsedCloud {
+      cloud: Cloud {
         timeout: config.from_file.cloud.timeout.unwrap_or(30000),
         ssl: config.from_env.cloud.ssl,
         domain: config.from_env.cloud.domain,
         api_key: config.from_env.cloud.api_key,
         id: config.from_env.cloud.id,
       },
-      db: ParsedDb {
+      db: Db {
         timeout: config.from_file.db.timeout.unwrap_or(30000),
         ssl: config.from_env.db.ssl,
         domain: config.from_env.db.domain,
@@ -377,16 +376,17 @@ impl Manager {
         password: config.from_env.db.password,
         name: config.from_env.db.name,
       },
-      network: ParsedNetwork {
+      network: Network {
         timeout: config.from_file.network.timeout.unwrap_or(30000),
         ip_range: Self::make_ip_range(
           config.from_env.network.ip_range_start,
           config.from_env.network.ip_range_end,
         )?,
       },
-      modbus: ParsedModbus {
-        timeout: config.from_file.modbus.timeout,
-        retries: config.from_file.modbus.retries,
+      modbus: Modbus {
+        initial_timeout: config.from_file.modbus.initial_timeout,
+        initial_backoff: config.from_file.modbus.initial_backoff,
+        initial_retries: config.from_file.modbus.initial_retries,
         devices: config
           .from_file
           .modbus
@@ -395,7 +395,7 @@ impl Manager {
           .map(|(kind, device)| {
             (
               kind.clone(),
-              ParsedDevice {
+              Device {
                 kind,
                 id: device
                   .id
@@ -441,7 +441,7 @@ impl Manager {
   }
 
   fn to_modbus_measurement_register(
-    register: MeasurementRegister,
+    register: UnparsedMeasurementRegister,
   ) -> modbus::MeasurementRegister<modbus::RegisterKind> {
     modbus::MeasurementRegister::<modbus::RegisterKind> {
       address: register.address,
@@ -451,7 +451,7 @@ impl Manager {
   }
 
   fn to_modbus_detect_register(
-    register: DetectRegister,
+    register: UnparsedDetectRegister,
   ) -> modbus::DetectRegister<modbus::RegisterKind> {
     modbus::DetectRegister::<modbus::RegisterKind> {
       address: register.address,
@@ -464,7 +464,7 @@ impl Manager {
   }
 
   fn to_modbus_id_register(
-    register: IdRegister,
+    register: UnparsedIdRegister,
   ) -> modbus::IdRegister<modbus::RegisterKind> {
     modbus::IdRegister::<modbus::RegisterKind> {
       address: register.address,
@@ -472,33 +472,35 @@ impl Manager {
     }
   }
 
-  fn to_modbus_register_kind(register: RegisterKind) -> modbus::RegisterKind {
+  fn to_modbus_register_kind(
+    register: UnparsedRegisterKind,
+  ) -> modbus::RegisterKind {
     match register {
-      RegisterKind::U16(NumericRegisterKind { multiplier }) => {
+      UnparsedRegisterKind::U16(UnparsedNumericRegisterKind { multiplier }) => {
         modbus::RegisterKind::U16(modbus::NumericRegisterKind { multiplier })
       }
-      RegisterKind::U32(NumericRegisterKind { multiplier }) => {
+      UnparsedRegisterKind::U32(UnparsedNumericRegisterKind { multiplier }) => {
         modbus::RegisterKind::U32(modbus::NumericRegisterKind { multiplier })
       }
-      RegisterKind::U64(NumericRegisterKind { multiplier }) => {
+      UnparsedRegisterKind::U64(UnparsedNumericRegisterKind { multiplier }) => {
         modbus::RegisterKind::U64(modbus::NumericRegisterKind { multiplier })
       }
-      RegisterKind::S16(NumericRegisterKind { multiplier }) => {
+      UnparsedRegisterKind::S16(UnparsedNumericRegisterKind { multiplier }) => {
         modbus::RegisterKind::S16(modbus::NumericRegisterKind { multiplier })
       }
-      RegisterKind::S32(NumericRegisterKind { multiplier }) => {
+      UnparsedRegisterKind::S32(UnparsedNumericRegisterKind { multiplier }) => {
         modbus::RegisterKind::S32(modbus::NumericRegisterKind { multiplier })
       }
-      RegisterKind::S64(NumericRegisterKind { multiplier }) => {
+      UnparsedRegisterKind::S64(UnparsedNumericRegisterKind { multiplier }) => {
         modbus::RegisterKind::S64(modbus::NumericRegisterKind { multiplier })
       }
-      RegisterKind::F32(NumericRegisterKind { multiplier }) => {
+      UnparsedRegisterKind::F32(UnparsedNumericRegisterKind { multiplier }) => {
         modbus::RegisterKind::F32(modbus::NumericRegisterKind { multiplier })
       }
-      RegisterKind::F64(NumericRegisterKind { multiplier }) => {
+      UnparsedRegisterKind::F64(UnparsedNumericRegisterKind { multiplier }) => {
         modbus::RegisterKind::F64(modbus::NumericRegisterKind { multiplier })
       }
-      RegisterKind::String(StringRegisterKind { length }) => {
+      UnparsedRegisterKind::String(UnparsedStringRegisterKind { length }) => {
         modbus::RegisterKind::String(modbus::StringRegisterKind { length })
       }
     }
@@ -518,7 +520,9 @@ impl Manager {
     Ok(config)
   }
 
-  fn read_from_file(location: Option<String>) -> Result<FromFile, ReadError> {
+  fn read_from_file(
+    location: Option<String>,
+  ) -> Result<UnparsedFile, ReadError> {
     let location = match location {
       Some(location) => std::path::PathBuf::from(location),
       None => match directories::ProjectDirs::from("com", "altibiz", "pidgeon")
@@ -529,7 +533,7 @@ impl Manager {
     };
     let from_file = {
       let raw = fs::read_to_string(location)?;
-      serde_yaml::from_str::<FromFile>(raw.as_str())?
+      serde_yaml::from_str::<UnparsedFile>(raw.as_str())?
     };
 
     Ok(from_file)
@@ -537,7 +541,7 @@ impl Manager {
 
   async fn read_from_file_async(
     location: Option<String>,
-  ) -> Result<FromFile, ReadError> {
+  ) -> Result<UnparsedFile, ReadError> {
     let location = match location {
       Some(location) => std::path::PathBuf::from(location),
       None => match directories::ProjectDirs::from("com", "altibiz", "pidgeon")
@@ -548,21 +552,21 @@ impl Manager {
     };
     let from_file = {
       let raw = tokio::fs::read_to_string(location).await?;
-      serde_yaml::from_str::<FromFile>(raw.as_str())?
+      serde_yaml::from_str::<UnparsedFile>(raw.as_str())?
     };
 
     Ok(from_file)
   }
 
-  fn read_from_env() -> Result<FromEnv, env::VarError> {
-    let from_env = FromEnv {
-      cloud: CloudEnv {
+  fn read_from_env() -> Result<UnparsedEnv, env::VarError> {
+    let from_env = UnparsedEnv {
+      cloud: UnparsedCloudEnv {
         ssl: env::var("PIDGEON_CLOUD_SSL").map_or_else(|_| false, |_| true),
         domain: env::var("PIDGEON_CLOUD_DOMAIN")?,
         api_key: env::var("PIDGEON_CLOUD_API_KEY").ok(),
         id: env::var("PIDGEON_CLOUD_ID").ok(),
       },
-      db: DbEnv {
+      db: UnparsedDbEnv {
         ssl: env::var("PIDGEON_DB_SSL").map_or_else(|_| false, |_| true),
         domain: env::var("PIDGEON_DB_DOMAIN")?,
         port: env::var("PIDGEON_DB_PORT").ok(),
@@ -570,7 +574,7 @@ impl Manager {
         password: env::var("PIDGEON_DB_PASSWORD").ok(),
         name: env::var("PIDGEON_DB_NAME")?,
       },
-      network: NetworkEnv {
+      network: UnparsedNetworkEnv {
         ip_range_start: env::var("PIDGEON_NETWORK_IP_RANGE_START")?,
         ip_range_end: env::var("PIDGEON_NETWORK_IP_RANGE_END")?,
       },
@@ -579,7 +583,7 @@ impl Manager {
     Ok(from_env)
   }
 
-  fn read_from_args() -> FromArgs {
-    FromArgs::parse()
+  fn read_from_args() -> UnparsedArgs {
+    UnparsedArgs::parse()
   }
 }

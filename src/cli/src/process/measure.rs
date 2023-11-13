@@ -85,12 +85,7 @@ impl Process {
     let mut measurements = Vec::new();
     for DeviceStream { device, stream } in streams.iter_mut() {
       loop {
-        match stream
-          .next()
-          .now_or_never()
-          .flatten()
-          .and_then(|x| x.ok())
-        {
+        match stream.next().now_or_never().flatten().and_then(|x| x.ok()) {
           Some(registers) => measurements.push(DeviceRegisters {
             device: device.clone(),
             registers,
@@ -104,7 +99,7 @@ impl Process {
 
   async fn get_devices_from_db(
     &self,
-    config: config::Parsed,
+    config: config::Values,
   ) -> anyhow::Result<Vec<Device>> {
     Ok(
       self
@@ -117,7 +112,8 @@ impl Process {
           config
             .modbus
             .devices
-            .values().find(|device_config| device_config.kind == device.kind)
+            .values()
+            .find(|device_config| device_config.kind == device.kind)
             .map(|config| Device {
               id: device.id,
               kind: device.kind,
@@ -193,12 +189,7 @@ impl Process {
             .id_registers
             .into_iter()
             .map(Either::Left)
-            .chain(
-              device
-                .measurement_registers
-                .into_iter()
-                .map(Either::Right),
-            )
+            .chain(device.measurement_registers.into_iter().map(Either::Right))
             .collect::<Vec<_>>(),
         )
         .await?,

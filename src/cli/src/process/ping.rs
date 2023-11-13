@@ -42,13 +42,14 @@ impl super::Recurring for Process {
 impl Process {
   async fn ping_device(
     &self,
-    config: config::Parsed,
+    config: config::Values,
     device: db::Device,
   ) -> bool {
     match config
       .modbus
       .devices
-      .values().find(|device_config| device_config.kind == device.kind)
+      .values()
+      .find(|device_config| device_config.kind == device.kind)
     {
       Some(device_config) => {
         match self
