@@ -6,30 +6,12 @@ pub mod update;
 
 use std::sync::Arc;
 
-use crate::{config, service::*};
+use tokio::sync::Mutex;
 
-pub struct Services {
-  db: db::Service,
-  cloud: cloud::Service,
-  modbus: modbus::Service,
-  network: network::Service,
-  hardware: hardware::Service,
-}
-
-impl Services {
-  pub fn new(config: config::Values) -> Self {
-    Self {
-      db: db::Service::new(config.clone()),
-      cloud: cloud::Service::new(config.clone()),
-      modbus: modbus::Service::new(config.clone()),
-      network: network::Service::new(config.clone()),
-      hardware: hardware::Service::new(config.clone()),
-    }
-  }
-}
+use crate::{config, service};
 
 pub trait Process {
-  fn new(config: config::Manager, services: Arc<Services>) -> Self;
+  fn new(config: config::Manager, services: service::Container) -> Self;
 }
 
 #[async_trait::async_trait]
@@ -37,6 +19,27 @@ pub trait Recurring: Process {
   async fn execute(&self) -> anyhow::Result<()>;
 }
 
+struct Handle {
+  token: tokio_util::sync::CancellationToken,
+  handle: tokio::task::JoinHandle<()>,
+}
 
+struct Values {
+  discover: Handle,
+  ping: Handle,
+  measure: Handle,
+  push: Handle,
+  update: Handle,
+}
 
-pub fn 
+pub struct Processes {
+  values: Arc<Mutex<Values>>,
+}
+
+impl Processes {
+  pub fn new(config: config::Manager) -> Self {
+    Self {
+      values: Arc::new(Mutex::new()),
+    }
+  }
+}

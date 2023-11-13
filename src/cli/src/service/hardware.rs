@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::*;
 
+#[derive(Debug, Clone)]
 pub struct Service {
   temperature_monitor: PathBuf,
 }

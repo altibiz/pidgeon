@@ -1,27 +1,25 @@
-use std::sync::Arc;
-
 use futures::future::{join_all, try_join_all};
 
-use crate::{config, service::*};
+use crate::{service::*, *};
 
 // TODO: add timeout
 // TODO: add max unreachable till inactive
 
 pub struct Process {
   config: config::Manager,
-  services: Arc<super::Services>,
+  services: service::Container,
 }
 
-impl super::Process for Process {
-  fn new(config: config::Manager, services: Arc<super::Services>) -> Self {
+impl process::Process for Process {
+  fn new(config: config::Manager, services: service::Container) -> Self {
     Self { config, services }
   }
 }
 
 #[async_trait::async_trait]
-impl super::Recurring for Process {
+impl process::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
-    let devices = self.services.db.get_devices().await?;
+    let devices = self.services.db().get_devices().await?;
 
     let config = self.config.reload_async().await?;
 
@@ -56,7 +54,7 @@ impl Process {
       Some(device_config) => {
         match self
           .services
-          .modbus
+          .modbus()
           .read_from_id(&device.id, device_config.id.clone())
           .await
           .ok()
@@ -90,18 +88,18 @@ impl Process {
 
     self
       .services
-      .db
+      .db()
       .update_device_status(&device.id, status, seen, now)
       .await?;
 
     if remove {
-      self.services.modbus.stop_from_id(&device.id).await;
+      self.services.modbus().stop_from_id(&device.id).await;
     }
 
     if update {
       self
         .services
-        .db
+        .db()
         .insert_health(db::Health {
           id: 0,
           source: device.id.clone(),

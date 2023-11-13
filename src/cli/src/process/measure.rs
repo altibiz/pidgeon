@@ -8,16 +8,16 @@ use futures_core::Stream;
 use itertools::Itertools;
 use tokio::sync::Mutex;
 
-use crate::{config, service::*};
+use crate::{service::*, *};
 
 pub struct Process {
   config: config::Manager,
-  services: Arc<super::Services>,
+  services: service::Container,
   streams: Arc<Mutex<Vec<DeviceStream>>>,
 }
 
-impl super::Process for Process {
-  fn new(config: config::Manager, services: Arc<super::Services>) -> Self {
+impl process::Process for Process {
+  fn new(config: config::Manager, services: service::Container) -> Self {
     Self {
       config,
       services,
@@ -27,7 +27,7 @@ impl super::Process for Process {
 }
 
 #[async_trait::async_trait]
-impl super::Recurring for Process {
+impl process::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
     let measurements = self.get_unprocessed_measurements().await;
     if let Err(error) = self.consolidate(measurements).await {
@@ -104,7 +104,7 @@ impl Process {
     Ok(
       self
         .services
-        .db
+        .db()
         .get_devices()
         .await?
         .into_iter()
@@ -182,7 +182,7 @@ impl Process {
     Ok(Box::pin(
       self
         .services
-        .modbus
+        .modbus()
         .stream_from_id(
           &device.id,
           device
@@ -202,7 +202,7 @@ impl Process {
   ) -> anyhow::Result<()> {
     self
       .services
-      .db
+      .db()
       .insert_measurements(
         measurements
           .into_iter()

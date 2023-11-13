@@ -16,13 +16,13 @@ mod service;
 
 use std::sync::Arc;
 
-use process::*;
+use crate::*;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
   let config = config::Manager::new()?;
 
-  let services = Arc::new(Services::new(config.config_async().await?));
+  let services = service::Container::new(config.config_async().await?);
 
   let discover = discover::Process::new(config.clone(), services.clone());
   let ping = ping::Process::new(config.clone(), services.clone());

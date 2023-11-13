@@ -1,26 +1,24 @@
-use std::sync::Arc;
-
 use futures::future::join_all;
 
-use crate::{config, service::*};
+use crate::{service::*, *};
 
 // TODO: set timeout
 
 pub struct Process {
   config: config::Manager,
-  services: Arc<super::Services>,
+  services: service::Container,
 }
 
-impl super::Process for Process {
-  fn new(config: config::Manager, services: Arc<super::Services>) -> Self {
+impl process::Process for Process {
+  fn new(config: config::Manager, services: service::Container) -> Self {
     Self { config, services }
   }
 }
 
 #[async_trait::async_trait]
-impl super::Recurring for Process {
+impl process::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
-    let addresses = self.services.network.scan().await;
+    let addresses = self.services.network().scan().await;
 
     let config = self.config.reload_async().await?;
 
@@ -80,7 +78,7 @@ impl Process {
   ) -> Option<config::Device> {
     self
       .services
-      .modbus
+      .modbus()
       .read_from_destination(destination, device.detect.clone())
       .await
       .ok()?
@@ -96,7 +94,7 @@ impl Process {
   ) -> Option<DeviceMatch> {
     self
       .services
-      .modbus
+      .modbus()
       .read_from_destination(destination, device.id)
       .await
       .ok()
@@ -108,10 +106,15 @@ impl Process {
   }
 
   async fn consolidate(&self, device_match: DeviceMatch) {
-    match self.services.db.get_device(device_match.id.as_str()).await {
+    match self
+      .services
+      .db()
+      .get_device(device_match.id.as_str())
+      .await
+    {
       Ok(Some(_)) => {
         let now = chrono::Utc::now();
-        self.services.db.update_device_destination(
+        self.services.db().update_device_destination(
           &device_match.id,
           db::to_network(device_match.destination.address.ip()),
           db::to_db_slave(device_match.destination.slave),
@@ -123,7 +126,7 @@ impl Process {
         let now = chrono::Utc::now();
         self
           .services
-          .db
+          .db()
           .insert_device(db::Device {
             id: device_match.id,
             kind: device_match.kind,

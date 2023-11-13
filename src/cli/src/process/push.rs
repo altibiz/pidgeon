@@ -1,30 +1,28 @@
-use std::sync::Arc;
-
-use crate::{config, service::*};
+use crate::{service::*, *};
 
 pub struct Process {
   config: config::Manager,
-  services: Arc<super::Services>,
+  services: service::Container,
 }
 
-impl super::Process for Process {
-  fn new(config: config::Manager, services: Arc<super::Services>) -> Self {
+impl process::Process for Process {
+  fn new(config: config::Manager, services: service::Container) -> Self {
     Self { config, services }
   }
 }
 
 #[async_trait::async_trait]
-impl super::Recurring for Process {
+impl process::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
     let last_pushed_id =
-      match self.services.db.get_last_successful_push_log().await? {
+      match self.services.db().get_last_successful_push_log().await? {
         Some(log) => log.last,
         None => 0,
       };
 
     let mut measurements_to_push = self
       .services
-      .db
+      .db()
       .get_measurements(last_pushed_id, 1000)
       .await?;
     let last_push_id =
@@ -35,7 +33,7 @@ impl super::Recurring for Process {
 
     let result = self
       .services
-      .cloud
+      .cloud()
       .push(
         measurements_to_push
           .drain(0..)
@@ -67,7 +65,7 @@ impl super::Recurring for Process {
       kind: db::LogKind::Push,
       response: serde_json::Value::String(log_response),
     };
-    self.services.db.insert_log(log).await?;
+    self.services.db().insert_log(log).await?;
 
     Ok(())
   }
