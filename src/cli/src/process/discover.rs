@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use futures::future::join_all;
 
 use crate::{config, service::*};
@@ -6,11 +8,11 @@ use crate::{config, service::*};
 
 pub struct Process {
   config: config::Manager,
-  services: super::Services,
+  services: Arc<super::Services>,
 }
 
 impl super::Process for Process {
-  fn new(config: config::Manager, services: super::Services) -> Self {
+  fn new(config: config::Manager, services: Arc<super::Services>) -> Self {
     Self { config, services }
   }
 }

@@ -44,12 +44,12 @@ struct UnparsedHardwareFile {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct UnparsedNetworkFile {
-  timeout: Option<u64>,
+  timeout: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct UnparsedDbFile {
-  timeout: Option<u64>,
+  timeout: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -115,26 +115,27 @@ struct UnparsedDevice {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct UnparsedModbusFile {
-  initial_timeout: u64,
-  initial_backoff: u64,
-  initial_retries: u64,
-  batch_threshold: usize,
+  initial_timeout: u32,
+  initial_backoff: u32,
+  initial_retries: u32,
+  batch_threshold: u32,
+  termination_timeout: u32,
   devices: HashMap<String, UnparsedDevice>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct UnparsedCloudFile {
-  timeout: Option<u64>,
+  timeout: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct UnparsedFile {
   log_level: Option<LogLevel>,
-  discover_interval: Option<u64>,
-  ping_interval: Option<u64>,
-  measure_interval: Option<u64>,
-  push_interval: Option<u64>,
-  update_interval: Option<u64>,
+  discover_interval: Option<u32>,
+  ping_interval: Option<u32>,
+  measure_interval: Option<u32>,
+  push_interval: Option<u32>,
+  update_interval: Option<u32>,
   hardware: UnparsedHardwareFile,
   network: UnparsedNetworkFile,
   modbus: UnparsedModbusFile,
@@ -182,7 +183,7 @@ struct Unparsed {
 
 #[derive(Debug, Clone)]
 pub struct Db {
-  pub timeout: u64,
+  pub timeout: chrono::Duration,
   pub ssl: bool,
   pub domain: String,
   pub port: Option<u16>,
@@ -193,7 +194,7 @@ pub struct Db {
 
 #[derive(Debug, Clone)]
 pub struct Network {
-  pub timeout: u64,
+  pub timeout: chrono::Duration,
   pub ip_range: IpAddrRange,
 }
 
@@ -204,7 +205,7 @@ pub struct Hardware {
 
 #[derive(Debug, Clone)]
 pub struct Cloud {
-  pub timeout: u64,
+  pub timeout: chrono::Duration,
   pub ssl: bool,
   pub domain: String,
   pub api_key: Option<String>,
@@ -221,10 +222,11 @@ pub struct Device {
 
 #[derive(Debug, Clone)]
 pub struct Modbus {
-  pub initial_timeout: u64,
-  pub initial_backoff: u64,
-  pub initial_retries: u64,
-  pub batching_threshold: usize,
+  pub initial_timeout: chrono::Duration,
+  pub initial_backoff: chrono::Duration,
+  pub initial_retries: u32,
+  pub batch_threshold: u32,
+  pub termination_timeout: chrono::Duration,
   pub devices: HashMap<String, Device>,
 }
 
@@ -237,11 +239,11 @@ pub struct Values {
   pub hardware: Hardware,
   pub dev: bool,
   pub log_level: LogLevel,
-  pub discover_interval: u64,
-  pub ping_interval: u64,
-  pub measure_interval: u64,
-  pub push_interval: u64,
-  pub update_interval: u64,
+  pub discover_interval: chrono::Duration,
+  pub ping_interval: chrono::Duration,
+  pub measure_interval: chrono::Duration,
+  pub push_interval: chrono::Duration,
+  pub update_interval: chrono::Duration,
 }
 
 #[derive(Debug, Clone)]
@@ -348,23 +350,37 @@ impl Manager {
           LogLevel::Info
         },
       ),
-      discover_interval: config.from_file.discover_interval.unwrap_or(60000),
-      ping_interval: config.from_file.ping_interval.unwrap_or(60000),
-      measure_interval: config.from_file.ping_interval.unwrap_or(60000),
-      push_interval: config.from_file.push_interval.unwrap_or(60000),
-      update_interval: config.from_file.update_interval.unwrap_or(60000),
+      discover_interval: chrono::Duration::milliseconds(
+        config.from_file.discover_interval.unwrap_or(60000) as i64,
+      ),
+      ping_interval: chrono::Duration::milliseconds(
+        config.from_file.ping_interval.unwrap_or(60000) as i64,
+      ),
+      measure_interval: chrono::Duration::milliseconds(
+        config.from_file.ping_interval.unwrap_or(60000) as i64,
+      ),
+      push_interval: chrono::Duration::milliseconds(
+        config.from_file.push_interval.unwrap_or(60000) as i64,
+      ),
+      update_interval: chrono::Duration::milliseconds(
+        config.from_file.update_interval.unwrap_or(60000) as i64,
+      ),
       hardware: Hardware {
         temperature_monitor: config.from_file.hardware.temperature_monitor,
       },
       cloud: Cloud {
-        timeout: config.from_file.cloud.timeout.unwrap_or(30000),
+        timeout: chrono::Duration::milliseconds(
+          config.from_file.cloud.timeout.unwrap_or(30000) as i64,
+        ),
         ssl: config.from_env.cloud.ssl,
         domain: config.from_env.cloud.domain,
         api_key: config.from_env.cloud.api_key,
         id: config.from_env.cloud.id,
       },
       db: Db {
-        timeout: config.from_file.db.timeout.unwrap_or(30000),
+        timeout: chrono::Duration::milliseconds(
+          config.from_file.db.timeout.unwrap_or(30000) as i64,
+        ),
         ssl: config.from_env.db.ssl,
         domain: config.from_env.db.domain,
         port: config
@@ -377,16 +393,26 @@ impl Manager {
         name: config.from_env.db.name,
       },
       network: Network {
-        timeout: config.from_file.network.timeout.unwrap_or(30000),
+        timeout: chrono::Duration::milliseconds(
+          config.from_file.network.timeout.unwrap_or(30000) as i64,
+        ),
         ip_range: Self::make_ip_range(
           config.from_env.network.ip_range_start,
           config.from_env.network.ip_range_end,
         )?,
       },
       modbus: Modbus {
-        initial_timeout: config.from_file.modbus.initial_timeout,
-        initial_backoff: config.from_file.modbus.initial_backoff,
+        initial_timeout: chrono::Duration::milliseconds(
+          config.from_file.modbus.initial_timeout as i64,
+        ),
+        initial_backoff: chrono::Duration::milliseconds(
+          config.from_file.modbus.initial_backoff as i64,
+        ),
         initial_retries: config.from_file.modbus.initial_retries,
+        batch_threshold: config.from_file.modbus.batch_threshold,
+        termination_timeout: chrono::Duration::milliseconds(
+          config.from_file.modbus.termination_timeout as i64,
+        ),
         devices: config
           .from_file
           .modbus
@@ -418,7 +444,6 @@ impl Manager {
             )
           })
           .collect::<HashMap<_, _>>(),
-        batching_threshold: config.from_file.modbus.batch_threshold,
       },
     };
 

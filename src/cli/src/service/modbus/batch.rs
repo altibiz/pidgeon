@@ -91,7 +91,7 @@ impl<TSpan: Span, TSpanParser: Span + SpanParser<TSpan>>
 
 pub fn batch_spans<TSpan: Span, TIntoIterator: IntoIterator<Item = TSpan>>(
   spans: TIntoIterator,
-  threshold: usize,
+  threshold: u32,
 ) -> Vec<Batch<TSpan>> {
   let mut spans = spans.into_iter().collect::<Vec<_>>();
   spans.sort_by_key(|span| span.address());
@@ -111,7 +111,7 @@ pub fn batch_spans<TSpan: Span, TIntoIterator: IntoIterator<Item = TSpan>>(
   for span in iter {
     let end = current.address + current.quantity;
     let gap = span.address() - end;
-    if (gap as usize) < threshold {
+    if (gap as u32) < threshold {
       current.quantity += gap + span.quantity();
       current.spans.push(span);
     } else {

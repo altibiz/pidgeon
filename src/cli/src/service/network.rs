@@ -7,19 +7,23 @@ use tokio::task::JoinHandle;
 use crate::*;
 
 #[derive(Debug, Clone)]
-pub struct Client {
+pub struct Service {
   ip_range: IpAddrRange,
   timeout: std::time::Duration,
 }
 
-impl Client {
-  pub fn new(config: config::Values) -> Self {
+impl service::Service for Service {
+  fn new(config: config::Values) -> Self {
     Self {
       ip_range: config.network.ip_range,
-      timeout: std::time::Duration::from_millis(config.network.timeout),
+      timeout: std::time::Duration::from_millis(
+        config.network.timeout.num_milliseconds() as u64,
+      ),
     }
   }
+}
 
+impl Service {
   #[tracing::instrument(skip(self))]
   pub async fn scan(&self) -> Vec<SocketAddr> {
     let timeout = self.timeout;

@@ -50,7 +50,7 @@ pub struct Response {
 }
 
 #[derive(Debug, Clone)]
-pub struct Client {
+pub struct Service {
   push_endpoint: String,
   update_endpoint: String,
   http: HttpClient,
@@ -74,13 +74,15 @@ pub enum PushError {
   HttpError(#[from] HttpError),
 }
 
-impl Client {
-  pub fn new(config: config::Values) -> Result<Self, ConstructionError> {
+impl service::Service for Service {
+  fn new(config: config::Values) -> Self {
+    #[allow(clippy::unwrap_used)]
     let id = match config.cloud.id {
       Some(id) => id,
       None => {
         "pidgeon-".to_string()
-          + fs::read_to_string("/sys/firmware/devicetree/base/serial-number")?
+          + fs::read_to_string("/sys/firmware/devicetree/base/serial-number")
+            .unwrap()
             .as_str()
       }
     };
@@ -95,21 +97,27 @@ impl Client {
     let mut headers = HeaderMap::new();
     match config.cloud.api_key {
       Some(api_key) => {
-        let value = HeaderValue::from_str(api_key.as_str())?;
+        #[allow(clippy::unwrap_used)]
+        let value = HeaderValue::from_str(api_key.as_str()).unwrap();
         headers.insert("X-API-Key", value);
       }
       None => {
-        let value = HeaderValue::from_str((id + "-oil-rulz-5000").as_str())?;
+        #[allow(clippy::unwrap_used)]
+        let value =
+          HeaderValue::from_str((id + "-oil-rulz-5000").as_str()).unwrap();
         headers.insert("X-API-Key", value);
       }
     };
 
     let builder = HttpClient::builder()
-      .timeout(Duration::from_millis(config.cloud.timeout))
+      .timeout(Duration::from_millis(
+        config.cloud.timeout.num_milliseconds() as u64,
+      ))
       .default_headers(headers)
       .gzip(true);
 
-    let http = builder.build()?;
+    #[allow(clippy::unwrap_used)]
+    let http = builder.build().unwrap();
 
     let client = Self {
       push_endpoint,
@@ -117,9 +125,11 @@ impl Client {
       http,
     };
 
-    Ok(client)
+    client
   }
+}
 
+impl Service {
   #[tracing::instrument(skip_all, fields(count = measurements.len()))]
   pub async fn push(
     &self,

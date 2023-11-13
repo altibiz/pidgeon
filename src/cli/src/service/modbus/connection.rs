@@ -99,14 +99,14 @@ impl Connection {
 pub struct Params {
   timeout: futures_time::time::Duration,
   backoff: tokio::time::Duration,
-  retries: usize,
+  retries: u32,
 }
 
 impl Params {
   pub fn new(
     timeout: chrono::Duration,
     backoff: chrono::Duration,
-    retries: usize,
+    retries: u32,
   ) -> Self {
     let timeout = timeout_from_chrono(timeout);
     let backoff = backoff_from_chrono(backoff);
@@ -125,7 +125,7 @@ impl Params {
     backoff_to_chrono(self.backoff)
   }
 
-  pub fn retries(self) -> usize {
+  pub fn retries(self) -> u32 {
     self.retries
   }
 }

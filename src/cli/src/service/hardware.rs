@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::*;
 
-pub struct Client {
+pub struct Service {
   temperature_monitor: PathBuf,
 }
 
@@ -15,13 +15,15 @@ pub enum ReadError {
   ParseError(#[from] core::num::ParseFloatError),
 }
 
-impl Client {
-  pub fn new(config: config::Values) -> Self {
+impl super::Service for Service {
+  fn new(config: config::Values) -> Self {
     Self {
       temperature_monitor: config.hardware.temperature_monitor.into(),
     }
   }
+}
 
+impl Service {
   pub async fn temperature(&self) -> Result<f32, ReadError> {
     let temperature =
       tokio::fs::read_to_string(self.temperature_monitor.as_path()).await?;

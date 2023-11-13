@@ -4,6 +4,8 @@ use futures::StreamExt;
 use futures_core::Stream;
 use tokio::sync::Mutex;
 
+use crate::*;
+
 use super::batch::*;
 use super::connection::{Destination, Params};
 use super::span::*;
@@ -12,11 +14,11 @@ use super::worker::*;
 // TODO: remove cloning and clone constraints
 
 #[derive(Clone, Debug)]
-pub struct Client {
+pub struct Service {
   devices: Arc<Mutex<HashMap<String, Device>>>,
   servers: Arc<Mutex<HashMap<SocketAddr, Server>>>,
   initial_params: Params,
-  batch_threshold: usize,
+  batch_threshold: u32,
   termination_timeout: chrono::Duration,
 }
 
@@ -70,21 +72,23 @@ struct Device {
   destination: Destination,
 }
 
-impl Client {
-  pub fn new(
-    initial_params: Params,
-    batch_threshold: usize,
-    termination_timeout: chrono::Duration,
-  ) -> Self {
+impl service::Service for Service {
+  fn new(config: config::Values) -> Self {
     Self {
       devices: Arc::new(Mutex::new(HashMap::new())),
       servers: Arc::new(Mutex::new(HashMap::new())),
-      initial_params,
-      batch_threshold,
-      termination_timeout,
+      initial_params: Params::new(
+        config.modbus.initial_timeout,
+        config.modbus.initial_backoff,
+        config.modbus.initial_retries,
+      ),
+      batch_threshold: config.modbus.batch_threshold,
+      termination_timeout: config.modbus.termination_timeout,
     }
   }
+}
 
+impl Service {
   pub async fn bind(&self, id: String, destination: Destination) {
     let server = self.get_server(destination).await;
     {

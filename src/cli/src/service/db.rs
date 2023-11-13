@@ -10,7 +10,7 @@ use thiserror::Error;
 use crate::*;
 
 #[derive(Debug, Clone)]
-pub struct Client {
+pub struct Service {
   pool: Pool<Postgres>,
 }
 
@@ -86,8 +86,8 @@ pub enum MigrateError {
   Migration(#[from] sqlx::migrate::MigrateError),
 }
 
-impl Client {
-  pub fn new(config: config::Values) -> Self {
+impl service::Service for Service {
+  fn new(config: config::Values) -> Self {
     let mut options = sqlx::postgres::PgConnectOptions::new()
       .host(&config.db.domain)
       .username(&config.db.user)
@@ -111,7 +111,9 @@ impl Client {
 
     Self { pool }
   }
+}
 
+impl Service {
   #[tracing::instrument(skip(self))]
   pub async fn migrate(&self) -> Result<(), MigrateError> {
     MIGRATOR.run(&self.pool).await?;
