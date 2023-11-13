@@ -21,7 +21,7 @@ impl process::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
     let devices = self.services.db().get_devices().await?;
 
-    let config = self.config.reload_async().await?;
+    let config = self.config.reload_async().await;
 
     try_join_all(
       join_all(devices.iter().cloned().map(move |device| {

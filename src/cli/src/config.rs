@@ -7,7 +7,7 @@ use tokio::sync::Mutex;
 
 use crate::service::modbus;
 
-// TODO: make unparsed private, parsed to just normal name without parsed prefix
+// TODO: split into files
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -298,49 +298,66 @@ impl Manager {
   }
 
   #[allow(unused)]
-  pub fn config(&self) -> Result<Values, ParseError> {
+  pub fn values(&self) -> Values {
     let config = self.values.blocking_lock().clone();
-    let parsed = Self::parse_config(config)?;
-    Ok(parsed)
+    let parsed = Self::parse_config(config);
+    parsed
   }
 
   #[allow(unused)]
-  pub async fn config_async(&self) -> Result<Values, ParseError> {
+  pub async fn values_async(&self) -> Values {
     let config = self.values.lock().await.clone();
-    let parsed = Self::parse_config(config)?;
-    Ok(parsed)
+    let parsed = Self::parse_config(config);
+    parsed
   }
 
   #[allow(unused)]
-  pub fn reload(&self) -> Result<Values, RealoadError> {
+  pub fn reload(&self) -> Values {
     let config = {
       let mut values = self.values.blocking_lock();
-      let from_file = Self::read_from_file(values.from_args.config.clone())?;
-      values.from_file = from_file;
+      let from_file = Self::read_from_file(values.from_args.config.clone());
+      match from_file {
+        Ok(from_file) => values.from_file = from_file,
+        Err(error) => {
+          tracing::error! {
+            %error,
+            "Failed parsing config file"
+          }
+        }
+      }
+
       values.clone()
     };
 
-    let parsed = Self::parse_config(config)?;
+    let parsed = Self::parse_config(config);
 
-    Ok(parsed)
+    parsed
   }
 
   #[allow(unused)]
-  pub async fn reload_async(&self) -> Result<Values, RealoadError> {
+  pub async fn reload_async(&self) -> Values {
     let config = {
       let mut values = self.values.lock().await;
       let from_file =
-        Self::read_from_file_async(values.from_args.config.clone()).await?;
-      values.from_file = from_file;
+        Self::read_from_file_async(values.from_args.config.clone()).await;
+      match from_file {
+        Ok(from_file) => values.from_file = from_file,
+        Err(error) => {
+          tracing::error! {
+            %error,
+            "Failed parsing config file"
+          }
+        }
+      }
       values.clone()
     };
 
-    let parsed = Self::parse_config(config)?;
+    let parsed = Self::parse_config(config);
 
-    Ok(parsed)
+    parsed
   }
 
-  fn parse_config(config: Unparsed) -> Result<Values, ParseError> {
+  fn parse_config(config: Unparsed) -> Values {
     let parsed = Values {
       dev: config.from_args.dev,
       log_level: config.from_file.log_level.unwrap_or(
@@ -399,7 +416,7 @@ impl Manager {
         ip_range: Self::make_ip_range(
           config.from_env.network.ip_range_start,
           config.from_env.network.ip_range_end,
-        )?,
+        ),
       },
       modbus: Modbus {
         initial_timeout: chrono::Duration::milliseconds(
@@ -447,22 +464,20 @@ impl Manager {
       },
     };
 
-    Ok(parsed)
+    parsed
   }
 
-  fn make_ip_range(
-    start: String,
-    end: String,
-  ) -> Result<IpAddrRange, ParseError> {
+  fn make_ip_range(start: String, end: String) -> IpAddrRange {
     let (start, end) = match (start.parse(), end.parse()) {
       (Ok(start), Ok(end)) => (start, end),
-      _ => match ("192.168.1.0".parse(), "192.168.1.255".parse()) {
-        (Ok(start), Ok(end)) => (start, end),
-        _ => return Err(ParseError::IpRangeParse),
-      },
+      #[allow(clippy::unwrap_used)]
+      _ => (
+        "192.168.1.0".parse().unwrap(),
+        "192.168.1.255".parse().unwrap(),
+      ),
     };
 
-    Ok(IpAddrRange::from(Ipv4AddrRange::new(start, end)))
+    IpAddrRange::from(Ipv4AddrRange::new(start, end))
   }
 
   fn to_modbus_measurement_register(

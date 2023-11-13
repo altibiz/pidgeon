@@ -36,7 +36,7 @@ impl process::Recurring for Process {
         "Failed to send measurements to the db"
       }
     }
-    let config = self.config.reload_async().await?;
+    let config = self.config.reload_async().await;
     let devices_from_db = self.get_devices_from_db(config).await?;
     let mut streams = self.streams.clone().lock_owned().await;
     self.merge_devices(&mut streams, devices_from_db).await;

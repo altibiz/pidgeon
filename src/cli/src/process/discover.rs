@@ -20,7 +20,7 @@ impl process::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
     let addresses = self.services.network().scan().await;
 
-    let config = self.config.reload_async().await?;
+    let config = self.config.reload_async().await;
 
     join_all(
       join_all(

@@ -22,7 +22,7 @@ use crate::*;
 async fn main() -> anyhow::Result<()> {
   let config = config::Manager::new()?;
 
-  let services = service::Container::new(config.config_async().await?);
+  let services = service::Container::new(config.values_async().await?);
 
   let discover = discover::Process::new(config.clone(), services.clone());
   let ping = ping::Process::new(config.clone(), services.clone());
