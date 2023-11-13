@@ -34,6 +34,7 @@ impl Container {
     }
   }
 
+  #[allow(unused)]
   pub async fn abort(&self) {
     {
       let mut handles = self.handles.clone().lock_owned().await;
@@ -46,6 +47,7 @@ impl Container {
     }
   }
 
+  #[allow(unused)]
   pub async fn cancel(&self) {
     {
       let mut handles = self.handles.clone().lock_owned().await;
@@ -62,6 +64,7 @@ impl Container {
     }
   }
 
+  #[allow(unused)]
   pub async fn join(&self) {
     {
       let mut handles = self.handles.clone().lock_owned().await;
@@ -74,57 +77,34 @@ impl Container {
     }
   }
 }
+
 impl Container {
+  #[allow(unused)]
   pub async fn spawn(&self) {
     let config = self.config.values_async().await;
 
     {
       let mut handles = self.handles.clone().lock_owned().await;
       let specs = vec![
-        Spec {
-          process: Box::new(discover::Process::new(
-            self.config.clone(),
-            self.services.clone(),
-          )),
-          interval: config.discover_interval,
-        },
-        Spec {
-          process: Box::new(ping::Process::new(
-            self.config.clone(),
-            self.services.clone(),
-          )),
-          interval: config.ping_interval,
-        },
-        Spec {
-          process: Box::new(measure::Process::new(
-            self.config.clone(),
-            self.services.clone(),
-          )),
-          interval: config.measure_interval,
-        },
-        Spec {
-          process: Box::new(push::Process::new(
-            self.config.clone(),
-            self.services.clone(),
-          )),
-          interval: config.push_interval,
-        },
-        Spec {
-          process: Box::new(update::Process::new(
-            self.config.clone(),
-            self.services.clone(),
-          )),
-          interval: config.update_interval,
-        },
+        self.make_recurring_spec::<discover::Process>(config.discover_interval),
+        self.make_recurring_spec::<ping::Process>(config.ping_interval),
+        self.make_recurring_spec::<measure::Process>(config.measure_interval),
+        self.make_recurring_spec::<push::Process>(config.push_interval),
+        self.make_recurring_spec::<update::Process>(config.update_interval),
       ];
-      *handles = Some(specs.into_iter().map(Handle::new).collect());
+      *handles = Some(specs.into_iter().map(Handle::recurring).collect());
     }
   }
-}
 
-struct Spec {
-  process: Box<dyn Recurring + Sync + Send>,
-  interval: chrono::Duration,
+  fn make_recurring_spec<T: Process + Recurring + Send + Sync + 'static>(
+    &self,
+    interval: chrono::Duration,
+  ) -> RecurringSpec {
+    RecurringSpec {
+      process: Box::new(T::new(self.config.clone(), self.services.clone())),
+      interval,
+    }
+  }
 }
 
 struct Handle {
@@ -133,8 +113,13 @@ struct Handle {
   join: tokio::task::JoinHandle<()>,
 }
 
+struct RecurringSpec {
+  process: Box<dyn Recurring + Sync + Send>,
+  interval: chrono::Duration,
+}
+
 impl Handle {
-  fn new(spec: Spec) -> Self {
+  fn recurring(spec: RecurringSpec) -> Self {
     let token = tokio_util::sync::CancellationToken::new();
     let child_token = token.child_token();
     let join = tokio::spawn(async move {

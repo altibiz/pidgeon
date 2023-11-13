@@ -74,6 +74,7 @@ pub enum PushError {
   HttpError(#[from] HttpError),
 }
 
+#[async_trait::async_trait]
 impl service::Service for Service {
   fn new(config: config::Values) -> Self {
     #[allow(clippy::unwrap_used)]
@@ -119,13 +120,17 @@ impl service::Service for Service {
     #[allow(clippy::unwrap_used)]
     let http = builder.build().unwrap();
 
-    let client = Self {
+    Self {
       push_endpoint,
       update_endpoint,
       http,
-    };
+    }
+  }
 
-    client
+  async fn init(&self) -> anyhow::Result<()> {
+    MIGRATOR.run(&self.pool).await?;
+
+    Ok(())
   }
 }
 

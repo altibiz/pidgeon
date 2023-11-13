@@ -252,15 +252,6 @@ pub struct Manager {
 }
 
 #[derive(Debug, Error)]
-pub enum ParseError {
-  #[error("Failed parsing port")]
-  PortParse(#[from] std::num::ParseIntError),
-
-  #[error("Failed parsing ip range")]
-  IpRangeParse,
-}
-
-#[derive(Debug, Error)]
 pub enum ReadError {
   #[error("Failed creating project directories")]
   MissingProjectDirs,
@@ -276,12 +267,9 @@ pub enum ReadError {
 }
 
 #[derive(Debug, Error)]
-pub enum RealoadError {
+pub enum ReloadError {
   #[error("Failed reading config")]
   ReadError(#[from] ReadError),
-
-  #[error("Failed parsing config")]
-  ParseError(#[from] ParseError),
 }
 
 impl Manager {
@@ -300,15 +288,15 @@ impl Manager {
   #[allow(unused)]
   pub fn values(&self) -> Values {
     let config = self.values.blocking_lock().clone();
-    let parsed = Self::parse_config(config);
-    parsed
+
+    Self::parse_config(config)
   }
 
   #[allow(unused)]
   pub async fn values_async(&self) -> Values {
     let config = self.values.lock().await.clone();
-    let parsed = Self::parse_config(config);
-    parsed
+
+    Self::parse_config(config)
   }
 
   #[allow(unused)]
@@ -329,9 +317,7 @@ impl Manager {
       values.clone()
     };
 
-    let parsed = Self::parse_config(config);
-
-    parsed
+    Self::parse_config(config)
   }
 
   #[allow(unused)]
@@ -352,13 +338,11 @@ impl Manager {
       values.clone()
     };
 
-    let parsed = Self::parse_config(config);
-
-    parsed
+    Self::parse_config(config)
   }
 
   fn parse_config(config: Unparsed) -> Values {
-    let parsed = Values {
+    Values {
       dev: config.from_args.dev,
       log_level: config.from_file.log_level.unwrap_or(
         if config.from_args.dev {
@@ -462,9 +446,7 @@ impl Manager {
           })
           .collect::<HashMap<_, _>>(),
       },
-    };
-
-    parsed
+    }
   }
 
   fn make_ip_range(start: String, end: String) -> IpAddrRange {
