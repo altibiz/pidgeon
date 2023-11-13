@@ -7,6 +7,8 @@ use sqlx::{
 };
 use thiserror::Error;
 
+use crate::*;
+
 #[derive(Debug, Clone)]
 pub struct Client {
   pool: Pool<Postgres>,
@@ -85,37 +87,27 @@ pub enum MigrateError {
 }
 
 impl Client {
-  pub fn new(
-    timeout: u64,
-    ssl: bool,
-    domain: String,
-    port: Option<u16>,
-    user: String,
-    password: Option<String>,
-    name: String,
-  ) -> Self {
+  pub fn new(config: config::Parsed) -> Self {
     let mut options = sqlx::postgres::PgConnectOptions::new()
-      .host(domain.as_str())
-      .username(user.as_str())
-      .database(name.as_str())
-      .options([("statement_timeout", timeout.to_string().as_str())]);
+      .host(&config.db.domain)
+      .username(&config.db.user)
+      .database(&config.db.name)
+      .options([("statement_timeout", &config.db.timeout.to_string())]);
 
-    if let Some(port) = port {
+    if let Some(port) = config.db.port {
       options = options.port(port);
     }
 
-    if let Some(password) = password {
+    if let Some(password) = config.db.password {
       options = options.password(password.as_str());
     }
 
     options = options.ssl_mode(sqlx::postgres::PgSslMode::Disable);
-    if ssl {
+    if config.db.ssl {
       options = options.ssl_mode(sqlx::postgres::PgSslMode::Require);
     }
 
     let pool = sqlx::Pool::connect_lazy_with(options);
-
-    
 
     Self { pool }
   }

@@ -8,6 +8,8 @@ use reqwest::{
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+use crate::*;
+
 // TODO: pidgeon diag in health
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,14 +75,8 @@ pub enum PushError {
 }
 
 impl Client {
-  pub fn new(
-    domain: String,
-    ssl: bool,
-    api_key: Option<String>,
-    timeout: u64,
-    id: Option<String>,
-  ) -> Result<Self, ConstructionError> {
-    let id = match id {
+  pub fn new(config: config::Parsed) -> Result<Self, ConstructionError> {
+    let id = match config.cloud.id {
       Some(id) => id,
       None => {
         "pidgeon-".to_string()
@@ -89,13 +85,15 @@ impl Client {
       }
     };
 
-    let protocol = if ssl { "https" } else { "http" };
+    let protocol = if config.cloud.ssl { "https" } else { "http" };
+
+    let domain = config.cloud.domain;
 
     let push_endpoint = format!("{protocol}://{domain}/push/{id}");
     let update_endpoint = format!("{protocol}://{domain}/update/{id}");
 
     let mut headers = HeaderMap::new();
-    match api_key {
+    match config.cloud.api_key {
       Some(api_key) => {
         let value = HeaderValue::from_str(api_key.as_str())?;
         headers.insert("X-API-Key", value);
@@ -107,7 +105,7 @@ impl Client {
     };
 
     let builder = HttpClient::builder()
-      .timeout(Duration::from_millis(timeout))
+      .timeout(Duration::from_millis(config.cloud.timeout))
       .default_headers(headers)
       .gzip(true);
 

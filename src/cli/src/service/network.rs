@@ -1,18 +1,23 @@
-use ipnet::IpAddrRange;
 use std::net::{IpAddr, SocketAddr};
-use std::time::Duration;
+
+use ipnet::IpAddrRange;
 use tokio::net::TcpStream;
 use tokio::task::JoinHandle;
+
+use crate::*;
 
 #[derive(Debug, Clone)]
 pub struct Client {
   ip_range: IpAddrRange,
-  timeout: Duration,
+  timeout: std::time::Duration,
 }
 
 impl Client {
-  pub fn new(ip_range: IpAddrRange, timeout: Duration) -> Self {
-    Self { ip_range, timeout }
+  pub fn new(config: config::Parsed) -> Self {
+    Self {
+      ip_range: config.network.ip_range,
+      timeout: std::time::Duration::from_millis(config.network.timeout),
+    }
   }
 
   #[tracing::instrument(skip(self))]

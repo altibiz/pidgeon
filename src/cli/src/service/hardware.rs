@@ -1,7 +1,9 @@
 use std::path::PathBuf;
 
+use crate::*;
+
 pub struct Client {
-  hwmon: PathBuf,
+  temperature_monitor: PathBuf,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -14,14 +16,15 @@ pub enum ReadError {
 }
 
 impl Client {
-  pub fn new(hwmon: String) -> Self {
+  pub fn new(config: config::Parsed) -> Self {
     Self {
-      hwmon: hwmon.into(),
+      temperature_monitor: config.hardware.temperature_monitor,
     }
   }
 
   pub async fn temperature(&self) -> Result<f32, ReadError> {
-    let temperature = tokio::fs::read_to_string(self.hwmon.as_path()).await?;
+    let temperature =
+      tokio::fs::read_to_string(self.temperature_monitor.as_path()).await?;
     let temperature = temperature.parse::<f32>()? / 1000f32;
     Ok(temperature)
   }

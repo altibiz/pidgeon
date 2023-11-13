@@ -11,13 +11,13 @@ use crate::service::modbus;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum Plural<T> {
+enum Plural<T> {
   One(T),
   Many(Vec<T>),
 }
 
 impl<T: Clone> Plural<T> {
-  pub fn normalize(&self) -> Vec<T> {
+  fn normalize(&self) -> Vec<T> {
     match self {
       Plural::One(item) => vec![item.clone()],
       Plural::Many(items) => items.clone(),
@@ -38,6 +38,11 @@ struct FromArgs {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+struct HardwareFile {
+  temperature_monitor: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct NetworkFile {
   timeout: Option<u64>,
 }
@@ -55,14 +60,6 @@ pub enum LogLevel {
   Info,
   Warn,
   Error,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct RuntimeFile {
-  log_level: Option<LogLevel>,
-  scan_interval: Option<u64>,
-  pull_interval: Option<u64>,
-  push_interval: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -131,7 +128,13 @@ struct CloudFile {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct FromFile {
-  runtime: RuntimeFile,
+  log_level: Option<LogLevel>,
+  discover_interval: Option<u64>,
+  ping_interval: Option<u64>,
+  measure_interval: Option<u64>,
+  push_interval: Option<u64>,
+  update_interval: Option<u64>,
+  hardware: HardwareFile,
   network: NetworkFile,
   modbus: ModbusFile,
   cloud: CloudFile,
@@ -177,13 +180,7 @@ struct Unparsed {
 }
 
 #[derive(Debug, Clone)]
-pub struct ParsedRuntime {
-  pub dev: bool,
-  pub log_level: LogLevel,
-  pub scan_interval: u64,
-  pub pull_interval: u64,
-  pub push_interval: u64,
-}
+pub struct ParsedRuntime {}
 
 #[derive(Debug, Clone)]
 pub struct ParsedDb {
@@ -200,6 +197,11 @@ pub struct ParsedDb {
 pub struct ParsedNetwork {
   pub timeout: u64,
   pub ip_range: IpAddrRange,
+}
+
+#[derive(Debug, Clone)]
+pub struct ParsedHardware {
+  pub temperature_monitor: String,
 }
 
 #[derive(Debug, Clone)]
@@ -233,7 +235,14 @@ pub struct Parsed {
   pub db: ParsedDb,
   pub network: ParsedNetwork,
   pub modbus: ParsedModbus,
-  pub runtime: ParsedRuntime,
+  pub hardware: ParsedHardware,
+  pub dev: bool,
+  pub log_level: LogLevel,
+  pub discover_interval: u64,
+  pub ping_interval: u64,
+  pub measure_interval: u64,
+  pub push_interval: u64,
+  pub update_interval: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -331,18 +340,32 @@ impl Manager {
   }
 
   fn parse_config(config: Unparsed) -> Result<Parsed, ParseError> {
-    let pull_interval = config.from_file.runtime.pull_interval.unwrap_or(1000);
-
     let parsed = Parsed {
+      dev: config.from_args.dev,
+      log_level: config.from_file.log_level.unwrap_or(
+        if config.from_args.dev {
+          LogLevel::Debug
+        } else {
+          LogLevel::Info
+        },
+      ),
+      discover_interval: config.from_file.discover_interval.unwrap_or(60000),
+      ping_interval: config.from_file.ping_interval.unwrap_or(60000),
+      measure_interval: config.from_file.ping_interval.unwrap_or(60000),
+      push_interval: config.from_file.push_interval.unwrap_or(60000),
+      update_interval: config.from_file.update_interval.unwrap_or(60000),
+      hardware: ParsedHardware {
+        temperature_monitor: config.from_file.hardware.temperature_monitor,
+      },
       cloud: ParsedCloud {
-        timeout: config.from_file.cloud.timeout.unwrap_or(10000),
+        timeout: config.from_file.cloud.timeout.unwrap_or(30000),
         ssl: config.from_env.cloud.ssl,
         domain: config.from_env.cloud.domain,
         api_key: config.from_env.cloud.api_key,
         id: config.from_env.cloud.id,
       },
       db: ParsedDb {
-        timeout: config.from_file.db.timeout.unwrap_or(pull_interval),
+        timeout: config.from_file.db.timeout.unwrap_or(30000),
         ssl: config.from_env.db.ssl,
         domain: config.from_env.db.domain,
         port: config
@@ -355,7 +378,7 @@ impl Manager {
         name: config.from_env.db.name,
       },
       network: ParsedNetwork {
-        timeout: config.from_file.network.timeout.unwrap_or(pull_interval),
+        timeout: config.from_file.network.timeout.unwrap_or(30000),
         ip_range: Self::make_ip_range(
           config.from_env.network.ip_range_start,
           config.from_env.network.ip_range_end,
@@ -396,19 +419,6 @@ impl Manager {
           })
           .collect::<HashMap<_, _>>(),
         batching_threshold: config.from_file.modbus.batch_threshold,
-      },
-      runtime: ParsedRuntime {
-        log_level: config.from_file.runtime.log_level.unwrap_or(
-          if config.from_args.dev {
-            LogLevel::Debug
-          } else {
-            LogLevel::Info
-          },
-        ),
-        dev: config.from_args.dev,
-        scan_interval: config.from_file.runtime.scan_interval.unwrap_or(60000),
-        pull_interval,
-        push_interval: config.from_file.runtime.push_interval.unwrap_or(60000),
       },
     };
 
