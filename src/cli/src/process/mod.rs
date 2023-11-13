@@ -19,12 +19,6 @@ pub trait Recurring {
   async fn execute(&self) -> anyhow::Result<()>;
 }
 
-struct Handle {
-  token: tokio_util::sync::CancellationToken,
-  abort: tokio::task::AbortHandle,
-  join: tokio::task::JoinHandle<()>,
-}
-
 pub struct Container {
   config: config::Manager,
   services: service::Container,
@@ -79,48 +73,89 @@ impl Container {
       *handles = None;
     }
   }
-
+}
+impl Container {
   pub async fn spawn(&self) {
     let config = self.config.values_async().await;
-    struct Spec {
-      process: Box<dyn Recurring + Sync + Send>,
-      interval: chrono::Duration
-    }
 
     {
       let mut handles = self.handles.clone().lock_owned().await;
-        *handles = Some(vec![
+      let specs = vec![
         Spec {
-          process: Box::new( discover::Process::new(self.config.clone(), self.services.clone())),
+          process: Box::new(discover::Process::new(
+            self.config.clone(),
+            self.services.clone(),
+          )),
           interval: config.discover_interval,
-       },
-        ].into_iter().map(|Spec { process, interval }| { 
-          let token = tokio_util::sync::CancellationToken::new();
-          let child_token = token.child_token();
-          let join = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(std::time::Duration::from_millis(interval.num_milliseconds() as u64));
-            loop {
-              tokio::select! {
-                  _ = child_token.cancelled() => { return; },
-                  _ = async {
-                      if let Err(error) = process.execute().await {
-                          tracing::error! { %error, "Process execution failed" };
-                      }
+        },
+        Spec {
+          process: Box::new(ping::Process::new(
+            self.config.clone(),
+            self.services.clone(),
+          )),
+          interval: config.ping_interval,
+        },
+        Spec {
+          process: Box::new(measure::Process::new(
+            self.config.clone(),
+            self.services.clone(),
+          )),
+          interval: config.measure_interval,
+        },
+        Spec {
+          process: Box::new(push::Process::new(
+            self.config.clone(),
+            self.services.clone(),
+          )),
+          interval: config.push_interval,
+        },
+        Spec {
+          process: Box::new(update::Process::new(
+            self.config.clone(),
+            self.services.clone(),
+          )),
+          interval: config.update_interval,
+        },
+      ];
+      *handles = Some(specs.into_iter().map(Handle::new).collect());
+    }
+  }
+}
 
-                      interval.tick().await;
-                  } => { }
-              }
-            }
-          });
-        let abort = join.abort_handle();
-          
-            Handle {
-              token,
-              abort,
-            join
-            
-          }
-        }).collect());
+struct Spec {
+  process: Box<dyn Recurring + Sync + Send>,
+  interval: chrono::Duration,
+}
+
+struct Handle {
+  token: tokio_util::sync::CancellationToken,
+  abort: tokio::task::AbortHandle,
+  join: tokio::task::JoinHandle<()>,
+}
+
+impl Handle {
+  fn new(spec: Spec) -> Self {
+    let token = tokio_util::sync::CancellationToken::new();
+    let child_token = token.child_token();
+    let join = tokio::spawn(async move {
+      let mut interval =
+        tokio::time::interval(std::time::Duration::from_millis(
+          spec.interval.num_milliseconds() as u64,
+        ));
+      loop {
+        tokio::select! {
+            _ = child_token.cancelled() => { return; },
+            _ = async {
+                if let Err(error) = spec.process.execute().await {
+                    tracing::error! { %error, "Process execution failed" };
+                }
+
+                interval.tick().await;
+            } => { }
+        }
       }
+    });
+    let abort = join.abort_handle();
+    Self { token, abort, join }
   }
 }

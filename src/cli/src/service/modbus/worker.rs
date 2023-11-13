@@ -449,12 +449,7 @@ impl Task {
     };
 
     if partial.iter().all(|x| x.is_some()) {
-      Either::Right(
-        partial
-          .iter()
-          .flatten().cloned()
-          .collect::<Vec<_>>(),
-      )
+      Either::Right(partial.iter().flatten().cloned().collect::<Vec<_>>())
     } else {
       Either::Left(partial)
     }
