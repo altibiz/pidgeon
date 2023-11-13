@@ -17,7 +17,10 @@ mod service;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
   let config = config::Manager::new()?;
+
   let services = service::Container::new(config.values_async().await);
+  services.db().migrate().await?;
+
   let processes = process::Container::new(config, services);
 
   processes.spawn().await;

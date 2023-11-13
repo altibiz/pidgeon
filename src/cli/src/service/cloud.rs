@@ -126,12 +126,6 @@ impl service::Service for Service {
       http,
     }
   }
-
-  async fn init(&self) -> anyhow::Result<()> {
-    MIGRATOR.run(&self.pool).await?;
-
-    Ok(())
-  }
 }
 
 impl Service {
