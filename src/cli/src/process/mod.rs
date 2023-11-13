@@ -34,7 +34,6 @@ impl Container {
     }
   }
 
-  #[allow(unused)]
   pub async fn abort(&self) {
     {
       let mut handles = self.handles.clone().lock_owned().await;
@@ -47,7 +46,6 @@ impl Container {
     }
   }
 
-  #[allow(unused)]
   pub async fn cancel(&self) {
     {
       let mut handles = self.handles.clone().lock_owned().await;
@@ -64,7 +62,6 @@ impl Container {
     }
   }
 
-  #[allow(unused)]
   pub async fn join(&self) {
     {
       let mut handles = self.handles.clone().lock_owned().await;
@@ -79,7 +76,6 @@ impl Container {
 }
 
 impl Container {
-  #[allow(unused)]
   pub async fn spawn(&self) {
     let config = self.config.values_async().await;
     let specs = vec![

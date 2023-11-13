@@ -45,7 +45,6 @@ pub enum ConnectError {
 }
 
 impl Connection {
-  #[allow(unused)]
   pub async fn connect(destination: Destination) -> Result<Self, ConnectError> {
     match destination.slave {
       Some(slave) => Self::connect_slave(destination.address, slave).await,
@@ -53,7 +52,6 @@ impl Connection {
     }
   }
 
-  #[allow(unused)]
   pub async fn connect_standalone(
     socket: SocketAddr,
   ) -> Result<Self, ConnectError> {
@@ -68,7 +66,6 @@ impl Connection {
     })
   }
 
-  #[allow(unused)]
   pub async fn connect_slave(
     socket: SocketAddr,
     slave: u8,
@@ -89,12 +86,10 @@ impl Connection {
     })
   }
 
-  #[allow(unused)]
   pub fn socket(&self) -> SocketAddr {
     self.destination.address
   }
 
-  #[allow(unused)]
   pub fn slave(&self) -> Option<u8> {
     self.destination.slave
   }
@@ -122,16 +117,14 @@ impl Params {
     }
   }
 
-  #[allow(unused)]
   pub fn timeout(self) -> chrono::Duration {
     timeout_to_chrono(self.timeout)
   }
-  #[allow(unused)]
+
   pub fn backoff(self) -> chrono::Duration {
     backoff_to_chrono(self.backoff)
   }
 
-  #[allow(unused)]
   pub fn retries(self) -> u32 {
     self.retries
   }
@@ -147,7 +140,6 @@ pub enum ReadError {
 }
 
 impl Connection {
-  #[allow(unused)]
   pub async fn parameterized_read(
     &mut self,
     span: SimpleSpan,
@@ -171,7 +163,6 @@ impl Connection {
     response.ok_or(errors)
   }
 
-  #[allow(unused)]
   pub async fn simple_read(
     &mut self,
     span: SimpleSpan,

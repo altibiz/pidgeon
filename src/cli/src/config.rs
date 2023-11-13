@@ -285,21 +285,18 @@ impl Manager {
     Ok(config_manager)
   }
 
-  #[allow(unused)]
   pub fn values(&self) -> Values {
     let config = self.values.blocking_lock().clone();
 
     Self::parse_config(config)
   }
 
-  #[allow(unused)]
   pub async fn values_async(&self) -> Values {
     let config = self.values.lock().await.clone();
 
     Self::parse_config(config)
   }
 
-  #[allow(unused)]
   pub fn reload(&self) -> Values {
     let config = {
       let mut values = self.values.blocking_lock();
@@ -320,7 +317,6 @@ impl Manager {
     Self::parse_config(config)
   }
 
-  #[allow(unused)]
   pub async fn reload_async(&self) -> Values {
     let config = {
       let mut values = self.values.lock().await;
@@ -452,7 +448,7 @@ impl Manager {
   fn make_ip_range(start: String, end: String) -> IpAddrRange {
     let (start, end) = match (start.parse(), end.parse()) {
       (Ok(start), Ok(end)) => (start, end),
-      #[allow(clippy::unwrap_used)]
+      #[allow(clippy::unwrap_used)] // NOTE: valid ipv4 addresses
       _ => (
         "192.168.1.0".parse().unwrap(),
         "192.168.1.255".parse().unwrap(),

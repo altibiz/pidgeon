@@ -155,7 +155,7 @@ impl Service {
 
   #[tracing::instrument(skip(self))]
   pub async fn insert_device(&self, device: Device) -> Result<(), Error> {
-    #[allow(clippy::panic)]
+    #[allow(clippy::panic)] // NOTE: sqlx thing
     sqlx::query!(
       r#"
         insert into devices (id, kind, status, seen, pinged, address, slave)
@@ -177,7 +177,7 @@ impl Service {
 
   #[tracing::instrument(skip(self))]
   pub async fn delete_device(&self, id: &str) -> Result<(), Error> {
-    #[allow(clippy::panic)]
+    #[allow(clippy::panic)] // NOTE: sqlx thing
     sqlx::query!(
       r#"
         delete from devices
@@ -199,7 +199,7 @@ impl Service {
     seen: DateTime<Utc>,
     pinged: DateTime<Utc>,
   ) -> Result<(), Error> {
-    #[allow(clippy::panic)]
+    #[allow(clippy::panic)] // NOTE: sqlx thing
     sqlx::query!(
       r#"
         update devices
@@ -226,7 +226,7 @@ impl Service {
     seen: DateTime<Utc>,
     pinged: DateTime<Utc>,
   ) -> Result<(), Error> {
-    #[allow(clippy::panic)]
+    #[allow(clippy::panic)] // NOTE: sqlx thing
     sqlx::query!(
       r#"
         update devices
@@ -250,7 +250,7 @@ impl Service {
     &self,
     measurement: Measurement,
   ) -> Result<(), Error> {
-    #[allow(clippy::panic)]
+    #[allow(clippy::panic)] // NOTE: sqlx thing
     sqlx::query!(
       r#"
         insert into measurements (source, timestamp, data)
@@ -291,7 +291,7 @@ impl Service {
     from: i64,
     limit: i64,
   ) -> Result<Vec<Measurement>, Error> {
-    #[allow(clippy::panic)]
+    #[allow(clippy::panic)] // NOTE: sqlx thing
     let measurements = sqlx::query_as!(
       Measurement,
       r#"
@@ -311,7 +311,7 @@ impl Service {
 
   #[tracing::instrument(skip(self))]
   pub async fn insert_health(&self, health: Health) -> Result<(), Error> {
-    #[allow(clippy::panic)]
+    #[allow(clippy::panic)] // NOTE: sqlx thing
     sqlx::query!(
       r#"
         insert into health (source, timestamp, status, data)
@@ -354,7 +354,7 @@ impl Service {
     from: i64,
     limit: i64,
   ) -> Result<Vec<Health>, Error> {
-    #[allow(clippy::panic)]
+    #[allow(clippy::panic)] // NOTE: sqlx thing
     let health = sqlx::query_as!(
       Health,
       r#"
@@ -374,7 +374,7 @@ impl Service {
 
   #[tracing::instrument(skip(self))]
   pub async fn insert_log(&self, log: Log) -> Result<(), Error> {
-    #[allow(clippy::panic)]
+    #[allow(clippy::panic)] // NOTE: sqlx thing
     sqlx::query!(
       r#"
         insert into logs (timestamp, last, status, kind, response)
@@ -396,7 +396,7 @@ impl Service {
   pub async fn get_last_successful_push_log(
     &self,
   ) -> Result<Option<Log>, Error> {
-    #[allow(clippy::panic)]
+    #[allow(clippy::panic)] // NOTE: sqlx thing
     let log = sqlx::query_as!(
       Log,
       r#"
@@ -417,7 +417,7 @@ impl Service {
   pub async fn get_last_successful_update_log(
     &self,
   ) -> Result<Option<Log>, Error> {
-    #[allow(clippy::panic)]
+    #[allow(clippy::panic)] // NOTE: sqlx thing
     let log = sqlx::query_as!(
       Log,
       r#"
@@ -436,7 +436,7 @@ impl Service {
 }
 
 pub fn to_network(ip: IpAddr) -> IpNetwork {
-  #[allow(clippy::unwrap_used)]
+  #[allow(clippy::unwrap_used)] // NOTE: 24 is valid for ipv4
   IpNetwork::new(ip, 24).unwrap()
 }
 

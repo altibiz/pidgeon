@@ -89,7 +89,6 @@ impl service::Service for Service {
 }
 
 impl Service {
-  #[allow(unused)]
   pub async fn bind(&self, id: String, destination: Destination) {
     let server = self.get_server(destination).await;
     {
@@ -104,7 +103,6 @@ impl Service {
     }
   }
 
-  #[allow(unused)]
   pub async fn stop_from_id(&self, id: &str) {
     let mut server_to_remove = None;
 

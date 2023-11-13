@@ -77,7 +77,7 @@ pub enum PushError {
 #[async_trait::async_trait]
 impl service::Service for Service {
   fn new(config: config::Values) -> Self {
-    #[allow(clippy::unwrap_used)]
+    #[allow(clippy::unwrap_used)] // NOTE: this file is always available on rpi4
     let id = match config.cloud.id {
       Some(id) => id,
       None => {
@@ -98,12 +98,12 @@ impl service::Service for Service {
     let mut headers = HeaderMap::new();
     match config.cloud.api_key {
       Some(api_key) => {
-        #[allow(clippy::unwrap_used)]
+        #[allow(clippy::unwrap_used)] // TODO: handle this more appropriately
         let value = HeaderValue::from_str(api_key.as_str()).unwrap();
         headers.insert("X-API-Key", value);
       }
       None => {
-        #[allow(clippy::unwrap_used)]
+        #[allow(clippy::unwrap_used)] // TODO: handle this more appropriately
         let value =
           HeaderValue::from_str((id + "-oil-rulz-5000").as_str()).unwrap();
         headers.insert("X-API-Key", value);
@@ -117,7 +117,7 @@ impl service::Service for Service {
       .default_headers(headers)
       .gzip(true);
 
-    #[allow(clippy::unwrap_used)]
+    #[allow(clippy::unwrap_used)] // NOTE: should work on rpi4
     let http = builder.build().unwrap();
 
     Self {
