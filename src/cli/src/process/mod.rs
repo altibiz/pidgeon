@@ -82,16 +82,16 @@ impl Container {
   #[allow(unused)]
   pub async fn spawn(&self) {
     let config = self.config.values_async().await;
+    let specs = vec![
+      self.make_recurring_spec::<discover::Process>(config.discover_interval),
+      self.make_recurring_spec::<ping::Process>(config.ping_interval),
+      self.make_recurring_spec::<measure::Process>(config.measure_interval),
+      self.make_recurring_spec::<push::Process>(config.push_interval),
+      self.make_recurring_spec::<update::Process>(config.update_interval),
+    ];
 
     {
       let mut handles = self.handles.clone().lock_owned().await;
-      let specs = vec![
-        self.make_recurring_spec::<discover::Process>(config.discover_interval),
-        self.make_recurring_spec::<ping::Process>(config.ping_interval),
-        self.make_recurring_spec::<measure::Process>(config.measure_interval),
-        self.make_recurring_spec::<push::Process>(config.push_interval),
-        self.make_recurring_spec::<update::Process>(config.update_interval),
-      ];
       *handles = Some(specs.into_iter().map(Handle::recurring).collect());
     }
   }
