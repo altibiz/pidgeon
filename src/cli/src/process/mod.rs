@@ -25,13 +25,13 @@ struct Handle {
   join: tokio::task::JoinHandle<()>,
 }
 
-pub struct Processes {
+pub struct Container {
   config: config::Manager,
   services: service::Container,
   handles: Arc<Mutex<Option<Vec<Handle>>>>,
 }
 
-impl Processes {
+impl Container {
   pub fn new(config: config::Manager, services: service::Container) -> Self {
     Self {
       config,
@@ -52,7 +52,7 @@ impl Processes {
     }
   }
 
-  pub async fn join(&self) {
+  pub async fn cancel(&self) {
     {
       let mut handles = self.handles.clone().lock_owned().await;
       if let Some(handles) = &mut *handles {
@@ -60,6 +60,18 @@ impl Processes {
           handle.token.cancel();
         }
 
+        for handle in handles.drain(0..) {
+          handle.join.await;
+        }
+      }
+      *handles = None;
+    }
+  }
+
+  pub async fn join(&self) {
+    {
+      let mut handles = self.handles.clone().lock_owned().await;
+      if let Some(handles) = &mut *handles {
         for handle in handles.drain(0..) {
           handle.join.await;
         }
@@ -81,7 +93,7 @@ impl Processes {
         Spec {
           process: Box::new( discover::Process::new(self.config.clone(), self.services.clone())),
           interval: config.discover_interval,
-        },
+       },
         ].into_iter().map(|Spec { process, interval }| { 
           let token = tokio_util::sync::CancellationToken::new();
           let child_token = token.child_token();
@@ -89,25 +101,22 @@ impl Processes {
             let mut interval = tokio::time::interval(std::time::Duration::from_millis(interval.num_milliseconds() as u64));
             loop {
               tokio::select! {
-                  _ = child_token.cancelled() => {
-                      return;
-                  },
+                  _ = child_token.cancelled() => { return; },
                   _ = async {
                       if let Err(error) = process.execute().await {
                           tracing::error! { %error, "Process execution failed" };
                       }
 
                       interval.tick().await;
-                  } => {
-
-                  }
+                  } => { }
               }
             }
           });
+        let abort = join.abort_handle();
           
             Handle {
               token,
-              abort: join.abort_handle(),
+              abort,
             join
             
           }

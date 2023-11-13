@@ -14,57 +14,14 @@ mod config;
 mod process;
 mod service;
 
-use std::sync::Arc;
-
-use crate::*;
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
   let config = config::Manager::new()?;
+  let services = service::Container::new(config.values_async().await);
+  let processes = process::Container::new(config, services);
 
-  let services = service::Container::new(config.values_async().await?);
-
-  let discover = discover::Process::new(config.clone(), services.clone());
-  let ping = ping::Process::new(config.clone(), services.clone());
-  let measure = measure::Process::new(config.clone(), services.clone());
-  let push = push::Process::new(config.clone(), services.clone());
-  let update = update::Process::new(config.clone(), services.clone());
+  processes.spawn().await;
+  processes.join().await;
 
   Ok(())
-}
-
-struct Interval {
-  token: tokio_util::sync::CancellationToken,
-  handle: tokio::task::JoinHandle<()>,
-}
-
-macro_rules! interval {
-  ($rt:ident,$services:ident,$handler:ident,$duration:expr) => {{
-    let services = $services.clone();
-    let token = tokio_util::sync::CancellationToken::new();
-    let child_token = token.child_token();
-    let duration = $duration.clone();
-    let handle = $rt.r#async.spawn(async move {
-      let mut interval = tokio::time::interval(duration);
-
-      loop {
-        tokio::select! {
-            _ = child_token.cancelled() => {
-                return;
-            },
-            _ = async {
-                if let Err(error) = services.$handler().await {
-                    tracing::error! { %error, "interval handler failed" };
-                }
-
-                interval.tick().await;
-            } => {
-
-            }
-        }
-      }
-    });
-
-    Interval { token, handle }
-  }};
 }

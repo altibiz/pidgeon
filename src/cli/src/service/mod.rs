@@ -4,6 +4,8 @@ pub mod hardware;
 pub mod modbus;
 pub mod network;
 
+use std::sync::Arc;
+
 use crate::*;
 
 pub trait Service {
