@@ -11,8 +11,9 @@ use super::connection::*;
 use super::span::{SimpleSpan, Span};
 
 // TODO: inspect errors to tune
-// TODO: remove copying when reading
-// TODO: check bounded channel length - maybe config?
+
+// OPTIMIZE: remove copying when reading
+// OPTIMIZE: check bounded channel length - maybe config?
 
 pub(crate) type Response = Vec<super::connection::Response>;
 

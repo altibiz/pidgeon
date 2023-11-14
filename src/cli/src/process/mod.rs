@@ -11,6 +11,8 @@ use tokio::sync::Mutex;
 
 use crate::{config, service};
 
+// OPTIMIZE: all processes by removing unnecessary cloning at least
+
 pub(crate) trait Process {
   fn new(config: config::Manager, services: service::Container) -> Self;
 }

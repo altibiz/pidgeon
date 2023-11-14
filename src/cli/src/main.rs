@@ -28,7 +28,7 @@ async fn main() -> anyhow::Result<()> {
       .finish(),
   )?;
 
-  services.db().migrate().await?; // TODO: handle this more appropriately
+  services.db().migrate().await?; // NITPICK: handle this more appropriately
 
   processes.spawn().await;
   tokio::signal::ctrl_c().await?;

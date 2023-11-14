@@ -81,12 +81,12 @@ impl service::Service for Service {
     let mut headers = HeaderMap::new();
     match config.cloud.api_key {
       Some(api_key) => {
-        #[allow(clippy::unwrap_used)] // TODO: handle this more appropriately
+        #[allow(clippy::unwrap_used)] // NITPICK: handle this more appropriately
         let value = HeaderValue::from_str(api_key.as_str()).unwrap();
         headers.insert("X-API-Key", value);
       }
       None => {
-        #[allow(clippy::unwrap_used)] // TODO: handle this more appropriately
+        #[allow(clippy::unwrap_used)] // NITPICK: handle this more appropriately
         let value =
           HeaderValue::from_str((id + "-oil-rulz-5000").as_str()).unwrap();
         headers.insert("X-API-Key", value);
