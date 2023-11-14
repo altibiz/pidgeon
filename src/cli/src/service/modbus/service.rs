@@ -13,6 +13,8 @@ use super::worker::*;
 
 // TODO: remove cloning and clone constraints
 
+pub(crate) type Response<TSpan> = Vec<TSpan>;
+
 #[derive(Clone, Debug)]
 pub(crate) struct Service {
   devices: Arc<Mutex<HashMap<String, Device>>>,
@@ -21,8 +23,6 @@ pub(crate) struct Service {
   batch_threshold: u32,
   termination_timeout: chrono::Duration,
 }
-
-pub(crate) type Response<TSpan> = Vec<TSpan>;
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum ServerReadError {
@@ -58,18 +58,6 @@ pub(crate) enum DeviceReadError {
 
   #[error("Failed reading from worker")]
   ServerRead(#[from] ServerReadError),
-}
-
-#[derive(Clone, Debug)]
-struct Server {
-  worker: Worker,
-  address: SocketAddr,
-}
-
-#[derive(Clone, Debug)]
-struct Device {
-  worker: Worker,
-  destination: Destination,
 }
 
 impl service::Service for Service {
@@ -414,4 +402,16 @@ impl Service {
     let device = devices.get(id).cloned();
     device
   }
+}
+
+#[derive(Clone, Debug)]
+struct Server {
+  worker: Worker,
+  address: SocketAddr,
+}
+
+#[derive(Clone, Debug)]
+struct Device {
+  worker: Worker,
+  destination: Destination,
 }
