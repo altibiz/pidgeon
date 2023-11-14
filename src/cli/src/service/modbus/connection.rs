@@ -86,10 +86,12 @@ impl Connection {
     })
   }
 
+  #[inline]
   pub fn socket(&self) -> SocketAddr {
     self.destination.address
   }
 
+  #[inline]
   pub fn slave(&self) -> Option<u8> {
     self.destination.slave
   }
@@ -117,14 +119,17 @@ impl Params {
     }
   }
 
+  #[inline]
   pub fn timeout(self) -> chrono::Duration {
     timeout_to_chrono(self.timeout)
   }
 
+  #[inline]
   pub fn backoff(self) -> chrono::Duration {
     backoff_to_chrono(self.backoff)
   }
 
+  #[inline]
   pub fn retries(self) -> u32 {
     self.retries
   }

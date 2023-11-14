@@ -18,7 +18,7 @@ impl process::Process for Process {
 #[async_trait::async_trait]
 impl process::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
-    let addresses = self.services.network().scan().await;
+    let addresses = self.services.network().scan_modbus().await;
 
     let config = self.config.reload_async().await;
 

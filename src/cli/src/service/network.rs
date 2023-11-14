@@ -25,7 +25,7 @@ impl service::Service for Service {
 
 impl Service {
   #[tracing::instrument(skip(self))]
-  pub async fn scan(&self) -> Vec<SocketAddr> {
+  pub async fn scan_modbus(&self) -> Vec<SocketAddr> {
     let timeout = self.timeout;
     let mut matched_ips = Vec::new();
     let ip_scans = self
@@ -52,7 +52,7 @@ impl Service {
       }
     }
 
-    tracing::debug! {
+    tracing::trace! {
       "Found {:?} ips",
       matched_ips.len()
     };

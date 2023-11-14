@@ -26,13 +26,13 @@ impl super::Service for Service {
 
 impl Service {
   #[tracing::instrument(skip(self))]
-  pub async fn temperature(&self) -> Result<f32, ReadError> {
+  pub async fn read_temperature(&self) -> Result<f32, ReadError> {
     let temperature =
       tokio::fs::read_to_string(self.temperature_monitor.as_path()).await?;
     let temperature = temperature.parse::<f32>()? / 1000f32;
 
-    tracing::debug! {
-      "Read {} temperature",
+    tracing::trace! {
+      "Read {:?} temperature",
       temperature
     }
 

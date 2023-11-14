@@ -39,22 +39,27 @@ impl Container {
     }
   }
 
+  #[inline]
   pub fn db(&self) -> &db::Service {
     &self.values.db
   }
 
+  #[inline]
   pub fn cloud(&self) -> &cloud::Service {
     &self.values.cloud
   }
 
+  #[inline]
   pub fn modbus(&self) -> &modbus::Service {
     &self.values.modbus
   }
 
+  #[inline]
   pub fn network(&self) -> &network::Service {
     &self.values.network
   }
 
+  #[inline]
   pub fn hardware(&self) -> &hardware::Service {
     &self.values.hardware
   }

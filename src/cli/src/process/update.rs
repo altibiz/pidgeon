@@ -19,7 +19,7 @@ struct PidgeonHealth {
 #[async_trait::async_trait]
 impl process::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
-    let temperature = self.services.hardware().temperature().await?;
+    let temperature = self.services.hardware().read_temperature().await?;
 
     let last_pushed_id =
       match self.services.db().get_last_successful_update_log().await? {
