@@ -12,7 +12,7 @@ use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Measurement {
+pub(crate) struct Measurement {
   pub device_id: String,
   pub timestamp: DateTime<Utc>,
   pub data: serde_json::Value,
@@ -20,42 +20,27 @@ pub struct Measurement {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Health {
+pub(crate) struct Health {
   pub device_id: String,
   pub timestamp: DateTime<Utc>,
   pub data: serde_json::Value,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct PushRequest {
-  timestamp: DateTime<Utc>,
-  measurements: Vec<Measurement>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct UpdateRequest {
-  timestamp: DateTime<Utc>,
-  pidgeon: serde_json::Value,
-  health: Vec<Health>,
 }
 
 #[derive(Debug, Clone)]
-pub struct Response {
+pub(crate) struct Response {
   pub success: bool,
   pub text: String,
 }
 
 #[derive(Debug, Clone)]
-pub struct Service {
+pub(crate) struct Service {
   push_endpoint: String,
   update_endpoint: String,
   http: HttpClient,
 }
 
 #[derive(Debug, Error)]
-pub enum ConstructionError {
+pub(crate) enum ConstructionError {
   #[error("HTTP client construction error")]
   HttpError(#[from] HttpError),
 
@@ -67,7 +52,7 @@ pub enum ConstructionError {
 }
 
 #[derive(Debug, Error)]
-pub enum PushError {
+pub(crate) enum PushError {
   #[error("HTTP Post error")]
   HttpError(#[from] HttpError),
 }
@@ -128,7 +113,7 @@ impl service::Service for Service {
 
 impl Service {
   #[tracing::instrument(skip_all, fields(count = measurements.len()))]
-  pub async fn push(
+  pub(crate) async fn push(
     &self,
     measurements: Vec<Measurement>,
   ) -> Result<Response, PushError> {
@@ -168,7 +153,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn update(
+  pub(crate) async fn update(
     &self,
     pidgeon: serde_json::Value,
     health: Vec<Health>,
@@ -208,4 +193,19 @@ impl Service {
 
     Ok(response)
   }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PushRequest {
+  timestamp: DateTime<Utc>,
+  measurements: Vec<Measurement>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct UpdateRequest {
+  timestamp: DateTime<Utc>,
+  pidgeon: serde_json::Value,
+  health: Vec<Health>,
 }

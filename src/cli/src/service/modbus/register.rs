@@ -8,22 +8,22 @@ use tokio_modbus::{Address, Quantity};
 
 use super::span::*;
 
-pub trait RegisterStorage {
+pub(crate) trait RegisterStorage {
   fn quantity(&self) -> Quantity;
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct StringRegisterKind {
-  pub length: Quantity,
+pub(crate) struct StringRegisterKind {
+  pub(crate) length: Quantity,
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct NumericRegisterKind {
-  pub multiplier: Option<f64>,
+pub(crate) struct NumericRegisterKind {
+  pub(crate) multiplier: Option<f64>,
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum RegisterKind {
+pub(crate) enum RegisterKind {
   U16(NumericRegisterKind),
   U32(NumericRegisterKind),
   U64(NumericRegisterKind),
@@ -37,7 +37,7 @@ pub enum RegisterKind {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum RegisterValue {
+pub(crate) enum RegisterValue {
   U16(u16),
   U32(u32),
   U64(u64),
@@ -50,26 +50,26 @@ pub enum RegisterValue {
 }
 
 #[derive(Debug, Clone)]
-pub struct MeasurementRegister<T: RegisterStorage> {
-  pub address: Address,
-  pub storage: T,
-  pub name: String,
+pub(crate) struct MeasurementRegister<T: RegisterStorage> {
+  pub(crate) address: Address,
+  pub(crate) storage: T,
+  pub(crate) name: String,
 }
 
 #[derive(Debug, Clone)]
-pub struct DetectRegister<T: RegisterStorage> {
-  pub address: Address,
-  pub storage: T,
-  pub r#match: Either<String, Regex>,
+pub(crate) struct DetectRegister<T: RegisterStorage> {
+  pub(crate) address: Address,
+  pub(crate) storage: T,
+  pub(crate) r#match: Either<String, Regex>,
 }
 
 #[derive(Debug, Clone)]
-pub struct IdRegister<T: RegisterStorage> {
-  pub address: Address,
-  pub storage: T,
+pub(crate) struct IdRegister<T: RegisterStorage> {
+  pub(crate) address: Address,
+  pub(crate) storage: T,
 }
 
-pub fn make_id<
+pub(crate) fn make_id<
   TIntoIterator: IntoIterator<Item = IdRegister<RegisterValue>>,
 >(
   kind: String,
@@ -133,7 +133,7 @@ impl Display for RegisterValue {
 }
 
 impl DetectRegister<RegisterValue> {
-  pub fn matches(&self) -> bool {
+  pub(crate) fn matches(&self) -> bool {
     let storage = self.storage.to_string();
     match &self.r#match {
       Either::Left(string) => string.eq(storage.as_str()),
@@ -142,7 +142,7 @@ impl DetectRegister<RegisterValue> {
   }
 }
 
-pub fn serialize_registers<
+pub(crate) fn serialize_registers<
   TIntoIterator: IntoIterator<Item = MeasurementRegister<RegisterValue>>,
 >(
   registers: TIntoIterator,

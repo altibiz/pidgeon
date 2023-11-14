@@ -10,13 +10,15 @@ use super::span::SimpleSpan;
 // TODO: tracing
 
 #[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
-pub struct Destination {
-  pub address: SocketAddr,
-  pub slave: Option<u8>,
+pub(crate) struct Destination {
+  pub(crate) address: SocketAddr,
+  pub(crate) slave: Option<u8>,
 }
 
 impl Destination {
-  pub fn r#for(address: SocketAddr) -> impl Iterator<Item = Destination> {
+  pub(crate) fn r#for(
+    address: SocketAddr,
+  ) -> impl Iterator<Item = Destination> {
     (Slave::min_device().0..Slave::max_device().0)
       .map(move |slave| Destination {
         address,
@@ -29,16 +31,16 @@ impl Destination {
   }
 }
 
-pub type Response = Vec<u16>;
+pub(crate) type Response = Vec<u16>;
 
 #[derive(Debug)]
-pub struct Connection {
+pub(crate) struct Connection {
   destination: Destination,
   ctx: Context,
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum ConnectError {
+pub(crate) enum ConnectError {
   #[error("Failed to connect")]
   Connect(#[from] std::io::Error),
 
@@ -47,14 +49,16 @@ pub enum ConnectError {
 }
 
 impl Connection {
-  pub async fn connect(destination: Destination) -> Result<Self, ConnectError> {
+  pub(crate) async fn connect(
+    destination: Destination,
+  ) -> Result<Self, ConnectError> {
     match destination.slave {
       Some(slave) => Self::connect_slave(destination.address, slave).await,
       None => Self::connect_standalone(destination.address).await,
     }
   }
 
-  pub async fn connect_standalone(
+  pub(crate) async fn connect_standalone(
     socket: SocketAddr,
   ) -> Result<Self, ConnectError> {
     let stream = TcpStream::connect(socket).await?;
@@ -68,7 +72,7 @@ impl Connection {
     })
   }
 
-  pub async fn connect_slave(
+  pub(crate) async fn connect_slave(
     socket: SocketAddr,
     slave: u8,
   ) -> Result<Self, ConnectError> {
@@ -89,25 +93,25 @@ impl Connection {
   }
 
   #[inline]
-  pub fn socket(&self) -> SocketAddr {
+  pub(crate) fn socket(&self) -> SocketAddr {
     self.destination.address
   }
 
   #[inline]
-  pub fn slave(&self) -> Option<u8> {
+  pub(crate) fn slave(&self) -> Option<u8> {
     self.destination.slave
   }
 }
 
 #[derive(Copy, Clone, Debug)]
-pub struct Params {
+pub(crate) struct Params {
   timeout: futures_time::time::Duration,
   backoff: tokio::time::Duration,
   retries: u32,
 }
 
 impl Params {
-  pub fn new(
+  pub(crate) fn new(
     timeout: chrono::Duration,
     backoff: chrono::Duration,
     retries: u32,
@@ -122,23 +126,23 @@ impl Params {
   }
 
   #[inline]
-  pub fn timeout(self) -> chrono::Duration {
+  pub(crate) fn timeout(self) -> chrono::Duration {
     timeout_to_chrono(self.timeout)
   }
 
   #[inline]
-  pub fn backoff(self) -> chrono::Duration {
+  pub(crate) fn backoff(self) -> chrono::Duration {
     backoff_to_chrono(self.backoff)
   }
 
   #[inline]
-  pub fn retries(self) -> u32 {
+  pub(crate) fn retries(self) -> u32 {
     self.retries
   }
 }
 
 #[derive(Debug, Error)]
-pub enum ReadError {
+pub(crate) enum ReadError {
   #[error("Failed connecting")]
   Connection(std::io::Error),
 
@@ -147,7 +151,7 @@ pub enum ReadError {
 }
 
 impl Connection {
-  pub async fn parameterized_read(
+  pub(crate) async fn parameterized_read(
     &mut self,
     span: SimpleSpan,
     params: Params,
@@ -170,7 +174,7 @@ impl Connection {
     response.ok_or(errors)
   }
 
-  pub async fn simple_read(
+  pub(crate) async fn simple_read(
     &mut self,
     span: SimpleSpan,
     timeout: chrono::Duration,

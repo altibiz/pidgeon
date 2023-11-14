@@ -3,12 +3,12 @@ use std::path::PathBuf;
 use crate::*;
 
 #[derive(Debug, Clone)]
-pub struct Service {
+pub(crate) struct Service {
   temperature_monitor: PathBuf,
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum ReadError {
+pub(crate) enum ReadError {
   #[error("Reading from filesystem failed")]
   FilesystemError(#[from] std::io::Error),
 
@@ -26,7 +26,7 @@ impl super::Service for Service {
 
 impl Service {
   #[tracing::instrument(skip(self))]
-  pub async fn read_temperature(&self) -> Result<f32, ReadError> {
+  pub(crate) async fn read_temperature(&self) -> Result<f32, ReadError> {
     let temperature =
       tokio::fs::read_to_string(self.temperature_monitor.as_path()).await?;
     let temperature = temperature.parse::<f32>()? / 1000f32;

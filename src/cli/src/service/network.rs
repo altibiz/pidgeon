@@ -7,7 +7,7 @@ use tokio::task::JoinHandle;
 use crate::*;
 
 #[derive(Debug, Clone)]
-pub struct Service {
+pub(crate) struct Service {
   ip_range: IpAddrRange,
   timeout: std::time::Duration,
 }
@@ -25,7 +25,7 @@ impl service::Service for Service {
 
 impl Service {
   #[tracing::instrument(skip(self))]
-  pub async fn scan_modbus(&self) -> Vec<SocketAddr> {
+  pub(crate) async fn scan_modbus(&self) -> Vec<SocketAddr> {
     let timeout = self.timeout;
     let mut matched_ips = Vec::new();
     let ip_scans = self
@@ -58,10 +58,10 @@ impl Service {
   }
 }
 
-pub fn to_socket(ip: IpAddr) -> SocketAddr {
+pub(crate) fn to_socket(ip: IpAddr) -> SocketAddr {
   SocketAddr::new(ip, 502)
 }
 
-pub fn to_ip(socket: SocketAddr) -> IpAddr {
+pub(crate) fn to_ip(socket: SocketAddr) -> IpAddr {
   socket.ip()
 }

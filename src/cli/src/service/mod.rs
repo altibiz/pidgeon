@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use crate::*;
 
-pub trait Service {
+pub(crate) trait Service {
   fn new(config: config::Values) -> Self;
 }
 
@@ -22,12 +22,12 @@ struct Values {
 }
 
 #[derive(Debug, Clone)]
-pub struct Container {
+pub(crate) struct Container {
   values: Arc<Values>,
 }
 
 impl Container {
-  pub fn new(config: config::Values) -> Self {
+  pub(crate) fn new(config: config::Values) -> Self {
     Self {
       values: Arc::new(Values {
         db: db::Service::new(config.clone()),
@@ -40,27 +40,27 @@ impl Container {
   }
 
   #[inline]
-  pub fn db(&self) -> &db::Service {
+  pub(crate) fn db(&self) -> &db::Service {
     &self.values.db
   }
 
   #[inline]
-  pub fn cloud(&self) -> &cloud::Service {
+  pub(crate) fn cloud(&self) -> &cloud::Service {
     &self.values.cloud
   }
 
   #[inline]
-  pub fn modbus(&self) -> &modbus::Service {
+  pub(crate) fn modbus(&self) -> &modbus::Service {
     &self.values.modbus
   }
 
   #[inline]
-  pub fn network(&self) -> &network::Service {
+  pub(crate) fn network(&self) -> &network::Service {
     &self.values.network
   }
 
   #[inline]
-  pub fn hardware(&self) -> &hardware::Service {
+  pub(crate) fn hardware(&self) -> &hardware::Service {
     &self.values.hardware
   }
 }

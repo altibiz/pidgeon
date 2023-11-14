@@ -10,78 +10,81 @@ use thiserror::Error;
 use crate::*;
 
 #[derive(Debug, Clone)]
-pub struct Service {
+pub(crate) struct Service {
   pool: Pool<Postgres>,
 }
 
 #[derive(Debug, Copy, Clone, Type, Eq, PartialEq)]
 #[sqlx(type_name = "device_status", rename_all = "lowercase")]
-pub enum DeviceStatus {
+pub(crate) enum DeviceStatus {
   Healthy,
   Unreachable,
   Inactive,
 }
 
 #[derive(Debug, Clone, FromRow)]
-pub struct Device {
-  pub id: String,
-  pub kind: String,
-  pub status: DeviceStatus,
-  pub address: IpNetwork,
-  pub seen: DateTime<Utc>,
-  pub pinged: DateTime<Utc>,
-  pub slave: Option<i32>,
+pub(crate) struct Device {
+  pub(crate) id: String,
+  pub(crate) kind: String,
+  pub(crate) status: DeviceStatus,
+  pub(crate) address: IpNetwork,
+  pub(crate) seen: DateTime<Utc>,
+  pub(crate) pinged: DateTime<Utc>,
+  pub(crate) slave: Option<i32>,
 }
 
 #[derive(Debug, Clone, FromRow)]
-pub struct Measurement {
-  pub id: i64,
-  pub source: String,
-  pub timestamp: DateTime<Utc>,
-  pub data: serde_json::Value,
+pub(crate) struct Measurement {
+  #[allow(unused)]
+  pub(crate) id: i64,
+  pub(crate) source: String,
+  pub(crate) timestamp: DateTime<Utc>,
+  pub(crate) data: serde_json::Value,
 }
 
 #[derive(Debug, Clone, FromRow)]
-pub struct Health {
-  pub id: i64,
-  pub source: String,
-  pub timestamp: DateTime<Utc>,
-  pub status: DeviceStatus,
-  pub data: serde_json::Value,
+pub(crate) struct Health {
+  #[allow(unused)]
+  pub(crate) id: i64,
+  pub(crate) source: String,
+  pub(crate) timestamp: DateTime<Utc>,
+  pub(crate) status: DeviceStatus,
+  pub(crate) data: serde_json::Value,
 }
 
 #[derive(Debug, Copy, Clone, Type, Eq, PartialEq)]
 #[sqlx(type_name = "log_status", rename_all = "lowercase")]
-pub enum LogStatus {
+pub(crate) enum LogStatus {
   Success,
   Failure,
 }
 
 #[derive(Debug, Copy, Clone, Type, Eq, PartialEq)]
 #[sqlx(type_name = "log_kind", rename_all = "lowercase")]
-pub enum LogKind {
+pub(crate) enum LogKind {
   Push,
   Update,
 }
 
 #[derive(Debug, Clone, FromRow)]
-pub struct Log {
-  pub id: i64,
-  pub timestamp: DateTime<Utc>,
-  pub last: i64,
-  pub kind: LogKind,
-  pub status: LogStatus,
-  pub response: serde_json::Value,
+pub(crate) struct Log {
+  #[allow(unused)]
+  pub(crate) id: i64,
+  pub(crate) timestamp: DateTime<Utc>,
+  pub(crate) last: i64,
+  pub(crate) kind: LogKind,
+  pub(crate) status: LogStatus,
+  pub(crate) response: serde_json::Value,
 }
 
 #[derive(Debug, Error)]
-pub enum Error {
+pub(crate) enum Error {
   #[error("Sqlx error")]
   Sqlx(#[from] sqlx::Error),
 }
 
 #[derive(Debug, Error)]
-pub enum MigrateError {
+pub(crate) enum MigrateError {
   #[error("Migration failed")]
   Migration(#[from] sqlx::migrate::MigrateError),
 }
@@ -115,7 +118,7 @@ impl service::Service for Service {
 
 impl Service {
   #[tracing::instrument(skip(self))]
-  pub async fn migrate(&self) -> Result<(), MigrateError> {
+  pub(crate) async fn migrate(&self) -> Result<(), MigrateError> {
     MIGRATOR.run(&self.pool).await?;
 
     tracing::info!("Migration ran successfully");
@@ -124,7 +127,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn get_devices(&self) -> Result<Vec<Device>, Error> {
+  pub(crate) async fn get_devices(&self) -> Result<Vec<Device>, Error> {
     let devices = sqlx::query_as!(
       Device,
       r#"
@@ -141,7 +144,10 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn get_device(&self, id: &str) -> Result<Option<Device>, Error> {
+  pub(crate) async fn get_device(
+    &self,
+    id: &str,
+  ) -> Result<Option<Device>, Error> {
     let device = sqlx::query_as!(
       Device,
       r#"
@@ -160,7 +166,10 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn insert_device(&self, device: Device) -> Result<(), Error> {
+  pub(crate) async fn insert_device(
+    &self,
+    device: Device,
+  ) -> Result<(), Error> {
     #[allow(clippy::panic)] // NOTE: sqlx thing
     sqlx::query!(
       r#"
@@ -184,7 +193,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn delete_device(&self, id: &str) -> Result<(), Error> {
+  pub(crate) async fn delete_device(&self, id: &str) -> Result<(), Error> {
     #[allow(clippy::panic)] // NOTE: sqlx thing
     sqlx::query!(
       r#"
@@ -202,7 +211,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn update_device_status(
+  pub(crate) async fn update_device_status(
     &self,
     id: &str,
     status: DeviceStatus,
@@ -230,7 +239,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn update_device_destination(
+  pub(crate) async fn update_device_destination(
     &self,
     id: &str,
     address: IpNetwork,
@@ -260,7 +269,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn insert_measurement(
+  pub(crate) async fn insert_measurement(
     &self,
     measurement: Measurement,
   ) -> Result<(), Error> {
@@ -283,7 +292,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip_all, fields(count = measurements.len()))]
-  pub async fn insert_measurements(
+  pub(crate) async fn insert_measurements(
     &self,
     measurements: Vec<Measurement>,
   ) -> Result<(), Error> {
@@ -304,7 +313,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn get_measurements(
+  pub(crate) async fn get_measurements(
     &self,
     from: i64,
     limit: i64,
@@ -330,7 +339,10 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn insert_health(&self, health: Health) -> Result<(), Error> {
+  pub(crate) async fn insert_health(
+    &self,
+    health: Health,
+  ) -> Result<(), Error> {
     #[allow(clippy::panic)] // NOTE: sqlx thing
     sqlx::query!(
       r#"
@@ -355,7 +367,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip_all, fields(count = healths.len()))]
-  pub async fn insert_healths(
+  pub(crate) async fn insert_healths(
     &self,
     healths: Vec<Health>,
   ) -> Result<(), Error> {
@@ -377,7 +389,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn get_health(
+  pub(crate) async fn get_health(
     &self,
     from: i64,
     limit: i64,
@@ -403,7 +415,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn insert_log(&self, log: Log) -> Result<(), Error> {
+  pub(crate) async fn insert_log(&self, log: Log) -> Result<(), Error> {
     #[allow(clippy::panic)] // NOTE: sqlx thing
     sqlx::query!(
       r#"
@@ -430,7 +442,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn get_last_successful_push_log(
+  pub(crate) async fn get_last_successful_push_log(
     &self,
   ) -> Result<Option<Log>, Error> {
     #[allow(clippy::panic)] // NOTE: sqlx thing
@@ -456,7 +468,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn get_last_successful_update_log(
+  pub(crate) async fn get_last_successful_update_log(
     &self,
   ) -> Result<Option<Log>, Error> {
     #[allow(clippy::panic)] // NOTE: sqlx thing
@@ -482,20 +494,20 @@ impl Service {
   }
 }
 
-pub fn to_network(ip: IpAddr) -> IpNetwork {
+pub(crate) fn to_network(ip: IpAddr) -> IpNetwork {
   #[allow(clippy::unwrap_used)] // NOTE: 24 is valid for ipv4
   IpNetwork::new(ip, 24).unwrap()
 }
 
-pub fn to_ip(ip: IpNetwork) -> IpAddr {
+pub(crate) fn to_ip(ip: IpNetwork) -> IpAddr {
   ip.ip()
 }
 
-pub fn to_modbus_slave(slave: Option<i32>) -> Option<u8> {
+pub(crate) fn to_modbus_slave(slave: Option<i32>) -> Option<u8> {
   slave.map(|slave| slave as u8)
 }
 
-pub fn to_db_slave(slave: Option<u8>) -> Option<i32> {
+pub(crate) fn to_db_slave(slave: Option<u8>) -> Option<i32> {
   slave.map(|slave| slave as i32)
 }
 

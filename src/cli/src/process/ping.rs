@@ -5,7 +5,7 @@ use crate::{service::*, *};
 // TODO: add timeout
 // TODO: add max unreachable till inactive
 
-pub struct Process {
+pub(crate) struct Process {
   config: config::Manager,
   services: service::Container,
 }

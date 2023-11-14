@@ -1,11 +1,11 @@
-pub mod batch;
-pub mod connection;
-pub mod register;
-pub mod service;
-pub mod span;
-pub mod worker;
+pub(crate) mod batch;
+pub(crate) mod connection;
+pub(crate) mod register;
+pub(crate) mod service;
+pub(crate) mod span;
+pub(crate) mod worker;
 
-pub use batch::*;
-pub use connection::Destination;
-pub use register::*;
-pub use service::*;
+pub(crate) use batch::*;
+pub(crate) use connection::Destination;
+pub(crate) use register::*;
+pub(crate) use service::*;

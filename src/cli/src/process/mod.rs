@@ -1,8 +1,8 @@
-pub mod discover;
-pub mod measure;
-pub mod ping;
-pub mod push;
-pub mod update;
+pub(crate) mod discover;
+pub(crate) mod measure;
+pub(crate) mod ping;
+pub(crate) mod push;
+pub(crate) mod update;
 
 use std::sync::Arc;
 
@@ -12,23 +12,26 @@ use crate::{config, service};
 
 // TODO: pidgeon health update recurring process
 
-pub trait Process {
+pub(crate) trait Process {
   fn new(config: config::Manager, services: service::Container) -> Self;
 }
 
 #[async_trait::async_trait]
-pub trait Recurring {
+pub(crate) trait Recurring {
   async fn execute(&self) -> anyhow::Result<()>;
 }
 
-pub struct Container {
+pub(crate) struct Container {
   config: config::Manager,
   services: service::Container,
   handles: Arc<Mutex<Option<Vec<Handle>>>>,
 }
 
 impl Container {
-  pub fn new(config: config::Manager, services: service::Container) -> Self {
+  pub(crate) fn new(
+    config: config::Manager,
+    services: service::Container,
+  ) -> Self {
     Self {
       config,
       services,
@@ -36,7 +39,7 @@ impl Container {
     }
   }
 
-  pub async fn abort(&self) {
+  pub(crate) async fn abort(&self) {
     {
       let mut handles = self.handles.clone().lock_owned().await;
       if let Some(handles) = &*handles {
@@ -48,7 +51,7 @@ impl Container {
     }
   }
 
-  pub async fn cancel(&self) {
+  pub(crate) async fn cancel(&self) {
     {
       let mut handles = self.handles.clone().lock_owned().await;
       if let Some(handles) = &mut *handles {
@@ -69,7 +72,7 @@ impl Container {
     }
   }
 
-  pub async fn join(&self) {
+  pub(crate) async fn join(&self) {
     {
       let mut handles = self.handles.clone().lock_owned().await;
       if let Some(handles) = &mut *handles {
@@ -88,7 +91,7 @@ impl Container {
 }
 
 impl Container {
-  pub async fn spawn(&self) {
+  pub(crate) async fn spawn(&self) {
     let config = self.config.values_async().await;
     let specs = vec![
       self.make_recurring_spec::<discover::Process>(config.discover_interval),

@@ -3,13 +3,13 @@ use std::fmt::Debug;
 use either::Either;
 use tokio_modbus::{Address, Quantity};
 
-pub trait Span {
+pub(crate) trait Span {
   fn address(&self) -> Address;
 
   fn quantity(&self) -> Quantity;
 }
 
-pub trait SpanParser<TParsed: Span> {
+pub(crate) trait SpanParser<TParsed: Span> {
   fn parse<TIterator, TIntoIterator>(
     &self,
     data: TIntoIterator,
@@ -20,9 +20,9 @@ pub trait SpanParser<TParsed: Span> {
 }
 
 #[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
-pub struct SimpleSpan {
-  pub address: u16,
-  pub quantity: u16,
+pub(crate) struct SimpleSpan {
+  pub(crate) address: u16,
+  pub(crate) quantity: u16,
 }
 
 impl Span for SimpleSpan {

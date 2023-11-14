@@ -15,10 +15,10 @@ use super::span::{SimpleSpan, Span};
 // TODO: remove copying when reading
 // TODO: check bounded channel length - maybe config?
 
-pub type Response = Vec<super::connection::Response>;
+pub(crate) type Response = Vec<super::connection::Response>;
 
 #[derive(Debug, thiserror::Error)]
-pub enum SendError {
+pub(crate) enum SendError {
   #[error("Failed to connect")]
   FailedToConnect(#[from] ConnectError),
 
@@ -27,13 +27,13 @@ pub enum SendError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum StreamError {
+pub(crate) enum StreamError {
   #[error("Channel was disconnected before the request could be finished")]
   ChannelDisconnected(anyhow::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum TerminateError {
+pub(crate) enum TerminateError {
   #[error("Channel was disconnected before the request could be finished")]
   ChannelDisconnected(anyhow::Error),
 }
@@ -41,7 +41,7 @@ pub enum TerminateError {
 type TaskHandle = tokio::task::JoinHandle<()>;
 
 #[derive(Debug, Clone)]
-pub struct Worker {
+pub(crate) struct Worker {
   sender: RequestSender,
   handle: Arc<Mutex<Option<TaskHandle>>>,
   termination_timeout: futures_time::time::Duration,
@@ -54,7 +54,7 @@ struct SimpleRequest {
 }
 
 impl Worker {
-  pub fn new(
+  pub(crate) fn new(
     initial_params: Params,
     termination_timeout: chrono::Duration,
   ) -> Self {
@@ -72,7 +72,10 @@ impl Worker {
 }
 
 impl Worker {
-  pub async fn send<TSpan: Span, TIntoIterator: IntoIterator<Item = TSpan>>(
+  pub(crate) async fn send<
+    TSpan: Span,
+    TIntoIterator: IntoIterator<Item = TSpan>,
+  >(
     &self,
     destination: Destination,
     spans: TIntoIterator,
@@ -98,7 +101,7 @@ impl Worker {
     Ok(response)
   }
 
-  pub async fn stream<
+  pub(crate) async fn stream<
     TSpan: Span,
     TIntoIterator: IntoIterator<Item = TSpan>,
   >(
@@ -127,7 +130,7 @@ impl Worker {
     Ok(stream)
   }
 
-  pub async fn terminate(&self) -> Result<(), TerminateError> {
+  pub(crate) async fn terminate(&self) -> Result<(), TerminateError> {
     let result = self.sender.send_async(TaskRequest::Terminate).await;
 
     let handle = {
@@ -219,7 +222,7 @@ struct Task {
 }
 
 impl Task {
-  pub fn new(params: Params, receiver: RequestReceiver) -> Self {
+  pub(crate) fn new(params: Params, receiver: RequestReceiver) -> Self {
     Self {
       connections: HashMap::new(),
       receiver,
@@ -230,7 +233,7 @@ impl Task {
     }
   }
 
-  pub async fn execute(mut self) {
+  pub(crate) async fn execute(mut self) {
     loop {
       if self.oneshots.is_empty() && self.streams.is_empty() {
         if let Err(error) = self.recv_async_new_request().await {

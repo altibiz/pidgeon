@@ -4,7 +4,7 @@ use crate::{service::*, *};
 
 // TODO: set timeout
 
-pub struct Process {
+pub(crate) struct Process {
   config: config::Manager,
   services: service::Container,
 }

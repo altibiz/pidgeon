@@ -3,10 +3,10 @@ use tokio_modbus::{Address, Quantity};
 use super::span::*;
 
 #[derive(Clone, Debug)]
-pub struct Batch<TSpan: Span> {
-  pub address: Address,
-  pub quantity: Quantity,
-  pub spans: Vec<TSpan>,
+pub(crate) struct Batch<TSpan: Span> {
+  pub(crate) address: Address,
+  pub(crate) quantity: Quantity,
+  pub(crate) spans: Vec<TSpan>,
 }
 
 impl<TSpan: Span> Span for Batch<TSpan> {
@@ -89,7 +89,10 @@ impl<TSpan: Span, TSpanParser: Span + SpanParser<TSpan>>
   }
 }
 
-pub fn batch_spans<TSpan: Span, TIntoIterator: IntoIterator<Item = TSpan>>(
+pub(crate) fn batch_spans<
+  TSpan: Span,
+  TIntoIterator: IntoIterator<Item = TSpan>,
+>(
   spans: TIntoIterator,
   threshold: u32,
 ) -> Vec<Batch<TSpan>> {

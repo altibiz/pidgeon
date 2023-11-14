@@ -14,7 +14,7 @@ use super::worker::*;
 // TODO: remove cloning and clone constraints
 
 #[derive(Clone, Debug)]
-pub struct Service {
+pub(crate) struct Service {
   devices: Arc<Mutex<HashMap<String, Device>>>,
   servers: Arc<Mutex<HashMap<SocketAddr, Server>>>,
   initial_params: Params,
@@ -22,10 +22,10 @@ pub struct Service {
   termination_timeout: chrono::Duration,
 }
 
-pub type Response<TSpan> = Vec<TSpan>;
+pub(crate) type Response<TSpan> = Vec<TSpan>;
 
 #[derive(Debug, thiserror::Error)]
-pub enum ServerReadError {
+pub(crate) enum ServerReadError {
   #[error("Connection failed")]
   FailedToConnect(#[from] super::connection::ConnectError),
 
@@ -37,13 +37,13 @@ pub enum ServerReadError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum ServerStreamError {
+pub(crate) enum ServerStreamError {
   #[error("Server failure")]
   ServerFailed(anyhow::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum DeviceStreamError {
+pub(crate) enum DeviceStreamError {
   #[error("No device in registry for given id")]
   DeviceNotFound(String),
 
@@ -52,7 +52,7 @@ pub enum DeviceStreamError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum DeviceReadError {
+pub(crate) enum DeviceReadError {
   #[error("No device in registry for given id")]
   DeviceNotFound(String),
 
@@ -90,7 +90,7 @@ impl service::Service for Service {
 
 impl Service {
   #[tracing::instrument(skip(self))]
-  pub async fn bind(&self, id: String, destination: Destination) {
+  pub(crate) async fn bind(&self, id: String, destination: Destination) {
     let server = self.get_server(destination).await;
     {
       let mut devices = self.devices.clone().lock_owned().await;
@@ -107,7 +107,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn stop_from_id(&self, id: &str) {
+  pub(crate) async fn stop_from_id(&self, id: &str) {
     let mut server_to_remove = None;
 
     {
@@ -134,7 +134,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn stop_from_destination(&self, destination: Destination) {
+  pub(crate) async fn stop_from_destination(&self, destination: Destination) {
     let ids = {
       let devices = self.devices.clone().lock_owned().await;
       devices
@@ -186,7 +186,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self))]
-  pub async fn stop_from_address(&self, address: SocketAddr) {
+  pub(crate) async fn stop_from_address(&self, address: SocketAddr) {
     {
       let mut devices = self.devices.clone().lock_owned().await;
       devices.retain(|_, device| device.destination.address != address);
@@ -209,7 +209,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self, spans))]
-  pub async fn read_from_destination<
+  pub(crate) async fn read_from_destination<
     TSpan: Span,
     TSpanParser: Span + SpanParser<TSpan>,
     TIterator: ExactSizeIterator<Item = TSpanParser>,
@@ -230,7 +230,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self, spans))]
-  pub async fn stream_from_destination<
+  pub(crate) async fn stream_from_destination<
     TSpan: Span,
     TSpanParser: Clone + Span + SpanParser<TSpan>,
     TIterator: ExactSizeIterator<Item = TSpanParser>,
@@ -254,7 +254,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self, spans))]
-  pub async fn read_from_id<
+  pub(crate) async fn read_from_id<
     TSpan: Span,
     TSpanParser: Span + SpanParser<TSpan>,
     TIterator: ExactSizeIterator<Item = TSpanParser>,
@@ -278,7 +278,7 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self, spans))]
-  pub async fn stream_from_id<
+  pub(crate) async fn stream_from_id<
     TSpan: Span,
     TSpanParser: Clone + Span + SpanParser<TSpan>,
     TIterator: ExactSizeIterator<Item = TSpanParser>,
