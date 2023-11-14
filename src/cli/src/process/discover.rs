@@ -21,6 +21,7 @@ impl process::Recurring for Process {
     let config = self.config.reload_async().await;
 
     let addresses = self.services.network().scan_modbus().await;
+    let addresses_len = addresses.len();
 
     let matches = join_all(
       join_all(
@@ -43,7 +44,7 @@ impl process::Recurring for Process {
         .iter()
         .filter(|device_match| device_match.is_none())
         .count(),
-      addresses.len()
+      addresses_len
     );
 
     Ok(())
