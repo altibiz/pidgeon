@@ -420,6 +420,10 @@ impl Task {
 }
 
 impl Task {
+  #[tracing::instrument(skip_all, fields(
+    address = storage.destination.address.ip().to_string(),
+    slave = storage.destination.slave,
+  ))]
   async fn read(
     storage: &Storage,
     params: Params,
@@ -453,8 +457,10 @@ impl Task {
     };
 
     if partial.iter().all(|x| x.is_some()) {
+      tracing::trace!("Fully read with params {:?}", params);
       Either::Right(partial.iter().flatten().cloned().collect::<Vec<_>>())
     } else {
+      tracing::trace!("Partially read with params {:?}", params);
       Either::Left(partial)
     }
   }
@@ -474,8 +480,9 @@ impl Metrics {
 }
 
 impl Task {
+  #[tracing::instrument(skip(self))]
   fn tune(&mut self, metrics: Metrics) {
-    dbg!(metrics);
+    tracing::trace!("Tuned");
   }
 }
 
