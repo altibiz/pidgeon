@@ -7,8 +7,6 @@ use tokio_modbus::{client::Context, prelude::Reader, Slave};
 
 use super::span::SimpleSpan;
 
-// TODO: tracing
-
 #[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
 pub(crate) struct Destination {
   pub(crate) address: SocketAddr,
@@ -58,11 +56,15 @@ impl Connection {
     }
   }
 
+  #[tracing::instrument]
   pub(crate) async fn connect_standalone(
     socket: SocketAddr,
   ) -> Result<Self, ConnectError> {
     let stream = TcpStream::connect(socket).await?;
     let ctx = tokio_modbus::prelude::tcp::attach(stream);
+
+    tracing::trace!("Connected");
+
     Ok(Self {
       destination: Destination {
         address: socket,
@@ -72,6 +74,7 @@ impl Connection {
     })
   }
 
+  #[tracing::instrument]
   pub(crate) async fn connect_slave(
     socket: SocketAddr,
     slave: u8,
@@ -83,6 +86,9 @@ impl Connection {
 
     let stream = TcpStream::connect(socket).await?;
     let ctx = tokio_modbus::prelude::rtu::attach_slave(stream, Slave(slave));
+
+    tracing::trace!("Connected");
+
     Ok(Self {
       destination: Destination {
         address: socket,
@@ -151,6 +157,7 @@ pub(crate) enum ReadError {
 }
 
 impl Connection {
+  #[tracing::instrument(skip(self))]
   pub(crate) async fn parameterized_read(
     &mut self,
     span: SimpleSpan,
@@ -171,9 +178,27 @@ impl Connection {
       retried += 1;
     }
 
-    response.ok_or(errors)
+    match response {
+      Some(response) => {
+        tracing::trace!(
+          "Successful read with {:?} retries and {:?} errors",
+          retried,
+          errors.len()
+        );
+        Ok(response)
+      }
+      None => {
+        tracing::trace!(
+          "Failed read with {:?} retries and {:?} errors",
+          retried,
+          errors.len()
+        );
+        Err(errors)
+      }
+    }
   }
 
+  #[tracing::instrument(skip(self))]
   pub(crate) async fn simple_read(
     &mut self,
     span: SimpleSpan,
@@ -182,6 +207,8 @@ impl Connection {
     let response = self
       .simple_read_impl(span, timeout_from_chrono(timeout))
       .await?;
+
+    tracing::trace!("Simple read successful");
 
     Ok(response)
   }
