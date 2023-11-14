@@ -101,9 +101,9 @@ impl Service {
           destination,
         },
       );
-    }
 
-    tracing::trace!("Bound");
+      tracing::trace!("Bound - current ids {:?}", devices.keys());
+    }
   }
 
   #[tracing::instrument(skip(self))]
@@ -122,14 +122,16 @@ impl Service {
           server_to_remove = Some(removed.destination.address);
         }
       }
-    }
 
-    tracing::trace!("Stopped {:?} worker", id);
+      tracing::trace!(
+        "Stopped {:?} worker - current ids {:?}",
+        id,
+        devices.keys()
+      );
+    }
 
     if let Some(server) = server_to_remove {
       self.stop_from_address(server).await;
-
-      tracing::trace!("Stopped {:?} worker", server);
     }
   }
 
@@ -146,7 +148,7 @@ impl Service {
 
     let servers_to_remove = {
       let mut devices = self.devices.clone().lock_owned().await;
-      ids
+      let addresses = ids
         .iter()
         .filter_map(|id| {
           devices.remove(id).and_then(|removed| {
@@ -161,7 +163,11 @@ impl Service {
             }
           })
         })
-        .collect::<Vec<_>>()
+        .collect::<Vec<_>>();
+
+      tracing::trace!("Removed devices - remaining ids {:?}", devices.keys());
+
+      addresses
     };
 
     tracing::trace!("Removed {:?} ids", ids);
@@ -175,6 +181,11 @@ impl Service {
           removed_servers.push(server);
         }
       }
+
+      tracing::trace!(
+        "Removed servers - remaining addresses {:?}",
+        servers.keys(),
+      );
     }
 
     for server in removed_servers {

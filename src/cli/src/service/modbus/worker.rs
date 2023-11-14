@@ -112,7 +112,6 @@ impl Worker {
     impl Stream<Item = Result<Response, SendError>> + Send + Sync,
     StreamError,
   > {
-    // NOTE: check 1024 is okay
     let (sender, receiver) = flume::bounded(1024);
     if let Err(error) = self
       .sender
@@ -421,7 +420,6 @@ impl Task {
 }
 
 impl Task {
-  // NOTE: remove the copying here
   async fn read(
     storage: &Storage,
     params: Params,

@@ -13,23 +13,23 @@ use crate::*;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Measurement {
-  pub device_id: String,
-  pub timestamp: DateTime<Utc>,
-  pub data: serde_json::Value,
+  pub(crate) device_id: String,
+  pub(crate) timestamp: DateTime<Utc>,
+  pub(crate) data: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Health {
-  pub device_id: String,
-  pub timestamp: DateTime<Utc>,
-  pub data: serde_json::Value,
+  pub(crate) device_id: String,
+  pub(crate) timestamp: DateTime<Utc>,
+  pub(crate) data: serde_json::Value,
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct Response {
-  pub success: bool,
-  pub text: String,
+  pub(crate) success: bool,
+  pub(crate) text: String,
 }
 
 #[derive(Debug, Clone)]

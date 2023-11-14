@@ -11,8 +11,6 @@ use tokio::sync::Mutex;
 
 use crate::{config, service};
 
-// TODO: pidgeon health update recurring process
-
 pub(crate) trait Process {
   fn new(config: config::Manager, services: service::Container) -> Self;
 }
