@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        select id, source, timestamp, status as \"status: DeviceStatus\", data\n        from health\n        where health.id > $1 \n        limit $2\n      ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "source",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "status: DeviceStatus",
+        "type_info": {
+          "Custom": {
+            "name": "device_status",
+            "kind": {
+              "Enum": [
+                "healthy",
+                "unreachable",
+                "inactive"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "data",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "84d863595b982d5b8e18047d3ac1734ea8b9d5119dc30d3a58b02257d5fe51e6"
+}

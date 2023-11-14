@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        insert into logs (timestamp, last, status, kind, response)\n        values ($1, $2, $3, $4, $5)\n      ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Int8",
+        {
+          "Custom": {
+            "name": "log_status",
+            "kind": {
+              "Enum": [
+                "success",
+                "failure"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "log_kind",
+            "kind": {
+              "Enum": [
+                "push",
+                "update"
+              ]
+            }
+          }
+        },
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "051dc955c5bbb44dfedff9a5d37ab350c1e46cf392aa937306974e4727938e77"
+}

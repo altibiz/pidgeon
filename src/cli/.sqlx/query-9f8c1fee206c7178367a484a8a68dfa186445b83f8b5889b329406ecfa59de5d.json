@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        select id, timestamp, last, kind as \"kind: LogKind\", status as \"status: LogStatus\", response\n        from logs\n        where status = 'success'::log_status and kind = 'update'::log_kind and last is not null\n        order by timestamp desc\n        limit 1\n      ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "last",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "kind: LogKind",
+        "type_info": {
+          "Custom": {
+            "name": "log_kind",
+            "kind": {
+              "Enum": [
+                "push",
+                "update"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "status: LogStatus",
+        "type_info": {
+          "Custom": {
+            "name": "log_status",
+            "kind": {
+              "Enum": [
+                "success",
+                "failure"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "response",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9f8c1fee206c7178367a484a8a68dfa186445b83f8b5889b329406ecfa59de5d"
+}

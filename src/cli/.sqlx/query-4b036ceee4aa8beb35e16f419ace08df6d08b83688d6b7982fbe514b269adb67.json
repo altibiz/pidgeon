@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        insert into measurements (source, timestamp, data)\n        values ($1, $2, $3)\n      ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4b036ceee4aa8beb35e16f419ace08df6d08b83688d6b7982fbe514b269adb67"
+}

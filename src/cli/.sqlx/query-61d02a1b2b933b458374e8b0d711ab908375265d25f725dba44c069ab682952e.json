@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        insert into health (source, timestamp, status, data)\n        values ($1, $2, $3, $4)\n      ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz",
+        {
+          "Custom": {
+            "name": "device_status",
+            "kind": {
+              "Enum": [
+                "healthy",
+                "unreachable",
+                "inactive"
+              ]
+            }
+          }
+        },
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "61d02a1b2b933b458374e8b0d711ab908375265d25f725dba44c069ab682952e"
+}
