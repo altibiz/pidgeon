@@ -1,4 +1,4 @@
-use futures::future::{join_all, try_join_all};
+use futures::future::join_all;
 
 use crate::{service::*, *};
 
@@ -18,28 +18,48 @@ impl process::Process for Process {
 
 #[async_trait::async_trait]
 impl process::Recurring for Process {
+  #[tracing::instrument(skip(self))]
   async fn execute(&self) -> anyhow::Result<()> {
-    let devices = self.services.db().get_devices().await?;
-
     let config = self.config.reload_async().await;
 
-    try_join_all(
-      join_all(devices.iter().cloned().map(move |device| {
-        let config = config.clone();
-        self.ping_device(config, device)
-      }))
-      .await
-      .into_iter()
-      .zip(devices)
-      .map(|(healthy, device)| self.consolidate(device, healthy)),
+    let devices = self.services.db().get_devices().await?;
+
+    let pinged_devices = join_all(devices.iter().cloned().map(move |device| {
+      let config = config.clone();
+      self.ping_device(config, device)
+    }))
+    .await;
+
+    tracing::info!(
+      "Pinged {:?} devices of which {:?} are healthy and {:?} unreachable",
+      pinged_devices.len(),
+      pinged_devices.iter().filter(|pinged| **pinged).count(),
+      pinged_devices.iter().filter(|pinged| !**pinged).count(),
+    );
+
+    let consolidated_devices = join_all(
+      pinged_devices
+        .into_iter()
+        .zip(devices)
+        .map(|(healthy, device)| self.consolidate(device, healthy)),
     )
-    .await?;
+    .await;
+
+    tracing::info!(
+      "Consolidated {:?} pinged devices of which {:?} are healthy, {:?} unreachable, {:?} inactive, and {:?} failed",
+      consolidated_devices.len(),
+      consolidated_devices.iter().filter(|consolidated| matches!(**consolidated, Ok((_, db::DeviceStatus::Healthy)))).count(),
+      consolidated_devices.iter().filter(|consolidated| matches!(**consolidated, Ok((_, db::DeviceStatus::Unreachable)))).count(),
+      consolidated_devices.iter().filter(|consolidated| matches!(**consolidated, Ok((_, db::DeviceStatus::Inactive)))).count(),
+      consolidated_devices.iter().filter(|consolidated| matches!(**consolidated, Err(_))).count(),
+    );
 
     Ok(())
   }
 }
 
 impl Process {
+  #[tracing::instrument(skip(self, config))]
   async fn ping_device(
     &self,
     config: config::Values,
@@ -61,7 +81,7 @@ impl Process {
         {
           Some(id_registers) => {
             if modbus::make_id(device.kind, id_registers) == device.id {
-              tracing::debug!("");
+              tracing::debug!("Id match");
               true
             } else {
               tracing::debug!("");
@@ -81,11 +101,12 @@ impl Process {
     }
   }
 
+  #[tracing::instrument(skip(self))]
   async fn consolidate(
     &self,
     device: db::Device,
     healthy: bool,
-  ) -> anyhow::Result<()> {
+  ) -> anyhow::Result<(db::Device, db::DeviceStatus)> {
     let now = chrono::Utc::now();
     let status = if healthy {
       db::DeviceStatus::Healthy
@@ -122,6 +143,6 @@ impl Process {
         .await?;
     }
 
-    Ok(())
+    Ok((device, status))
   }
 }
