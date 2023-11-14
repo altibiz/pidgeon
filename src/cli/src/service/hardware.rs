@@ -31,10 +31,7 @@ impl Service {
       tokio::fs::read_to_string(self.temperature_monitor.as_path()).await?;
     let temperature = temperature.parse::<f32>()? / 1000f32;
 
-    tracing::trace! {
-      "Read {:?} temperature",
-      temperature
-    }
+    tracing::trace!("Read {:?} temperature", temperature);
 
     Ok(temperature)
   }

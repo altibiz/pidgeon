@@ -89,6 +89,7 @@ impl service::Service for Service {
 }
 
 impl Service {
+  #[tracing::instrument(skip(self))]
   pub async fn bind(&self, id: String, destination: Destination) {
     let server = self.get_server(destination).await;
     {
@@ -101,8 +102,11 @@ impl Service {
         },
       );
     }
+
+    tracing::trace!("Bound");
   }
 
+  #[tracing::instrument(skip(self))]
   pub async fn stop_from_id(&self, id: &str) {
     let mut server_to_remove = None;
 
@@ -120,8 +124,12 @@ impl Service {
       }
     }
 
+    tracing::trace!("Stopped {:?} worker", id);
+
     if let Some(server) = server_to_remove {
       self.stop_from_address(server).await;
+
+      tracing::trace!("Stopped {:?} worker", server);
     }
   }
 

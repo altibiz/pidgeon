@@ -154,10 +154,7 @@ impl Service {
     .fetch_optional(&self.pool)
     .await?;
 
-    tracing::trace!(
-      "Fetched device {:?}",
-      device.as_ref().map(|device| &device.id)
-    );
+    tracing::trace!("Fetched device");
 
     Ok(device)
   }
@@ -181,7 +178,7 @@ impl Service {
     .execute(&self.pool)
     .await?;
 
-    tracing::trace!("Inserted device {:?}", device);
+    tracing::trace!("Inserted device");
 
     Ok(())
   }
@@ -199,7 +196,7 @@ impl Service {
     .execute(&self.pool)
     .await?;
 
-    tracing::trace!("Deleted device {:?}", id);
+    tracing::trace!("Deleted device");
 
     Ok(())
   }
@@ -227,7 +224,7 @@ impl Service {
     .execute(&self.pool)
     .await?;
 
-    tracing::trace!("Updated device {:?} status to {:?}", id, status);
+    tracing::trace!("Updated device status");
 
     Ok(())
   }
@@ -257,12 +254,7 @@ impl Service {
     .execute(&self.pool)
     .await?;
 
-    tracing::trace!(
-      "Updated device {:?} destination to {:?} {:?}",
-      id,
-      address,
-      slave
-    );
+    tracing::trace!("Updated device destination");
 
     Ok(())
   }
@@ -285,11 +277,7 @@ impl Service {
     .execute(&self.pool)
     .await?;
 
-    tracing::trace!(
-      "Inserted measurement for {:?} at {:?}",
-      measurement.source,
-      measurement.timestamp
-    );
+    tracing::trace!("Inserted measurement");
 
     Ok(())
   }
@@ -409,7 +397,7 @@ impl Service {
     .fetch_all(&self.pool)
     .await?;
 
-    tracing::trace!("Got {:?} healths", healths.len());
+    tracing::trace!("Fetched {:?} healths", healths.len());
 
     Ok(healths)
   }

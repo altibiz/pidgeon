@@ -52,10 +52,7 @@ impl Service {
       }
     }
 
-    tracing::trace! {
-      "Found {:?} ips",
-      matched_ips.len()
-    };
+    tracing::trace!("Found {:?} ips", matched_ips.len());
 
     matched_ips
   }
