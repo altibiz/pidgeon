@@ -276,11 +276,12 @@ impl Task {
           }
           Either::Right(response) => {
             if let Err(error) = oneshot.sender.try_send(Ok(response)) {
-              tracing::debug! {
-                %error,
-                "Failed sending oneshot response to {:?}",
-                oneshot.destination
-              }
+              // NOTE: error -> trace because this should fail when we already cancelled the future from caller
+              tracing::trace!(
+                "Failed sending oneshot response to {:?} {}",
+                oneshot.destination,
+                error,
+              )
             }
 
             oneshots_to_remove.push(oneshot.id);
@@ -400,11 +401,12 @@ impl Task {
         Ok(connection) => ConnectionAttempt::New(connection),
         Err(error) => {
           if let Err(error) = storage.sender.try_send(Err(error.into())) {
-            tracing::debug! {
-              %error,
-              "Failed sending connection fail from worker task to {:?}",
-              storage.destination
-            }
+            // NOTE: error -> trace because this should fail when we already cancelled the future from caller
+            tracing::trace!(
+              "Failed sending connection fail from worker task to {:?} {}",
+              storage.destination,
+              error
+            )
           }
 
           ConnectionAttempt::Fail

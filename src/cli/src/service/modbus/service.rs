@@ -133,6 +133,7 @@ impl Service {
     }
   }
 
+  #[tracing::instrument(skip(self))]
   pub async fn stop_from_destination(&self, destination: Destination) {
     let ids = {
       let devices = self.devices.clone().lock_owned().await;
@@ -163,6 +164,8 @@ impl Service {
         .collect::<Vec<_>>()
     };
 
+    tracing::trace!("Removed {:?} ids", ids);
+
     let mut removed_servers = Vec::new();
     {
       let mut servers = self.servers.clone().lock_owned().await;
@@ -176,18 +179,18 @@ impl Service {
 
     for server in removed_servers {
       if let Err(error) = server.worker.terminate().await {
-        tracing::error! {
-          %error,
-          "Failed terminating server worker"
-        }
+        // NOTE: error -> trace because this means it already terminated and disconnected
+        tracing::trace!("Failed terminating server worker {}", error)
       }
     }
   }
 
+  #[tracing::instrument(skip(self))]
   pub async fn stop_from_address(&self, address: SocketAddr) {
     {
       let mut devices = self.devices.clone().lock_owned().await;
       devices.retain(|_, device| device.destination.address != address);
+      tracing::trace!("Retained devices {:?}", devices.keys());
     }
 
     let server = {
@@ -196,15 +199,16 @@ impl Service {
     };
 
     if let Some(server) = server {
+      tracing::trace!("Removed {:?} server", server);
+
       if let Err(error) = server.worker.terminate().await {
-        tracing::error! {
-          %error,
-          "Failed terminating server worker"
-        }
+        // NOTE: error -> trace because this means it already terminated and disconnected
+        tracing::trace!("Failed terminating server worker {}", error)
       }
     }
   }
 
+  #[tracing::instrument(skip(self, spans))]
   pub async fn read_from_destination<
     TSpan: Span,
     TSpanParser: Span + SpanParser<TSpan>,
@@ -219,9 +223,13 @@ impl Service {
     let response = self
       .read_from_worker(server.worker, destination, spans)
       .await?;
+
+    tracing::trace!("Read {:?} spans", response.len());
+
     Ok(response)
   }
 
+  #[tracing::instrument(skip(self, spans))]
   pub async fn stream_from_destination<
     TSpan: Span,
     TSpanParser: Clone + Span + SpanParser<TSpan>,
@@ -239,9 +247,13 @@ impl Service {
     let stream = self
       .stream_from_worker(server.worker, destination, spans)
       .await?;
+
+    tracing::trace!("Streaming spans");
+
     Ok(stream)
   }
 
+  #[tracing::instrument(skip(self, spans))]
   pub async fn read_from_id<
     TSpan: Span,
     TSpanParser: Span + SpanParser<TSpan>,
@@ -259,9 +271,13 @@ impl Service {
     let response = self
       .read_from_worker(device.worker, device.destination, spans)
       .await?;
+
+    tracing::trace!("Read {:?} spans", response.len());
+
     Ok(response)
   }
 
+  #[tracing::instrument(skip(self, spans))]
   pub async fn stream_from_id<
     TSpan: Span,
     TSpanParser: Clone + Span + SpanParser<TSpan>,
@@ -282,6 +298,9 @@ impl Service {
     let stream = self
       .stream_from_worker(device.worker, device.destination, spans)
       .await?;
+
+    tracing::trace!("Streaming spans");
+
     Ok(stream)
   }
 
@@ -329,8 +348,7 @@ impl Service {
       Err(error) => return Err(ServerStreamError::ServerFailed(error.into())),
     };
     let stream = stream.map(move |result| {
-      let batches = batches.clone();
-      Self::parse_worker_result(result, batches, len)
+      Self::parse_worker_result(result, batches.clone(), len)
     });
     Ok(stream)
   }
