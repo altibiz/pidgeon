@@ -158,19 +158,11 @@ impl Service {
     let success = status_code.is_success();
     let text = http_response.text().await?;
 
-    if success {
-      tracing::debug! {
-        "Successfully pushed {:?} measurements",
-        request.measurements.len()
-      };
-    } else {
-      tracing::warn! {
-        "Failed pushing {:?} measurements: {:?} {:?}",
-        request.measurements.len(),
-        status_code,
-        text.clone()
-      };
-    }
+    tracing::trace!(
+      "Pushed {:?} measurements {:?}",
+      request.measurements.len(),
+      status_code
+    );
 
     let response = Response { success, text };
 
@@ -208,19 +200,11 @@ impl Service {
     let success = status_code.is_success();
     let text = http_response.text().await?;
 
-    if success {
-      tracing::debug! {
-        "Successfully updated {:?} health",
-        request.health.len()
-      };
-    } else {
-      tracing::warn! {
-        "Failed updating {:?} health: {:?} {:?}",
-        request.health.len(),
-        status_code,
-        text.clone()
-      };
-    }
+    tracing::trace!(
+      "Updated {:?} health {:?}",
+      request.health.len(),
+      status_code
+    );
 
     let response = Response { success, text };
 
