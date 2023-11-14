@@ -58,6 +58,9 @@ pub(crate) struct Modbus {
   pub(crate) batch_threshold: u16,
   pub(crate) metric_history_size: usize,
   pub(crate) termination_timeout: chrono::Duration,
+  pub(crate) ping_timeout: chrono::Duration,
+  pub(crate) pings_till_inactive: u32,
+  pub(crate) discovery_timeout: chrono::Duration,
   pub(crate) devices: HashMap<String, Device>,
 }
 
@@ -259,6 +262,13 @@ impl Manager {
         metric_history_size: config.from_file.modbus.metric_history_size,
         termination_timeout: file::milliseconds_to_chrono(
           config.from_file.modbus.termination_timeout,
+        ),
+        ping_timeout: file::milliseconds_to_chrono(
+          config.from_file.modbus.ping_timeout,
+        ),
+        pings_till_inactive: config.from_file.modbus.pings_till_inactive,
+        discovery_timeout: file::milliseconds_to_chrono(
+          config.from_file.modbus.discovery_timeout,
         ),
         devices: config
           .from_file
