@@ -16,14 +16,13 @@ mod service;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-  let config = config::Manager::new()?;
+  let manager = config::Manager::new_async().await?;
+  let config = manager.values_async().await;
 
-  let services_config = config.values_async().await;
-  let services = service::Container::new(services_config);
+  let services = service::Container::new(config.clone());
+  let processes = process::Container::new(manager.clone(), services.clone());
+
   services.db().migrate().await?;
-
-  let processes = process::Container::new(config, services);
-
   processes.spawn().await;
   tokio::signal::ctrl_c().await?;
   processes.cancel().await;

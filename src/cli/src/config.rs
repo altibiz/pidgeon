@@ -285,6 +285,18 @@ impl Manager {
     Ok(config_manager)
   }
 
+  pub async fn new_async() -> Result<Self, ReadError> {
+    let _ = dotenv::dotenv();
+
+    let config = Self::read_async().await?;
+
+    let config_manager = Self {
+      values: Arc::new(Mutex::new(config)),
+    };
+
+    Ok(config_manager)
+  }
+
   pub fn values(&self) -> Values {
     let config = self.values.blocking_lock().clone();
 
@@ -523,6 +535,21 @@ impl Manager {
   fn read() -> Result<Unparsed, ReadError> {
     let from_args = Self::read_from_args();
     let from_file = Self::read_from_file(from_args.config.clone())?;
+    let from_env = Self::read_from_env()?;
+
+    let config = Unparsed {
+      from_args,
+      from_file,
+      from_env,
+    };
+
+    Ok(config)
+  }
+
+  async fn read_async() -> Result<Unparsed, ReadError> {
+    let from_args = Self::read_from_args();
+    let from_file =
+      Self::read_from_file_async(from_args.config.clone()).await?;
     let from_env = Self::read_from_env()?;
 
     let config = Unparsed {
