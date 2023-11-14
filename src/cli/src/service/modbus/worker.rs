@@ -17,6 +17,13 @@ use super::span::{SimpleSpan, Span};
 
 pub(crate) type Response = Vec<super::connection::Response>;
 
+#[derive(Debug, Clone)]
+pub(crate) struct Worker {
+  sender: RequestSender,
+  handle: Arc<Mutex<Option<TaskHandle>>>,
+  termination_timeout: futures_time::time::Duration,
+}
+
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum SendError {
   #[error("Failed to connect")]
@@ -36,21 +43,6 @@ pub(crate) enum StreamError {
 pub(crate) enum TerminateError {
   #[error("Channel was disconnected before the request could be finished")]
   ChannelDisconnected(anyhow::Error),
-}
-
-type TaskHandle = tokio::task::JoinHandle<()>;
-
-#[derive(Debug, Clone)]
-pub(crate) struct Worker {
-  sender: RequestSender,
-  handle: Arc<Mutex<Option<TaskHandle>>>,
-  termination_timeout: futures_time::time::Duration,
-}
-
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
-struct SimpleRequest {
-  destination: Destination,
-  spans: Vec<SimpleSpan>,
 }
 
 impl Worker {
@@ -147,6 +139,14 @@ impl Worker {
 
     result.map_err(|error| TerminateError::ChannelDisconnected(error.into()))
   }
+}
+
+type TaskHandle = tokio::task::JoinHandle<()>;
+
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+struct SimpleRequest {
+  destination: Destination,
+  spans: Vec<SimpleSpan>,
 }
 
 #[derive(Clone, Debug)]
