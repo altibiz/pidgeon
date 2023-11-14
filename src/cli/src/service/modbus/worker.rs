@@ -394,6 +394,7 @@ enum ConnectionAttempt<'a> {
 }
 
 impl Task {
+  #[tracing::instrument(skip_all, fields(address = ?storage.destination))]
   async fn attempt_connection<'a>(
     connections: &'a mut HashMap<Destination, Connection>,
     storage: &Storage,
@@ -401,15 +402,19 @@ impl Task {
     match connections.get_mut(&storage.destination) {
       Some(connection) => ConnectionAttempt::Existing(connection),
       None => match Connection::connect(storage.destination).await {
-        Ok(connection) => ConnectionAttempt::New(connection),
+        Ok(connection) => {
+          tracing::trace!("Connected");
+          ConnectionAttempt::New(connection)
+        }
         Err(error) => {
+          tracing::trace!("Failed connecting");
+
           if let Err(error) = storage.sender.try_send(Err(error.into())) {
             // NOTE: error -> trace because this should fail when we already cancelled the future from caller
             tracing::trace!(
-              "Failed sending connection fail from worker task to {:?} {}",
-              storage.destination,
+              "Failed sending connection fail from worker task {}",
               error
-            )
+            );
           }
 
           ConnectionAttempt::Fail
@@ -420,10 +425,7 @@ impl Task {
 }
 
 impl Task {
-  #[tracing::instrument(skip_all, fields(
-    address = storage.destination.address.ip().to_string(),
-    slave = storage.destination.slave,
-  ))]
+  #[tracing::instrument(skip_all, fields(address = ?storage.destination))]
   async fn read(
     storage: &Storage,
     params: Params,
