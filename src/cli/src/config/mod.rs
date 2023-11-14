@@ -55,7 +55,8 @@ pub(crate) struct Modbus {
   pub(crate) initial_timeout: chrono::Duration,
   pub(crate) initial_backoff: chrono::Duration,
   pub(crate) initial_retries: u32,
-  pub(crate) batch_threshold: u32,
+  pub(crate) batch_threshold: u16,
+  pub(crate) metric_history_size: usize,
   pub(crate) termination_timeout: chrono::Duration,
   pub(crate) devices: HashMap<String, Device>,
 }
@@ -255,6 +256,7 @@ impl Manager {
         ),
         initial_retries: config.from_file.modbus.initial_retries,
         batch_threshold: config.from_file.modbus.batch_threshold,
+        metric_history_size: config.from_file.modbus.metric_history_size,
         termination_timeout: file::milliseconds_to_chrono(
           config.from_file.modbus.termination_timeout,
         ),

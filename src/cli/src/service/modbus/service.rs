@@ -20,8 +20,9 @@ pub(crate) struct Service {
   devices: Arc<Mutex<HashMap<String, Device>>>,
   servers: Arc<Mutex<HashMap<SocketAddr, Server>>>,
   initial_params: Params,
-  batch_threshold: u32,
+  batch_threshold: u16,
   termination_timeout: chrono::Duration,
+  metric_history_size: usize,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -72,6 +73,7 @@ impl service::Service for Service {
       ),
       batch_threshold: config.modbus.batch_threshold,
       termination_timeout: config.modbus.termination_timeout,
+      metric_history_size: config.modbus.metric_history_size,
     }
   }
 }
@@ -390,7 +392,11 @@ impl Service {
     let worker = workers
       .entry(destination.address)
       .or_insert_with(|| Server {
-        worker: Worker::new(self.initial_params, self.termination_timeout),
+        worker: Worker::new(
+          self.initial_params,
+          self.termination_timeout,
+          self.metric_history_size,
+        ),
         address: destination.address,
       })
       .clone();

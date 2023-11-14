@@ -10,8 +10,7 @@ use tokio::sync::Mutex;
 use super::connection::*;
 use super::span::{SimpleSpan, Span};
 
-// TODO: tracing
-// TODO: inspect errors to terminate/tune
+// TODO: inspect errors to tune
 // TODO: remove copying when reading
 // TODO: check bounded channel length - maybe config?
 
@@ -22,6 +21,7 @@ pub(crate) struct Worker {
   sender: RequestSender,
   handle: Arc<Mutex<Option<TaskHandle>>>,
   termination_timeout: futures_time::time::Duration,
+  metric_history_size: usize,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -49,9 +49,10 @@ impl Worker {
   pub(crate) fn new(
     initial_params: Params,
     termination_timeout: chrono::Duration,
+    metric_history_size: usize,
   ) -> Self {
     let (sender, receiver) = flume::unbounded();
-    let task = Task::new(initial_params, receiver);
+    let task = Task::new(initial_params, receiver, metric_history_size);
     let handle = tokio::spawn(task.execute());
     Self {
       sender,
@@ -59,6 +60,7 @@ impl Worker {
       termination_timeout: futures_time::time::Duration::from_millis(
         termination_timeout.num_milliseconds() as u64,
       ),
+      metric_history_size,
     }
   }
 }
@@ -218,10 +220,16 @@ struct Task {
   streams: Vec<Storage>,
   params: Params,
   terminate: bool,
+  history: Vec<Metrics>,
+  metric_history: usize,
 }
 
 impl Task {
-  pub(crate) fn new(params: Params, receiver: RequestReceiver) -> Self {
+  pub(crate) fn new(
+    params: Params,
+    receiver: RequestReceiver,
+    metric_history: usize,
+  ) -> Self {
     Self {
       connections: HashMap::new(),
       receiver,
@@ -229,6 +237,8 @@ impl Task {
       streams: Vec::new(),
       params,
       terminate: false,
+      history: Vec::new(),
+      metric_history,
     }
   }
 
@@ -527,7 +537,13 @@ impl Metrics {
 impl Task {
   #[tracing::instrument(skip(self))]
   fn tune(&mut self, metrics: Metrics) {
-    tracing::trace!("Tuned");
+    self.history.push(metrics);
+    if self.history.len() > self.metric_history {
+      self.history.remove(0);
+    }
+    if let Some(_metrics) = self.history.last() {}
+
+    tracing::trace!("Tuned params to {:?}", self.params);
   }
 }
 
