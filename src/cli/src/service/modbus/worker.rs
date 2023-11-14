@@ -295,6 +295,12 @@ impl Task {
         !oneshots_to_remove.iter().any(|id| *id == oneshot.id)
       });
 
+      tracing::trace!(
+        "Removed oneshots {:?} - retained {:?}",
+        oneshots_to_remove,
+        self.oneshots.iter().map(|oneshot| oneshot.id)
+      );
+
       if self.terminate {
         if !self.streams.is_empty() {
           self.streams = Vec::new();
@@ -338,12 +344,21 @@ impl Task {
         self.streams.retain(|stream| {
           !streams_to_remove.iter().any(|id| *id == stream.id)
         });
+
+        tracing::trace!(
+          "Removed streams {:?} - retained {:?}",
+          streams_to_remove,
+          self.streams.iter().map(|stream| stream.id)
+        );
       }
 
       self.tune(metrics);
     }
   }
 
+  #[tracing::instrument(skip_all, fields(
+    destination = ?self.oneshots.iter().next()
+  ))]
   fn try_recv_new_request(&mut self) -> Result<(), flume::TryRecvError> {
     match self.receiver.try_recv()? {
       TaskRequest::Carrier(carrier) => {
@@ -354,12 +369,16 @@ impl Task {
       TaskRequest::Terminate => {
         self.terminate = true;
         self.streams = Vec::new();
+        tracing::trace!("Terminating");
       }
     }
 
     Ok(())
   }
 
+  #[tracing::instrument(skip_all, fields(
+    destination = ?self.oneshots.iter().next()
+  ))]
   async fn recv_async_new_request(&mut self) -> Result<(), flume::RecvError> {
     match self.receiver.recv_async().await? {
       TaskRequest::Carrier(carrier) => {
@@ -370,6 +389,7 @@ impl Task {
       TaskRequest::Terminate => {
         self.terminate = true;
         self.streams = Vec::new();
+        tracing::trace!("Terminating");
       }
     }
 
@@ -418,10 +438,15 @@ impl Task {
     storage: &Storage,
   ) -> ConnectionAttempt<'a> {
     match connections.get_mut(&storage.destination) {
-      Some(connection) => ConnectionAttempt::Existing(connection),
+      Some(connection) => {
+        tracing::trace!("Connected to existing connection");
+
+        ConnectionAttempt::Existing(connection)
+      }
       None => match Connection::connect(storage.destination).await {
         Ok(connection) => {
-          tracing::trace!("Connected");
+          tracing::trace!("Connected to new connection");
+
           ConnectionAttempt::New(connection)
         }
         Err(error) => {
