@@ -37,7 +37,7 @@ create type log_kind as enum ('push', 'update');
 create table logs (
   id bigserial primary key not null,
   timestamp timestamp with time zone not null,
-  last bigserial null,
+  last bigint null,
   kind log_kind not null,
   status log_status not null,
   response jsonb not null
