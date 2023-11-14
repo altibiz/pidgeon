@@ -84,18 +84,18 @@ impl Process {
               tracing::debug!("Id match");
               true
             } else {
-              tracing::debug!("");
+              tracing::debug!("Id mismatch");
               false
             }
           }
           None => {
-            tracing::debug!("");
+            tracing::debug!("Id read failed");
             false
           }
         }
       }
       None => {
-        tracing::debug!("");
+        tracing::debug!("Config not found");
         false
       }
     }
@@ -119,18 +119,23 @@ impl Process {
     let remove = (status == db::DeviceStatus::Inactive)
       && (device.status != db::DeviceStatus::Unreachable);
 
-    self
+    if let Err(error) = self
       .services
       .db()
       .update_device_status(&device.id, status, seen, now)
-      .await?;
+      .await
+    {
+      tracing::error!("Failed updating device status {}", error);
+      return Err(error.into());
+    };
 
     if remove {
       self.services.modbus().stop_from_id(&device.id).await;
+      tracing::debug!("Stopped worker")
     }
 
     if update {
-      self
+      if let Err(error) = self
         .services
         .db()
         .insert_health(db::Health {
@@ -140,8 +145,13 @@ impl Process {
           status,
           data: serde_json::Value::Object(serde_json::Map::new()),
         })
-        .await?;
+        .await
+      {
+        tracing::error!("Failed inserting health {}", error);
+      }
     }
+
+    tracing::debug!("Updated device status and health");
 
     Ok((device, status))
   }
