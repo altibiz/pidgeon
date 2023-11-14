@@ -1,8 +1,9 @@
-pub(crate) mod discover;
-pub(crate) mod measure;
-pub(crate) mod ping;
-pub(crate) mod push;
-pub(crate) mod update;
+mod discover;
+mod health;
+mod measure;
+mod ping;
+mod push;
+mod update;
 
 use std::sync::Arc;
 
@@ -99,6 +100,7 @@ impl Container {
       self.make_recurring_spec::<measure::Process>(config.measure_interval),
       self.make_recurring_spec::<push::Process>(config.push_interval),
       self.make_recurring_spec::<update::Process>(config.update_interval),
+      self.make_recurring_spec::<health::Process>(config.update_interval),
     ];
 
     {

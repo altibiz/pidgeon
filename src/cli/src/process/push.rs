@@ -16,8 +16,10 @@ impl process::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
     let last_pushed_id =
       match self.services.db().get_last_successful_push_log().await? {
-        Some(log) => log.last,
-        None => 0,
+        Some(db::Log {
+          last: Some(last), ..
+        }) => last,
+        _ => 0,
       };
 
     let mut measurements_to_push = self
@@ -60,7 +62,7 @@ impl process::Recurring for Process {
     let log = db::Log {
       id: 0,
       timestamp: chrono::Utc::now(),
-      last: last_push_id,
+      last: Some(last_push_id),
       status: log_status,
       kind: db::LogKind::Push,
       response: serde_json::Value::String(log_response),

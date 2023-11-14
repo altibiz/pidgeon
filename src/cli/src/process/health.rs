@@ -11,46 +11,15 @@ impl process::Process for Process {
   }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-struct PidgeonHealth {
-  temperature: f32,
-}
-
 #[async_trait::async_trait]
 impl process::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
     let temperature = self.services.hardware().read_temperature().await?;
 
-    let last_pushed_id =
-      match self.services.db().get_last_successful_update_log().await? {
-        Some(db::Log {
-          last: Some(last), ..
-        }) => last,
-        _ => 0,
-      };
-
-    let mut health_to_update =
-      self.services.db().get_health(last_pushed_id, 1000).await?;
-    let last_push_id =
-      match health_to_update.iter().max_by(|x, y| x.id.cmp(&y.id)) {
-        Some(measurement) => measurement.id,
-        None => return Ok(()),
-      };
-
     let result = self
       .services
       .cloud()
-      .update(
-        serde_json::json!(PidgeonHealth { temperature }),
-        health_to_update
-          .drain(0..)
-          .map(|health| cloud::Health {
-            device_id: health.source,
-            timestamp: health.timestamp,
-            data: serde_json::json!(health.data),
-          })
-          .collect(),
-      )
+      .update(serde_json::json!(Health { temperature }), vec![])
       .await;
 
     let (log_status, log_response) = match result {
@@ -67,7 +36,7 @@ impl process::Recurring for Process {
     let log = db::Log {
       id: 0,
       timestamp: chrono::Utc::now(),
-      last: Some(last_push_id),
+      last: None,
       status: log_status,
       kind: db::LogKind::Update,
       response: serde_json::Value::String(log_response),
@@ -76,4 +45,9 @@ impl process::Recurring for Process {
 
     Ok(())
   }
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+struct Health {
+  temperature: f32,
 }

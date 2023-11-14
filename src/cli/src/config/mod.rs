@@ -74,6 +74,7 @@ pub(crate) struct Values {
   pub(crate) measure_interval: chrono::Duration,
   pub(crate) push_interval: chrono::Duration,
   pub(crate) update_interval: chrono::Duration,
+  pub(crate) health_interval: chrono::Duration,
 }
 
 #[derive(Debug, Clone)]
@@ -191,27 +192,30 @@ impl Manager {
           file::LogLevel::Error => tracing::level_filters::LevelFilter::ERROR,
         },
       ),
-      discover_interval: chrono::Duration::milliseconds(
-        config.from_file.discover_interval.unwrap_or(60000) as i64,
+      discover_interval: file::milliseconds_to_chrono(
+        config.from_file.discover_interval.unwrap_or(60000),
       ),
-      ping_interval: chrono::Duration::milliseconds(
-        config.from_file.ping_interval.unwrap_or(60000) as i64,
+      ping_interval: file::milliseconds_to_chrono(
+        config.from_file.ping_interval.unwrap_or(60000),
       ),
-      measure_interval: chrono::Duration::milliseconds(
-        config.from_file.ping_interval.unwrap_or(60000) as i64,
+      measure_interval: file::milliseconds_to_chrono(
+        config.from_file.ping_interval.unwrap_or(60000),
       ),
-      push_interval: chrono::Duration::milliseconds(
-        config.from_file.push_interval.unwrap_or(60000) as i64,
+      push_interval: file::milliseconds_to_chrono(
+        config.from_file.push_interval.unwrap_or(60000),
       ),
-      update_interval: chrono::Duration::milliseconds(
-        config.from_file.update_interval.unwrap_or(60000) as i64,
+      update_interval: file::milliseconds_to_chrono(
+        config.from_file.update_interval.unwrap_or(60000),
+      ),
+      health_interval: file::milliseconds_to_chrono(
+        config.from_file.health_interval.unwrap_or(60000),
       ),
       hardware: Hardware {
         temperature_monitor: config.from_file.hardware.temperature_monitor,
       },
       cloud: Cloud {
-        timeout: chrono::Duration::milliseconds(
-          config.from_file.cloud.timeout.unwrap_or(30000) as i64,
+        timeout: file::milliseconds_to_chrono(
+          config.from_file.cloud.timeout.unwrap_or(30000),
         ),
         ssl: config.from_env.cloud.ssl,
         domain: config.from_env.cloud.domain,
@@ -219,8 +223,8 @@ impl Manager {
         id: config.from_env.cloud.id,
       },
       db: Db {
-        timeout: chrono::Duration::milliseconds(
-          config.from_file.db.timeout.unwrap_or(30000) as i64,
+        timeout: file::milliseconds_to_chrono(
+          config.from_file.db.timeout.unwrap_or(30000),
         ),
         ssl: config.from_env.db.ssl,
         domain: config.from_env.db.domain,
@@ -234,8 +238,8 @@ impl Manager {
         name: config.from_env.db.name,
       },
       network: Network {
-        timeout: chrono::Duration::milliseconds(
-          config.from_file.network.timeout.unwrap_or(30000) as i64,
+        timeout: file::milliseconds_to_chrono(
+          config.from_file.network.timeout.unwrap_or(30000),
         ),
         ip_range: file::make_ip_range(
           config.from_env.network.ip_range_start,
@@ -243,16 +247,16 @@ impl Manager {
         ),
       },
       modbus: Modbus {
-        initial_timeout: chrono::Duration::milliseconds(
-          config.from_file.modbus.initial_timeout as i64,
+        initial_timeout: file::milliseconds_to_chrono(
+          config.from_file.modbus.initial_timeout,
         ),
-        initial_backoff: chrono::Duration::milliseconds(
-          config.from_file.modbus.initial_backoff as i64,
+        initial_backoff: file::milliseconds_to_chrono(
+          config.from_file.modbus.initial_backoff,
         ),
         initial_retries: config.from_file.modbus.initial_retries,
         batch_threshold: config.from_file.modbus.batch_threshold,
-        termination_timeout: chrono::Duration::milliseconds(
-          config.from_file.modbus.termination_timeout as i64,
+        termination_timeout: file::milliseconds_to_chrono(
+          config.from_file.modbus.termination_timeout,
         ),
         devices: config
           .from_file

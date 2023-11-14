@@ -71,7 +71,7 @@ pub(crate) struct Log {
   #[allow(unused)]
   pub(crate) id: i64,
   pub(crate) timestamp: DateTime<Utc>,
-  pub(crate) last: i64,
+  pub(crate) last: Option<i64>,
   pub(crate) kind: LogKind,
   pub(crate) status: LogStatus,
   pub(crate) response: serde_json::Value,
@@ -451,7 +451,7 @@ impl Service {
       r#"
         select id, timestamp, last, kind as "kind: LogKind", status as "status: LogStatus", response
         from logs
-        where status = 'success'::log_status and kind = 'push'::log_kind
+        where status = 'success'::log_status and kind = 'push'::log_kind and last is not null
         order by timestamp desc
         limit 1
       "#
@@ -477,7 +477,7 @@ impl Service {
       r#"
         select id, timestamp, last, kind as "kind: LogKind", status as "status: LogStatus", response
         from logs
-        where status = 'success'::log_status and kind = 'update'::log_kind
+        where status = 'success'::log_status and kind = 'update'::log_kind and last is not null
         order by timestamp desc
         limit 1
       "#

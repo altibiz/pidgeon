@@ -119,6 +119,7 @@ pub(crate) struct Values {
   pub(crate) measure_interval: Option<u32>,
   pub(crate) push_interval: Option<u32>,
   pub(crate) update_interval: Option<u32>,
+  pub(crate) health_interval: Option<u32>,
   pub(crate) hardware: Hardware,
   pub(crate) network: Network,
   pub(crate) modbus: Modbus,
@@ -251,4 +252,8 @@ pub(crate) fn make_ip_range(start: String, end: String) -> ipnet::IpAddrRange {
   };
 
   ipnet::IpAddrRange::from(ipnet::Ipv4AddrRange::new(start, end))
+}
+
+pub(crate) fn milliseconds_to_chrono(milliseconds: u32) -> chrono::Duration {
+  chrono::Duration::milliseconds(milliseconds as i64)
 }
