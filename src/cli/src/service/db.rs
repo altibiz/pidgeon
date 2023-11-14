@@ -50,7 +50,7 @@ pub struct Health {
   pub data: serde_json::Value,
 }
 
-#[derive(Debug, Clone, Type, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Type, Eq, PartialEq)]
 #[sqlx(type_name = "log_status", rename_all = "lowercase")]
 pub enum LogStatus {
   Success,
@@ -118,6 +118,8 @@ impl Service {
   pub async fn migrate(&self) -> Result<(), MigrateError> {
     MIGRATOR.run(&self.pool).await?;
 
+    tracing::info!("Migration ran successfully");
+
     Ok(())
   }
 
@@ -133,12 +135,14 @@ impl Service {
     .fetch_all(&self.pool)
     .await?;
 
+    tracing::trace!("Fetched {:?} devices", devices.len());
+
     Ok(devices)
   }
 
   #[tracing::instrument(skip(self))]
   pub async fn get_device(&self, id: &str) -> Result<Option<Device>, Error> {
-    let devices = sqlx::query_as!(
+    let device = sqlx::query_as!(
       Device,
       r#"
         select id, kind, status as "status: DeviceStatus", seen, pinged, address, slave
@@ -150,7 +154,12 @@ impl Service {
     .fetch_optional(&self.pool)
     .await?;
 
-    Ok(devices)
+    tracing::trace!(
+      "Fetched device {:?}",
+      device.as_ref().map(|device| &device.id)
+    );
+
+    Ok(device)
   }
 
   #[tracing::instrument(skip(self))]
@@ -172,6 +181,8 @@ impl Service {
     .execute(&self.pool)
     .await?;
 
+    tracing::trace!("Inserted device {:?}", device);
+
     Ok(())
   }
 
@@ -187,6 +198,8 @@ impl Service {
     )
     .execute(&self.pool)
     .await?;
+
+    tracing::trace!("Deleted device {:?}", id);
 
     Ok(())
   }
@@ -213,6 +226,8 @@ impl Service {
     )
     .execute(&self.pool)
     .await?;
+
+    tracing::trace!("Updated device {:?} status to {:?}", id, status);
 
     Ok(())
   }
@@ -242,6 +257,13 @@ impl Service {
     .execute(&self.pool)
     .await?;
 
+    tracing::trace!(
+      "Updated device {:?} destination to {:?} {:?}",
+      id,
+      address,
+      slave
+    );
+
     Ok(())
   }
 
@@ -263,10 +285,16 @@ impl Service {
     .execute(&self.pool)
     .await?;
 
+    tracing::trace!(
+      "Inserted measurement for {:?} at {:?}",
+      measurement.source,
+      measurement.timestamp
+    );
+
     Ok(())
   }
 
-  #[tracing::instrument(skip(self))]
+  #[tracing::instrument(skip_all, fields(count = measurements.len()))]
   pub async fn insert_measurements(
     &self,
     measurements: Vec<Measurement>,
@@ -281,6 +309,8 @@ impl Service {
       .build()
       .execute(&self.pool)
       .await?;
+
+    tracing::trace!("Inserted measurementd");
 
     Ok(())
   }
@@ -306,6 +336,8 @@ impl Service {
     .fetch_all(&self.pool)
     .await?;
 
+    tracing::trace!("Fetched {:?} measurements", measurements.len());
+
     Ok(measurements)
   }
 
@@ -325,10 +357,16 @@ impl Service {
     .execute(&self.pool)
     .await?;
 
+    tracing::trace!(
+      "Inserted health for {:?} at {:?}",
+      health.source,
+      health.timestamp
+    );
+
     Ok(())
   }
 
-  #[tracing::instrument(skip(self))]
+  #[tracing::instrument(skip_all, fields(count = healths.len()))]
   pub async fn insert_healths(
     &self,
     healths: Vec<Health>,
@@ -345,6 +383,8 @@ impl Service {
       .execute(&self.pool)
       .await?;
 
+    tracing::trace!("Inserted healths");
+
     Ok(())
   }
 
@@ -355,7 +395,7 @@ impl Service {
     limit: i64,
   ) -> Result<Vec<Health>, Error> {
     #[allow(clippy::panic)] // NOTE: sqlx thing
-    let health = sqlx::query_as!(
+    let healths = sqlx::query_as!(
       Health,
       r#"
         select id, source, timestamp, status as "status: DeviceStatus", data
@@ -369,7 +409,9 @@ impl Service {
     .fetch_all(&self.pool)
     .await?;
 
-    Ok(health)
+    tracing::trace!("Got {:?} healths", healths.len());
+
+    Ok(healths)
   }
 
   #[tracing::instrument(skip(self))]
@@ -388,6 +430,13 @@ impl Service {
     )
     .execute(&self.pool)
     .await?;
+
+    tracing::trace!(
+      "Inserted {:?} {:?} log at {:?}",
+      log.status,
+      log.kind,
+      log.timestamp
+    );
 
     Ok(())
   }
@@ -410,6 +459,11 @@ impl Service {
     .fetch_optional(&self.pool)
     .await?;
 
+    tracing::trace!(
+      "Fetched last successful push log at {:?}",
+      log.as_ref().map(|log| log.timestamp)
+    );
+
     Ok(log)
   }
 
@@ -430,6 +484,11 @@ impl Service {
     )
     .fetch_optional(&self.pool)
     .await?;
+
+    tracing::trace!(
+      "Fetched last successful update log at {:?}",
+      log.as_ref().map(|log| log.timestamp)
+    );
 
     Ok(log)
   }

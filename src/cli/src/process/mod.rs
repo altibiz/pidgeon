@@ -55,7 +55,12 @@ impl Container {
         }
 
         for handle in handles.drain(0..) {
-          handle.join.await;
+          if let Err(error) = handle.join.await {
+            tracing::error! {
+              %error,
+              "Joining process handle on cancel failed"
+            }
+          }
         }
       }
       *handles = None;
@@ -67,7 +72,12 @@ impl Container {
       let mut handles = self.handles.clone().lock_owned().await;
       if let Some(handles) = &mut *handles {
         for handle in handles.drain(0..) {
-          handle.join.await;
+          if let Err(error) = handle.join.await {
+            tracing::error! {
+              %error,
+              "Joining process handle failed"
+            }
+          }
         }
       }
       *handles = None;

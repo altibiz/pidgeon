@@ -121,7 +121,7 @@ impl Service {
     }
 
     if let Some(server) = server_to_remove {
-      self.stop_from_address(server);
+      self.stop_from_address(server).await;
     }
   }
 
@@ -167,7 +167,12 @@ impl Service {
     }
 
     for server in removed_servers {
-      server.worker.terminate().await;
+      if let Err(error) = server.worker.terminate().await {
+        tracing::error! {
+          %error,
+          "Failed terminating server worker"
+        }
+      }
     }
   }
 
@@ -183,7 +188,12 @@ impl Service {
     };
 
     if let Some(server) = server {
-      server.worker.terminate().await;
+      if let Err(error) = server.worker.terminate().await {
+        tracing::error! {
+          %error,
+          "Failed terminating server worker"
+        }
+      }
     }
   }
 

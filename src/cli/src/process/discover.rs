@@ -114,17 +114,27 @@ impl Process {
     {
       Ok(Some(_)) => {
         let now = chrono::Utc::now();
-        self.services.db().update_device_destination(
-          &device_match.id,
-          db::to_network(device_match.destination.address.ip()),
-          db::to_db_slave(device_match.destination.slave),
-          now,
-          now,
-        );
+        if let Err(error) = self
+          .services
+          .db()
+          .update_device_destination(
+            &device_match.id,
+            db::to_network(device_match.destination.address.ip()),
+            db::to_db_slave(device_match.destination.slave),
+            now,
+            now,
+          )
+          .await
+        {
+          tracing::debug! {
+            %error,
+            "Failed updating device destination"
+          }
+        }
       }
       Ok(None) => {
         let now = chrono::Utc::now();
-        self
+        if let Err(error) = self
           .services
           .db()
           .insert_device(db::Device {
@@ -136,7 +146,13 @@ impl Process {
             address: db::to_network(device_match.destination.address.ip()),
             slave: db::to_db_slave(device_match.destination.slave),
           })
-          .await;
+          .await
+        {
+          tracing::debug! {
+            %error,
+            "Failed inserting new device"
+          }
+        }
       }
       _ => {}
     }
