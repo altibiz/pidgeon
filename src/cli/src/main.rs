@@ -15,6 +15,7 @@ mod process;
 mod service;
 
 #[tokio::main]
+#[tracing::instrument]
 async fn main() -> anyhow::Result<()> {
   let manager = config::Manager::new_async().await?;
   let config = manager.values_async().await;
@@ -31,7 +32,9 @@ async fn main() -> anyhow::Result<()> {
   services.db().migrate().await?; // NITPICK: handle this more appropriately
 
   processes.spawn().await;
-  tokio::signal::ctrl_c().await?;
+  if let Err(error) = tokio::signal::ctrl_c().await {
+    tracing::error!("Failed waiting for ctrlc signal {:?}", error);
+  };
   processes.cancel().await;
 
   Ok(())
