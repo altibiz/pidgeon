@@ -297,6 +297,7 @@ impl Manager {
     Self::parse_config(config)
   }
 
+  #[tracing::instrument(skip(self))]
   pub fn reload(&self) -> Values {
     let config = {
       let mut values = self.values.blocking_lock();
@@ -304,10 +305,7 @@ impl Manager {
       match from_file {
         Ok(from_file) => values.from_file = from_file,
         Err(error) => {
-          tracing::error! {
-            %error,
-            "Failed parsing config file"
-          }
+          tracing::error!("Failed parsing config file {}", error)
         }
       }
 
@@ -317,6 +315,7 @@ impl Manager {
     Self::parse_config(config)
   }
 
+  #[tracing::instrument(skip(self))]
   pub async fn reload_async(&self) -> Values {
     let config = {
       let mut values = self.values.lock().await;
@@ -325,10 +324,7 @@ impl Manager {
       match from_file {
         Ok(from_file) => values.from_file = from_file,
         Err(error) => {
-          tracing::error! {
-            %error,
-            "Failed parsing config file"
-          }
+          tracing::error!("Failed parsing config file {}", error)
         }
       }
       values.clone()

@@ -18,13 +18,15 @@ mod service;
 async fn main() -> anyhow::Result<()> {
   let config = config::Manager::new()?;
 
-  let services = service::Container::new(config.values_async().await);
+  let services_config = config.values_async().await;
+  let services = service::Container::new(services_config);
   services.db().migrate().await?;
 
   let processes = process::Container::new(config, services);
 
   processes.spawn().await;
-  processes.join().await;
+  tokio::signal::ctrl_c().await?;
+  processes.cancel().await;
 
   Ok(())
 }
