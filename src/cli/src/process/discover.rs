@@ -17,34 +17,36 @@ impl process::Process for Process {
 
 #[async_trait::async_trait]
 impl process::Recurring for Process {
+  #[tracing::instrument(skip(self))]
   async fn execute(&self) -> anyhow::Result<()> {
     let config = self.config.reload_async().await;
 
     let addresses = self.services.network().scan_modbus().await;
     let addresses_len = addresses.len();
 
-    let matches = join_all(
-      join_all(
-        addresses
-          .into_iter()
-          .flat_map(modbus::Destination::r#for)
-          .map(|destination| self.match_destination(&config, destination)),
-      )
-      .await
-      .into_iter()
-      .flatten()
-      .map(|r#match| self.consolidate(r#match)),
+    let device_matches = join_all(
+      addresses
+        .into_iter()
+        .flat_map(modbus::Destination::r#for)
+        .map(|destination| self.match_destination(&config, destination)),
     )
     .await;
+    let device_matches_len = device_matches.len();
+
+    let consolidated_matches = join_all(
+      device_matches
+        .into_iter()
+        .flatten()
+        .map(|r#match| self.consolidate(r#match)),
+    )
+    .await;
+    let consolidated_matches_len = consolidated_matches.len();
 
     tracing::info!(
-      "Discovered {:?} devices with {:?} failures from {:?} addresses",
-      matches.len(),
-      matches
-        .iter()
-        .filter(|device_match| device_match.is_none())
-        .count(),
-      addresses_len
+      "Scanned {:?} modbus servers with {:?} devices of which {:?} were consolidated",
+      addresses_len,
+      device_matches_len,
+      consolidated_matches_len
     );
 
     Ok(())
@@ -64,22 +66,26 @@ impl Process {
     config: &config::Values,
     destination: modbus::Destination,
   ) -> impl Iterator<Item = DeviceMatch> {
-    join_all(
-      join_all(
-        config
-          .modbus
-          .devices
-          .values()
-          .map(move |device| self.match_device(device.clone(), destination)),
-      )
-      .await
-      .into_iter()
-      .flatten()
-      .map(|device| self.match_id(device, destination)),
+    let destination_matches = join_all(
+      config
+        .modbus
+        .devices
+        .values()
+        .map(move |device| self.match_device(device.clone(), destination)),
     )
-    .await
-    .into_iter()
-    .flatten()
+    .await;
+
+    let id_matches = join_all(
+      destination_matches
+        .into_iter()
+        .flatten()
+        .map(|device| self.match_id(device, destination)),
+    )
+    .await;
+
+    let device_matches = id_matches.into_iter().flatten();
+
+    device_matches
   }
 
   async fn match_device(
@@ -116,6 +122,7 @@ impl Process {
       })
   }
 
+  #[tracing::instrument(skip(self))]
   async fn consolidate(
     &self,
     device_match: DeviceMatch,
@@ -126,6 +133,11 @@ impl Process {
       .get_device(device_match.id.as_str())
       .await
     {
+      Err(error) => {
+        tracing::error!("Failed fetching device {}", error);
+
+        return None;
+      }
       Ok(Some(_)) => {
         let now = chrono::Utc::now();
         if let Err(error) = self
@@ -140,7 +152,7 @@ impl Process {
           )
           .await
         {
-          tracing::error!("Failed updating device destination {}", error,);
+          tracing::error!("Failed updating device destination {}", error);
 
           return None;
         }
@@ -166,14 +178,9 @@ impl Process {
           return None;
         }
       }
-      Err(error) => {
-        tracing::error!("Failed fetching device {}", error);
-
-        return None;
-      }
     }
 
-    tracing::debug!("Matched device {:?}", device_match.clone());
+    tracing::debug!("Matched device");
 
     return Some(device_match);
   }

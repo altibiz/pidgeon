@@ -60,12 +60,24 @@ impl Process {
           .ok()
         {
           Some(id_registers) => {
-            modbus::make_id(device.kind, id_registers) == device.id
+            if modbus::make_id(device.kind, id_registers) == device.id {
+              tracing::debug!("");
+              true
+            } else {
+              tracing::debug!("");
+              false
+            }
           }
-          None => false,
+          None => {
+            tracing::debug!("");
+            false
+          }
         }
       }
-      None => false,
+      None => {
+        tracing::debug!("");
+        false
+      }
     }
   }
 
