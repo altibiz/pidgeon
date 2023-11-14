@@ -10,6 +10,7 @@ use tokio::sync::Mutex;
 use super::connection::*;
 use super::span::{SimpleSpan, Span};
 
+// TODO: tracing
 // TODO: inspect errors to terminate/tune
 // TODO: remove copying when reading
 // TODO: check bounded channel length - maybe config?

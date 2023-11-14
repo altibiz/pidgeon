@@ -7,6 +7,8 @@ use tokio_modbus::{client::Context, prelude::Reader, Slave};
 
 use super::span::SimpleSpan;
 
+// TODO: tracing
+
 #[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
 pub struct Destination {
   pub address: SocketAddr,
