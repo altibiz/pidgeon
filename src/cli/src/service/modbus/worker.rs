@@ -346,24 +346,40 @@ impl Task {
 
   fn try_recv_new_request(&mut self) -> Result<(), flume::TryRecvError> {
     match self.receiver.try_recv()? {
-      TaskRequest::Carrier(carrier) => self.add_new_request(carrier),
+      TaskRequest::Carrier(carrier) => {
+        if !self.terminate {
+          self.add_new_request(carrier);
+        }
+      }
       TaskRequest::Terminate => {
         self.terminate = true;
+        self.streams = Vec::new();
       }
     }
+
     Ok(())
   }
 
   async fn recv_async_new_request(&mut self) -> Result<(), flume::RecvError> {
     match self.receiver.recv_async().await? {
-      TaskRequest::Carrier(carrier) => self.add_new_request(carrier),
+      TaskRequest::Carrier(carrier) => {
+        if !self.terminate {
+          self.add_new_request(carrier);
+        }
+      }
       TaskRequest::Terminate => {
         self.terminate = true;
+        self.streams = Vec::new();
       }
     }
+
     Ok(())
   }
 
+  #[tracing::instrument(skip_all, fields(
+    destination = ?carrier.destination,
+    kind = ?carrier.kind
+  ))]
   fn add_new_request(&mut self, carrier: Carrier) {
     let Carrier {
       destination,
@@ -384,6 +400,8 @@ impl Task {
       RequestKind::Oneshot => self.oneshots.push(storage),
       RequestKind::Stream => self.oneshots.push(storage),
     };
+
+    tracing::trace!("Added request");
   }
 }
 
