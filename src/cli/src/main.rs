@@ -22,7 +22,7 @@ async fn main() -> anyhow::Result<()> {
   let services = service::Container::new(config.clone());
   let processes = process::Container::new(manager.clone(), services.clone());
 
-  services.db().migrate().await?;
+  services.db().migrate().await?; // TODO: handle this more appropriately
   processes.spawn().await;
   tokio::signal::ctrl_c().await?;
   processes.cancel().await;
