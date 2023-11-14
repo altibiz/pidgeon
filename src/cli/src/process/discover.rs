@@ -61,11 +61,12 @@ struct DeviceMatch {
 }
 
 impl Process {
+  #[tracing::instrument(skip(self, config))]
   async fn match_destination(
     &self,
     config: &config::Values,
     destination: modbus::Destination,
-  ) -> impl Iterator<Item = DeviceMatch> {
+  ) -> Vec<DeviceMatch> {
     let destination_matches = join_all(
       config
         .modbus
@@ -73,53 +74,30 @@ impl Process {
         .values()
         .map(move |device| self.match_device(device.clone(), destination)),
     )
-    .await;
+    .await
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>();
+    let destination_matches_len = destination_matches.len();
 
-    let id_matches = join_all(
+    let device_matches = join_all(
       destination_matches
         .into_iter()
-        .flatten()
         .map(|device| self.match_id(device, destination)),
     )
-    .await;
+    .await
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>();
+    let device_matches_len = device_matches.len();
 
-    let device_matches = id_matches.into_iter().flatten();
+    tracing::debug!(
+      "Matched {:?} devices of which {:?} had ids",
+      destination_matches_len,
+      device_matches_len
+    );
 
     device_matches
-  }
-
-  async fn match_device(
-    &self,
-    device: config::Device,
-    destination: modbus::Destination,
-  ) -> Option<config::Device> {
-    self
-      .services
-      .modbus()
-      .read_from_destination(destination, device.detect.clone())
-      .await
-      .ok()?
-      .into_iter()
-      .all(|register| register.matches())
-      .then_some(device)
-  }
-
-  async fn match_id(
-    &self,
-    device: config::Device,
-    destination: modbus::Destination,
-  ) -> Option<DeviceMatch> {
-    self
-      .services
-      .modbus()
-      .read_from_destination(destination, device.id)
-      .await
-      .ok()
-      .map(|id_registers| DeviceMatch {
-        kind: device.kind.clone(),
-        destination,
-        id: modbus::make_id(device.kind, id_registers),
-      })
   }
 
   #[tracing::instrument(skip(self))]
@@ -183,5 +161,39 @@ impl Process {
     tracing::debug!("Matched device");
 
     return Some(device_match);
+  }
+
+  async fn match_device(
+    &self,
+    device: config::Device,
+    destination: modbus::Destination,
+  ) -> Option<config::Device> {
+    self
+      .services
+      .modbus()
+      .read_from_destination(destination, device.detect.clone())
+      .await
+      .ok()?
+      .into_iter()
+      .all(|register| register.matches())
+      .then_some(device)
+  }
+
+  async fn match_id(
+    &self,
+    device: config::Device,
+    destination: modbus::Destination,
+  ) -> Option<DeviceMatch> {
+    self
+      .services
+      .modbus()
+      .read_from_destination(destination, device.id)
+      .await
+      .ok()
+      .map(|id_registers| DeviceMatch {
+        kind: device.kind.clone(),
+        destination,
+        id: modbus::make_id(device.kind, id_registers),
+      })
   }
 }
