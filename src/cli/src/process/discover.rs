@@ -18,9 +18,9 @@ impl process::Process for Process {
 #[async_trait::async_trait]
 impl process::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
-    let addresses = self.services.network().scan_modbus().await;
-
     let config = self.config.reload_async().await;
+
+    let addresses = self.services.network().scan_modbus().await;
 
     join_all(
       join_all(
@@ -105,7 +105,10 @@ impl Process {
       })
   }
 
-  async fn consolidate(&self, device_match: DeviceMatch) {
+  async fn consolidate(
+    &self,
+    device_match: DeviceMatch,
+  ) -> Option<DeviceMatch> {
     match self
       .services
       .db()
@@ -126,10 +129,9 @@ impl Process {
           )
           .await
         {
-          tracing::debug! {
-            %error,
-            "Failed updating device destination"
-          }
+          tracing::error!("Failed updating device destination {}", error,);
+
+          return None;
         }
       }
       Ok(None) => {
@@ -138,8 +140,8 @@ impl Process {
           .services
           .db()
           .insert_device(db::Device {
-            id: device_match.id,
-            kind: device_match.kind,
+            id: device_match.id.clone(),
+            kind: device_match.kind.clone(),
             status: db::DeviceStatus::Healthy,
             seen: now,
             pinged: now,
@@ -148,13 +150,18 @@ impl Process {
           })
           .await
         {
-          tracing::debug! {
-            %error,
-            "Failed inserting new device"
-          }
+          tracing::error!("Failed inserting new device {}", error);
+
+          return None;
         }
       }
-      _ => {}
+      Err(error) => {
+        tracing::error!("Failed fetching device {}", error);
+
+        return None;
+      }
     }
+
+    return Some(device_match);
   }
 }
