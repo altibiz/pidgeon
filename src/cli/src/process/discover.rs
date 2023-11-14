@@ -22,7 +22,7 @@ impl process::Recurring for Process {
 
     let addresses = self.services.network().scan_modbus().await;
 
-    join_all(
+    let matches = join_all(
       join_all(
         addresses
           .into_iter()
@@ -35,6 +35,16 @@ impl process::Recurring for Process {
       .map(|r#match| self.consolidate(r#match)),
     )
     .await;
+
+    tracing::info!(
+      "Discovered {:?} devices with {:?} failures from {:?} addresses",
+      matches.len(),
+      matches
+        .iter()
+        .filter(|device_match| device_match.is_none())
+        .count(),
+      addresses.len()
+    );
 
     Ok(())
   }
@@ -161,6 +171,8 @@ impl Process {
         return None;
       }
     }
+
+    tracing::debug!("Matched device {:?}", device_match.clone());
 
     return Some(device_match);
   }

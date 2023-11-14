@@ -104,6 +104,9 @@ pub(crate) struct Modbus {
   pub(crate) batch_threshold: u16,
   pub(crate) termination_timeout: u32,
   pub(crate) metric_history_size: usize,
+  pub(crate) ping_timeout: u32,
+  pub(crate) ping_till_inactive: u32,
+  pub(crate) discovery_timeout: u32,
   pub(crate) devices: HashMap<String, Device>,
 }
 
