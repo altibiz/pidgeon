@@ -95,7 +95,10 @@ impl service::Service for Service {
       .host(&config.db.domain)
       .username(&config.db.user)
       .database(&config.db.name)
-      .options([("statement_timeout", &config.db.timeout.to_string())]);
+      .options([(
+        "statement_timeout",
+        &config.db.timeout.num_milliseconds().to_string(),
+      )]);
 
     if let Some(port) = config.db.port {
       options = options.port(port);

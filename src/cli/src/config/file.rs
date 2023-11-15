@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::service::modbus;
 
+// TODO: otional values here with #[serde(default = ...)]
+
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Hardware {
   pub(crate) temperature_monitor: Option<String>,
