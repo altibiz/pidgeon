@@ -108,11 +108,15 @@ pub(crate) struct Values {
   pub(crate) push_interval: Option<u32>,
   pub(crate) update_interval: Option<u32>,
   pub(crate) health_interval: Option<u32>,
+  #[serde(default)]
   pub(crate) hardware: Hardware,
+  #[serde(default)]
   pub(crate) network: Network,
-  pub(crate) modbus: Modbus,
+  #[serde(default)]
   pub(crate) cloud: Cloud,
+  #[serde(default)]
   pub(crate) db: Db,
+  pub(crate) modbus: Modbus,
 }
 
 #[derive(Debug, thiserror::Error)]
