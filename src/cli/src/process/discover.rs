@@ -3,8 +3,6 @@ use futures_time::future::FutureExt;
 
 use crate::{service::*, *};
 
-// TODO: set timeout
-
 pub(crate) struct Process {
   #[allow(unused)]
   config: config::Manager,
