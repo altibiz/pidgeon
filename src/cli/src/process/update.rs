@@ -1,7 +1,10 @@
 use crate::{service::*, *};
 
 pub(crate) struct Process {
+  #[allow(unused)]
   config: config::Manager,
+
+  #[allow(unused)]
   services: service::Container,
 }
 
@@ -31,6 +34,8 @@ impl process::Recurring for Process {
 
     let mut health_to_update =
       self.services.db().get_health(last_pushed_id, 1000).await?;
+    let health_len = health_to_update.len();
+
     let last_push_id =
       match health_to_update.iter().max_by(|x, y| x.id.cmp(&y.id)) {
         Some(measurement) => measurement.id,
@@ -58,13 +63,39 @@ impl process::Recurring for Process {
         success: true,
         text,
         ..
-      }) => (db::LogStatus::Success, text),
+      }) => {
+        tracing::info!(
+          "Successfully pushed {:?} measurements from {:?} to {:?}",
+          health_len,
+          last_pushed_id,
+          last_push_id
+        );
+        (db::LogStatus::Success, text)
+      }
       Ok(cloud::Response {
         success: false,
         text,
-        ..
-      }) => (db::LogStatus::Failure, text),
-      Err(_) => (db::LogStatus::Failure, "connection error".to_string()),
+        code,
+      }) => {
+        tracing::info!(
+          "Failed pushing {:?} measurements from {:?} to {:?} with code {:?}",
+          health_len,
+          last_pushed_id,
+          last_push_id,
+          code
+        );
+        (db::LogStatus::Failure, text)
+      }
+      Err(error) => {
+        tracing::info!(
+          "Failed pushing {:?} measurements from {:?} to {:?} {}",
+          health_len,
+          last_pushed_id,
+          last_push_id,
+          error
+        );
+        (db::LogStatus::Failure, "connection error".to_string())
+      }
     };
     let log = db::Log {
       id: 0,

@@ -1,7 +1,10 @@
 use crate::{service::*, *};
 
 pub(crate) struct Process {
+  #[allow(unused)]
   config: config::Manager,
+
+  #[allow(unused)]
   services: service::Container,
 }
 

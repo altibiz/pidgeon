@@ -11,8 +11,12 @@ use tokio::sync::Mutex;
 use crate::{service::*, *};
 
 pub(crate) struct Process {
+  #[allow(unused)]
   config: config::Manager,
+
+  #[allow(unused)]
   services: service::Container,
+
   streams: Arc<Mutex<Vec<DeviceStream>>>,
 }
 
