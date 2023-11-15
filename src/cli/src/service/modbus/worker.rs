@@ -10,7 +10,7 @@ use tokio::sync::Mutex;
 use super::connection::*;
 use super::span::{SimpleSpan, Span};
 
-// TODO: furtheer inspect errors to tune
+// TODO: further inspect errors to tune
 
 // OPTIMIZE: remove copying when reading
 // OPTIMIZE: check bounded channel length - maybe config?
