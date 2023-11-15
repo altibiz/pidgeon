@@ -1,9 +1,7 @@
 use futures::future::join_all;
+use futures_time::future::FutureExt;
 
 use crate::{service::*, *};
-
-// TODO: add timeout
-// TODO: add max unreachable till inactive
 
 pub(crate) struct Process {
   #[allow(unused)]
@@ -27,10 +25,12 @@ impl process::Recurring for Process {
 
     let devices = self.services.db().get_devices().await?;
 
-    let pinged_devices = join_all(devices.iter().cloned().map(move |device| {
-      let config = config.clone();
-      self.ping_device(config, device)
-    }))
+    let pinged_devices = join_all(
+      devices
+        .iter()
+        .cloned()
+        .map(|device| self.ping_device(&config, device)),
+    )
     .await;
 
     tracing::info!(
@@ -44,7 +44,7 @@ impl process::Recurring for Process {
       pinged_devices
         .into_iter()
         .zip(devices)
-        .map(|(healthy, device)| self.consolidate(device, healthy)),
+        .map(|(pinged, device)| self.consolidate(&config, device, pinged)),
     )
     .await;
 
@@ -65,7 +65,7 @@ impl Process {
   #[tracing::instrument(skip(self, config))]
   async fn ping_device(
     &self,
-    config: config::Values,
+    config: &config::Values,
     device: db::Device,
   ) -> bool {
     match config
@@ -79,48 +79,57 @@ impl Process {
           .services
           .modbus()
           .read_from_id(&device.id, device_config.id.clone())
+          .timeout(timeout_from_chrono(config.modbus.ping_timeout))
           .await
-          .ok()
         {
-          Some(id_registers) => {
+          Err(error) => {
+            tracing::warn!("Getting id timed out {}", error);
+            return false;
+          }
+          Ok(Err(error)) => {
+            tracing::warn!("Getting id failed {}", error);
+            return false;
+          }
+          Ok(Ok(id_registers)) => {
             if modbus::make_id(device.kind, id_registers) == device.id {
               tracing::debug!("Id match");
-              true
             } else {
               tracing::debug!("Id mismatch");
-              false
+              return false;
             }
-          }
-          None => {
-            tracing::debug!("Id read failed");
-            false
           }
         }
       }
       None => {
         tracing::debug!("Config not found");
-        false
+        return false;
       }
     }
+
+    true
   }
 
   #[tracing::instrument(skip(self))]
   async fn consolidate(
     &self,
+    config: &config::Values,
     device: db::Device,
-    healthy: bool,
+    pinged: bool,
   ) -> anyhow::Result<(db::Device, db::DeviceStatus)> {
     let now = chrono::Utc::now();
-    let status = if healthy {
+    let status = if pinged {
       db::DeviceStatus::Healthy
     } else {
-      db::DeviceStatus::Unreachable
+      if now - device.seen > config.modbus.inactive_timeout {
+        db::DeviceStatus::Inactive
+      } else {
+        db::DeviceStatus::Unreachable
+      }
     };
-    let seen = if healthy { now } else { device.seen };
-    let update = (healthy && (device.status != db::DeviceStatus::Healthy))
-      || (!healthy && (device.status == db::DeviceStatus::Healthy));
+    let seen = if pinged { now } else { device.seen };
+    let update = device.status != status;
     let remove = (status == db::DeviceStatus::Inactive)
-      && (device.status != db::DeviceStatus::Unreachable);
+      && (device.status != db::DeviceStatus::Inactive);
 
     if let Err(error) = self
       .services
@@ -158,4 +167,10 @@ impl Process {
 
     Ok((device, status))
   }
+}
+
+fn timeout_from_chrono(
+  timeout: chrono::Duration,
+) -> futures_time::time::Duration {
+  futures_time::time::Duration::from_millis(timeout.num_milliseconds() as u64)
 }

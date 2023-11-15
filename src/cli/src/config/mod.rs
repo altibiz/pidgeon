@@ -59,7 +59,7 @@ pub(crate) struct Modbus {
   pub(crate) metric_history_size: usize,
   pub(crate) termination_timeout: chrono::Duration,
   pub(crate) ping_timeout: chrono::Duration,
-  pub(crate) pings_till_inactive: u32,
+  pub(crate) inactive_timeout: chrono::Duration,
   pub(crate) discovery_timeout: chrono::Duration,
   pub(crate) devices: HashMap<String, Device>,
 }
@@ -266,7 +266,9 @@ impl Manager {
         ping_timeout: file::milliseconds_to_chrono(
           config.from_file.modbus.ping_timeout,
         ),
-        pings_till_inactive: config.from_file.modbus.pings_till_inactive,
+        inactive_timeout: file::milliseconds_to_chrono(
+          config.from_file.modbus.inactive_timeout,
+        ),
         discovery_timeout: file::milliseconds_to_chrono(
           config.from_file.modbus.discovery_timeout,
         ),
