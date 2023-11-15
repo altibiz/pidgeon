@@ -1,4 +1,5 @@
 use futures::future::join_all;
+use futures_time::future::FutureExt;
 
 use crate::{service::*, *};
 
@@ -70,28 +71,30 @@ impl Process {
     config: &config::Values,
     destination: modbus::Destination,
   ) -> Vec<DeviceMatch> {
-    let destination_matches = join_all(
-      config
-        .modbus
-        .devices
-        .values()
-        .map(move |device| self.match_device(device.clone(), destination)),
-    )
-    .await
-    .into_iter()
-    .flatten()
-    .collect::<Vec<_>>();
+    let destination_matches =
+      join_all(config.modbus.devices.values().map(|device| {
+        self
+          .match_device(device.clone(), destination)
+          .timeout(timeout_from_chrono(config.modbus.discovery_timeout))
+      }))
+      .await
+      .into_iter()
+      .flatten()
+      .flatten()
+      .collect::<Vec<_>>();
     let destination_matches_len = destination_matches.len();
 
-    let device_matches = join_all(
-      destination_matches
-        .into_iter()
-        .map(|device| self.match_id(device, destination)),
-    )
-    .await
-    .into_iter()
-    .flatten()
-    .collect::<Vec<_>>();
+    let device_matches =
+      join_all(destination_matches.into_iter().map(|device| {
+        self
+          .match_id(device, destination)
+          .timeout(timeout_from_chrono(config.modbus.discovery_timeout))
+      }))
+      .await
+      .into_iter()
+      .flatten()
+      .flatten()
+      .collect::<Vec<_>>();
     let device_matches_len = device_matches.len();
 
     tracing::debug!(
@@ -199,4 +202,10 @@ impl Process {
         id: modbus::make_id(device.kind, id_registers),
       })
   }
+}
+
+fn timeout_from_chrono(
+  timeout: chrono::Duration,
+) -> futures_time::time::Duration {
+  futures_time::time::Duration::from_millis(timeout.num_milliseconds() as u64)
 }

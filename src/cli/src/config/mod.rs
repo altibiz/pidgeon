@@ -10,6 +10,8 @@ use tokio::sync::Mutex;
 
 use crate::service::modbus;
 
+// TODO: timeout_to_chrono and stuff like that in a central location but no util stuff
+
 #[derive(Debug, Clone)]
 pub(crate) struct Db {
   pub(crate) timeout: chrono::Duration,
