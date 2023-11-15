@@ -1,6 +1,3 @@
-[hardware]
-temperature_monitor = "/sys/class/hwmon/hwmon0/temp1_input"
-
 [[modbus.devices.schneider.detect]]
 address = 0x0031
 match = "iEM3255"
