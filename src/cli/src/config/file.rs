@@ -6,7 +6,7 @@ use crate::service::modbus;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Hardware {
-  pub(crate) temperature_monitor: String,
+  pub(crate) temperature_monitor: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -82,15 +82,15 @@ pub(crate) struct Device {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Modbus {
-  pub(crate) initial_timeout: u32,
-  pub(crate) initial_backoff: u32,
-  pub(crate) initial_retries: u32,
-  pub(crate) batch_threshold: u16,
-  pub(crate) termination_timeout: u32,
-  pub(crate) metric_history_size: usize,
-  pub(crate) ping_timeout: u32,
-  pub(crate) inactive_timeout: u32,
-  pub(crate) discovery_timeout: u32,
+  pub(crate) initial_timeout: Option<u32>,
+  pub(crate) initial_backoff: Option<u32>,
+  pub(crate) initial_retries: Option<u32>,
+  pub(crate) batch_threshold: Option<u16>,
+  pub(crate) termination_timeout: Option<u32>,
+  pub(crate) metric_history_size: usOption<ize>,
+  pub(crate) ping_timeout: Option<u32>,
+  pub(crate) inactive_timeout: Option<u32>,
+  pub(crate) discovery_timeout: Option<u32>,
   pub(crate) devices: HashMap<String, Device>,
 }
 
@@ -152,7 +152,7 @@ pub(crate) async fn parse_async(
 
   let values = {
     let raw = tokio::fs::read_to_string(location.clone()).await?;
-    match location.extension().and_then(|str| str.to_str()) {
+    match location.extension().map(|str| str.to_str()).flatten() {
       None => return Err(ParseError::MissingExtension),
       Some("yaml" | "yml") => serde_yaml::from_str::<Values>(raw.as_str())?,
       Some("toml") => toml::from_str::<Values>(raw.as_str())?,
