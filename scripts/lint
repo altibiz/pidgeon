@@ -5,7 +5,7 @@ SCRIPTS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$(dirname "$SCRIPTS")" && pwd)"
 cd "$ROOT"
 
-cargo-clippy
+cargo-clippy --allow-dirty
 ruff check .
 shellcheck "$SCRIPTS"/*
 prettier --check .
