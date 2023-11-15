@@ -30,13 +30,22 @@ impl process::Recurring for Process {
         success: true,
         text,
         ..
-      }) => (db::LogStatus::Success, text),
+      }) => {
+        tracing::info!("Successfully updated pidgeon health");
+        (db::LogStatus::Success, text)
+      }
       Ok(cloud::Response {
         success: false,
         text,
-        ..
-      }) => (db::LogStatus::Failure, text),
-      Err(_) => (db::LogStatus::Failure, "connection error".to_string()),
+        code,
+      }) => {
+        tracing::error!("Failed updating pidgeon health with code {:?}", code);
+        (db::LogStatus::Failure, text)
+      }
+      Err(error) => {
+        tracing::error!("Failed updating pidgeon health {}", error);
+        (db::LogStatus::Failure, "connection error".to_string())
+      }
     };
     let log = db::Log {
       id: 0,

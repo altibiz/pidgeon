@@ -73,7 +73,7 @@ impl process::Recurring for Process {
         text,
         code,
       }) => {
-        tracing::info!(
+        tracing::error!(
           "Failed pushing {:?} measurements from {:?} to {:?} with code {:?}",
           measurements_len,
           last_pushed_id,
@@ -83,7 +83,7 @@ impl process::Recurring for Process {
         (db::LogStatus::Failure, text)
       }
       Err(error) => {
-        tracing::info!(
+        tracing::error!(
           "Failed pushing {:?} measurements from {:?} to {:?} {}",
           measurements_len,
           last_pushed_id,
