@@ -5,22 +5,6 @@ use serde::{Deserialize, Serialize};
 use crate::service::modbus;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
-pub(crate) enum Plural<T> {
-  One(T),
-  Many(Vec<T>),
-}
-
-impl<T: Clone> Plural<T> {
-  pub(crate) fn normalize(&self) -> Vec<T> {
-    match self {
-      Plural::One(item) => vec![item.clone()],
-      Plural::Many(items) => items.clone(),
-    }
-  }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Hardware {
   pub(crate) temperature_monitor: String,
 }
@@ -91,8 +75,8 @@ pub(crate) struct IdRegister {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Device {
-  pub(crate) detect: Plural<DetectRegister>,
-  pub(crate) id: Plural<IdRegister>,
+  pub(crate) detect: Vec<DetectRegister>,
+  pub(crate) id: Vec<IdRegister>,
   pub(crate) measurement: Vec<MeasurementRegister>,
 }
 
@@ -139,8 +123,20 @@ pub(crate) enum ParseError {
   #[error("Failed reading config file")]
   Read(#[from] std::io::Error),
 
-  #[error("Failed serializing config from file")]
-  Deserializetion(#[from] serde_yaml::Error),
+  #[error("Config file is missing an extension")]
+  MissingExtension,
+
+  #[error("Config file has invalid extension")]
+  InvalidExtension,
+
+  #[error("Failed deserializing config from yaml file")]
+  DeserializetionYaml(#[from] serde_yaml::Error),
+
+  #[error("Failed deserializing config from toml file")]
+  DeserializetionToml(#[from] toml::de::Error),
+
+  #[error("Failed deserializing config from json file")]
+  DeserializetionJson(#[from] serde_json::Error),
 }
 
 pub(crate) async fn parse_async(
@@ -155,8 +151,14 @@ pub(crate) async fn parse_async(
   };
 
   let values = {
-    let raw = tokio::fs::read_to_string(location).await?;
-    serde_yaml::from_str::<Values>(raw.as_str())?
+    let raw = tokio::fs::read_to_string(location.clone()).await?;
+    match location.extension().map(|str| str.to_str()).flatten() {
+      None => return Err(ParseError::MissingExtension),
+      Some("yaml" | "yml") => serde_yaml::from_str::<Values>(raw.as_str())?,
+      Some("toml") => toml::from_str::<Values>(raw.as_str())?,
+      Some("json") => serde_json::from_str::<Values>(raw.as_str())?,
+      Some(_) => return Err(ParseError::InvalidExtension),
+    }
   };
 
   Ok(values)

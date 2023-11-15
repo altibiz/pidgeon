@@ -248,13 +248,11 @@ impl Manager {
                 kind,
                 id: device
                   .id
-                  .normalize()
                   .into_iter()
                   .map(file::to_modbus_id_register)
                   .collect(),
                 detect: device
                   .detect
-                  .normalize()
                   .into_iter()
                   .map(file::to_modbus_detect_register)
                   .collect(),

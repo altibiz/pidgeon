@@ -1,21 +1,4 @@
-runtime:
-  scan_interval: 60000
-  pull_interval: 1000
-  push_interval: 60000
-
-db:
-  timeout: 1000
-
-network:
-  timeout: 10000
-
-cloud:
-  timeout: 10000
-
 modbus:
-  timeout: 1000
-  retries: 3
-  batching_threshold: 3
   devices:
     schneider:
       detect:
