@@ -122,7 +122,7 @@ impl Process {
     let measurements_len = measurements.len();
     let streams_len_after = streams.len();
 
-    tracing::debug!(
+    tracing::info!(
       "Got {:?} new measurements from {:?} streams of which {:?} were removed",
       measurements_len,
       streams_len_before,
@@ -230,7 +230,7 @@ impl Process {
     .collect::<Vec<_>>();
     let devices_after_len = devices.len();
 
-    tracing::debug!(
+    tracing::info!(
       "Merged {:?} old devices and {:?} new devices into {:?} devices of which {:?} could be streamed",
       devices_before_len,
       new_devices_len,
@@ -257,7 +257,7 @@ impl Process {
 
         let expected_id = measurement.device.id;
         if id != expected_id {
-          tracing::debug! {
+          tracing::warn! {
             "Failed verifying measurement of {:?}: got id {:?}",
             expected_id,
             id
@@ -290,7 +290,7 @@ impl Process {
       );
     };
 
-    tracing::debug!(
+    tracing::info!(
       "Of {:?} unverified measurements {:?} were verified and sent to the db",
       measurements_len,
       verified_measurements_len
