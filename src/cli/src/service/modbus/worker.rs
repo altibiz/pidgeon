@@ -131,8 +131,7 @@ impl Worker {
     };
     if let Some(handle) = handle {
       let abort_handle = handle.abort_handle();
-      if let Err(_) =
-        flatten_result(handle.timeout(self.termination_timeout).await)
+      if flatten_result(handle.timeout(self.termination_timeout).await).is_err()
       {
         abort_handle.abort();
       }
@@ -378,7 +377,8 @@ impl Task {
         tracing::trace!(
           "Terminating {:?}",
           self
-            .oneshots.first()
+            .oneshots
+            .first()
             .map(|oneshot| oneshot.destination.address)
         );
       }
@@ -401,7 +401,8 @@ impl Task {
         tracing::trace!(
           "Terminating {:?}",
           self
-            .oneshots.first()
+            .oneshots
+            .first()
             .map(|oneshot| oneshot.destination.address)
         );
       }

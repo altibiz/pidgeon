@@ -128,6 +128,7 @@ impl Service {
 
   #[tracing::instrument(skip(self))]
   pub(crate) async fn get_devices(&self) -> Result<Vec<Device>, Error> {
+    #[allow(clippy::panic)] // NOTE: sqlx thing
     let devices = sqlx::query_as!(
       Device,
       r#"
@@ -148,6 +149,7 @@ impl Service {
     &self,
     id: &str,
   ) -> Result<Option<Device>, Error> {
+    #[allow(clippy::panic)] // NOTE: sqlx thing
     let device = sqlx::query_as!(
       Device,
       r#"
