@@ -29,6 +29,7 @@ impl process::Process for Process {
 #[async_trait::async_trait]
 impl process::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
+    let config = self.config.reload_async().await;
     let measurements = self.get_unprocessed_measurements().await;
     if let Err(error) = self.consolidate(measurements).await {
       tracing::debug! {
@@ -36,7 +37,6 @@ impl process::Recurring for Process {
         "Failed to send measurements to the db"
       }
     }
-    let config = self.config.reload_async().await;
     let devices_from_db = self.get_devices_from_db(config).await?;
     let mut streams = self.streams.clone().lock_owned().await;
     self.merge_devices(&mut streams, devices_from_db).await;
