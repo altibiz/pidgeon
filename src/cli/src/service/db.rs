@@ -499,14 +499,6 @@ pub(crate) fn to_network(ip: IpAddr) -> IpNetwork {
   IpNetwork::new(ip, 24).unwrap()
 }
 
-pub(crate) fn to_ip(ip: IpNetwork) -> IpAddr {
-  ip.ip()
-}
-
-pub(crate) fn to_modbus_slave(slave: Option<i32>) -> Option<u8> {
-  slave.map(|slave| slave as u8)
-}
-
 pub(crate) fn to_db_slave(slave: Option<u8>) -> Option<i32> {
   slave.map(|slave| slave as i32)
 }

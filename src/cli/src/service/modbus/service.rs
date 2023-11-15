@@ -397,7 +397,6 @@ impl Service {
           self.termination_timeout,
           self.metric_history_size,
         ),
-        address: destination.address,
       })
       .clone();
     worker
@@ -413,7 +412,6 @@ impl Service {
 #[derive(Clone, Debug)]
 struct Server {
   worker: Worker,
-  address: SocketAddr,
 }
 
 #[derive(Clone, Debug)]

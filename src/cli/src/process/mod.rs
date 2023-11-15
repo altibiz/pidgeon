@@ -72,35 +72,18 @@ impl Container {
       *handles = None;
     }
   }
-
-  pub(crate) async fn join(&self) {
-    {
-      let mut handles = self.handles.clone().lock_owned().await;
-      if let Some(handles) = &mut *handles {
-        for handle in handles.drain(0..) {
-          if let Err(error) = handle.join.await {
-            tracing::error! {
-              %error,
-              "Joining process handle failed"
-            }
-          }
-        }
-      }
-      *handles = None;
-    }
-  }
 }
 
 impl Container {
   pub(crate) async fn spawn(&self) {
-    let config = self.config.values_async().await;
+    let config = self.config.values().await;
     let specs = vec![
       self.make_recurring_spec::<discover::Process>(config.discover_interval),
       self.make_recurring_spec::<ping::Process>(config.ping_interval),
       self.make_recurring_spec::<measure::Process>(config.measure_interval),
       self.make_recurring_spec::<push::Process>(config.push_interval),
       self.make_recurring_spec::<update::Process>(config.update_interval),
-      self.make_recurring_spec::<health::Process>(config.update_interval),
+      self.make_recurring_spec::<health::Process>(config.health_interval),
     ];
 
     {

@@ -34,7 +34,7 @@ impl process::Process for Process {
 impl process::Recurring for Process {
   #[tracing::instrument(skip(self))]
   async fn execute(&self) -> anyhow::Result<()> {
-    let config = self.config.reload_async().await;
+    let config = self.config.reload().await;
     let measurements = self.get_unprocessed_measurements().await;
     self.consolidate(measurements).await;
 
@@ -65,7 +65,6 @@ type BoxedMeasurementStream = Pin<
 struct Device {
   id: String,
   kind: String,
-  destination: modbus::Destination,
   id_registers: Vec<modbus::IdRegister<modbus::RegisterKind>>,
   measurement_registers: Vec<modbus::MeasurementRegister<modbus::RegisterKind>>,
 }
@@ -154,10 +153,6 @@ impl Process {
           .map(|config| Device {
             id: device.id,
             kind: device.kind,
-            destination: modbus::Destination {
-              address: network::to_socket(db::to_ip(device.address)),
-              slave: db::to_modbus_slave(device.slave),
-            },
             id_registers: config.id.clone(),
             measurement_registers: config.measurement.clone(),
           })
@@ -282,8 +277,9 @@ impl Process {
       .await
     {
       tracing::error!(
-        "Failed sending {:?} measurements to the db",
-        verified_measurements_len
+        "Failed sending {:?} measurements to the db {}",
+        verified_measurements_len,
+        error
       );
     };
 

@@ -143,23 +143,6 @@ pub(crate) enum ParseError {
   Deserializetion(#[from] serde_yaml::Error),
 }
 
-pub(crate) fn parse(location: Option<&str>) -> Result<Values, ParseError> {
-  let location = match location {
-    Some(location) => std::path::PathBuf::from(location),
-    None => match directories::ProjectDirs::from("com", "altibiz", "pidgeon") {
-      Some(project_dirs) => project_dirs.config_dir().join("config.yaml"),
-      None => return Err(ParseError::MissingProjectDirs),
-    },
-  };
-
-  let values = {
-    let raw = std::fs::read_to_string(location)?;
-    serde_yaml::from_str::<Values>(raw.as_str())?
-  };
-
-  Ok(values)
-}
-
 pub(crate) async fn parse_async(
   location: Option<&str>,
 ) -> Result<Values, ParseError> {

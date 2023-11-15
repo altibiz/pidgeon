@@ -71,7 +71,6 @@ pub(crate) struct Values {
   pub(crate) network: Network,
   pub(crate) modbus: Modbus,
   pub(crate) hardware: Hardware,
-  pub(crate) dev: bool,
   pub(crate) log_level: tracing::level_filters::LevelFilter,
   pub(crate) discover_interval: chrono::Duration,
   pub(crate) ping_interval: chrono::Duration,
@@ -90,7 +89,7 @@ struct Unparsed {
 
 #[derive(Debug, Clone)]
 pub(crate) struct Manager {
-  values: Arc<Mutex<Unparsed>>,
+  lock: Arc<Mutex<Unparsed>>,
 }
 
 #[derive(Debug, Error)]
@@ -109,60 +108,26 @@ pub(crate) enum ReloadError {
 }
 
 impl Manager {
-  pub(crate) fn new() -> Result<Self, ReadError> {
-    let config = Self::read()?;
-
-    let config_manager = Self {
-      values: Arc::new(Mutex::new(config)),
-    };
-
-    Ok(config_manager)
-  }
-
-  pub(crate) async fn new_async() -> Result<Self, ReadError> {
+  pub(crate) async fn new() -> Result<Self, ReadError> {
     let config = Self::read_async().await?;
 
     let config_manager = Self {
-      values: Arc::new(Mutex::new(config)),
+      lock: Arc::new(Mutex::new(config)),
     };
 
     Ok(config_manager)
   }
 
-  pub(crate) fn values(&self) -> Values {
-    let config = self.values.blocking_lock().clone();
-
-    Self::parse(config)
-  }
-
-  pub(crate) async fn values_async(&self) -> Values {
-    let config = self.values.lock().await.clone();
+  pub(crate) async fn values(&self) -> Values {
+    let config = self.lock.lock().await.clone();
 
     Self::parse(config)
   }
 
   #[tracing::instrument(skip(self))]
-  pub(crate) fn reload(&self) -> Values {
+  pub(crate) async fn reload(&self) -> Values {
     let config = {
-      let mut values = self.values.blocking_lock();
-      let from_file = file::parse(values.from_args.config.as_deref());
-      match from_file {
-        Ok(from_file) => values.from_file = from_file,
-        Err(error) => {
-          tracing::error!("Failed parsing config file {}", error)
-        }
-      }
-
-      values.clone()
-    };
-
-    Self::parse(config)
-  }
-
-  #[tracing::instrument(skip(self))]
-  pub(crate) async fn reload_async(&self) -> Values {
-    let config = {
-      let mut values = self.values.lock().await;
+      let mut values = self.lock.lock().await;
       let from_file =
         file::parse_async(values.from_args.config.as_deref()).await;
       match from_file {
@@ -179,7 +144,6 @@ impl Manager {
 
   fn parse(config: Unparsed) -> Values {
     Values {
-      dev: config.from_args.dev,
       log_level: config.from_file.log_level.map_or_else(
         || {
           if config.from_args.dev {
@@ -305,18 +269,6 @@ impl Manager {
           .collect::<HashMap<_, _>>(),
       },
     }
-  }
-
-  fn read() -> Result<Unparsed, ReadError> {
-    let from_args = args::parse();
-    let from_env = env::parse()?;
-    let from_file = file::parse(from_args.config.as_deref())?;
-
-    Ok(Unparsed {
-      from_args,
-      from_env,
-      from_file,
-    })
   }
 
   async fn read_async() -> Result<Unparsed, ReadError> {

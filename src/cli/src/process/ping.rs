@@ -21,7 +21,7 @@ impl process::Process for Process {
 impl process::Recurring for Process {
   #[tracing::instrument(skip(self))]
   async fn execute(&self) -> anyhow::Result<()> {
-    let config = self.config.reload_async().await;
+    let config = self.config.reload().await;
 
     let devices = self.services.db().get_devices().await?;
 

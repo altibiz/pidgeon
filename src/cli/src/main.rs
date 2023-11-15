@@ -14,11 +14,13 @@ mod config;
 mod process;
 mod service;
 
+use futures_time::future::FutureExt;
+
 #[tokio::main]
 #[tracing::instrument]
 async fn main() -> anyhow::Result<()> {
-  let manager = config::Manager::new_async().await?;
-  let config = manager.values_async().await;
+  let manager = config::Manager::new().await?;
+  let config = manager.values().await;
 
   let services = service::Container::new(config.clone());
   let processes = process::Container::new(manager.clone(), services.clone());
@@ -33,9 +35,16 @@ async fn main() -> anyhow::Result<()> {
 
   processes.spawn().await;
   if let Err(error) = tokio::signal::ctrl_c().await {
-    tracing::error!("Failed waiting for ctrlc signal {:?}", error);
+    tracing::error!("Failed waiting for ctrlc signal {}", error);
   };
-  processes.cancel().await;
+  if let Err(error) = processes
+    .cancel()
+    .timeout(futures_time::time::Duration::from_millis(10000))
+    .await
+  {
+    tracing::error!("Timed out cancelling processes {}", error);
+    processes.abort().await;
+  }
 
   Ok(())
 }

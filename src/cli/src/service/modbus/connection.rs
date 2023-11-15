@@ -97,16 +97,6 @@ impl Connection {
       ctx,
     })
   }
-
-  #[inline]
-  pub(crate) fn socket(&self) -> SocketAddr {
-    self.destination.address
-  }
-
-  #[inline]
-  pub(crate) fn slave(&self) -> Option<u8> {
-    self.destination.slave
-  }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -157,7 +147,7 @@ pub(crate) enum ReadError {
 }
 
 impl Connection {
-  #[tracing::instrument(skip(self))]
+  #[tracing::instrument(skip(self), fields(destination = ?self.destination))]
   pub(crate) async fn parameterized_read(
     &mut self,
     span: SimpleSpan,
@@ -198,7 +188,7 @@ impl Connection {
     }
   }
 
-  #[tracing::instrument(skip(self))]
+  #[tracing::instrument(skip(self), fields(destination = ?self.destination))]
   pub(crate) async fn simple_read(
     &mut self,
     span: SimpleSpan,

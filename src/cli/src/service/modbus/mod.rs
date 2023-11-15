@@ -5,7 +5,6 @@ pub(crate) mod service;
 pub(crate) mod span;
 pub(crate) mod worker;
 
-pub(crate) use batch::*;
 pub(crate) use connection::Destination;
 pub(crate) use register::*;
 pub(crate) use service::*;

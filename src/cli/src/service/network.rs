@@ -61,7 +61,3 @@ impl Service {
 pub(crate) fn to_socket(ip: IpAddr) -> SocketAddr {
   SocketAddr::new(ip, 502)
 }
-
-pub(crate) fn to_ip(socket: SocketAddr) -> IpAddr {
-  socket.ip()
-}

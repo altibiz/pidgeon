@@ -22,7 +22,6 @@ pub(crate) struct Worker {
   sender: RequestSender,
   handle: Arc<Mutex<Option<TaskHandle>>>,
   termination_timeout: futures_time::time::Duration,
-  metric_history_size: usize,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -61,7 +60,6 @@ impl Worker {
       termination_timeout: futures_time::time::Duration::from_millis(
         termination_timeout.num_milliseconds() as u64,
       ),
-      metric_history_size,
     }
   }
 }
@@ -196,10 +194,9 @@ impl Carrier {
   }
 }
 
-type ResponseSender = flume::Sender<Result<Response, SendError>>;
-type ResponseReceiver = flume::Receiver<Result<Response, SendError>>;
 type RequestSender = flume::Sender<TaskRequest>;
 type RequestReceiver = flume::Receiver<TaskRequest>;
+type ResponseSender = flume::Sender<Result<Response, SendError>>;
 
 type Partial = Vec<Option<super::connection::Response>>;
 type Id = uuid::Uuid;
