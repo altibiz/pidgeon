@@ -542,7 +542,30 @@ impl Task {
     if self.history.len() > self.metric_history {
       self.history.remove(0);
     }
-    if let Some(_metrics) = self.history.last() {}
+
+    if let Some(metrics) = self.history.last() {
+      if !metrics.errors.is_empty() {
+        self.params = Params::new(
+          chrono::Duration::milliseconds(
+            self.params.timeout().num_milliseconds() + 10,
+          ),
+          chrono::Duration::milliseconds(
+            self.params.backoff().num_milliseconds() + 10,
+          ),
+          self.params.retries(),
+        );
+      } else {
+        self.params = Params::new(
+          chrono::Duration::milliseconds(
+            self.params.timeout().num_milliseconds() - 10,
+          ),
+          chrono::Duration::milliseconds(
+            self.params.backoff().num_milliseconds() - 10,
+          ),
+          self.params.retries(),
+        );
+      }
+    }
 
     tracing::trace!("Tuned params to {:?}", self.params);
   }
