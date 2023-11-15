@@ -57,10 +57,12 @@ impl process::Recurring for Process {
       Ok(cloud::Response {
         success: true,
         text,
+        ..
       }) => (db::LogStatus::Success, text),
       Ok(cloud::Response {
         success: false,
         text,
+        ..
       }) => (db::LogStatus::Failure, text),
       Err(_) => (db::LogStatus::Failure, "connection error".to_string()),
     };
