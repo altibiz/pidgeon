@@ -4,17 +4,17 @@ use serde::{Deserialize, Serialize};
 
 use crate::service::modbus;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Hardware {
   pub(crate) temperature_monitor: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Network {
   pub(crate) timeout: Option<u32>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Db {
   pub(crate) timeout: Option<u32>,
 }
@@ -73,14 +73,14 @@ pub(crate) struct IdRegister {
   pub(crate) kind: RegisterKind,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Device {
   pub(crate) detect: Vec<DetectRegister>,
   pub(crate) id: Vec<IdRegister>,
   pub(crate) measurement: Vec<MeasurementRegister>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Modbus {
   pub(crate) initial_timeout: Option<u32>,
   pub(crate) initial_backoff: Option<u32>,
@@ -94,12 +94,12 @@ pub(crate) struct Modbus {
   pub(crate) devices: HashMap<String, Device>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Cloud {
   pub(crate) timeout: Option<u32>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Values {
   pub(crate) log_level: Option<LogLevel>,
   pub(crate) discover_interval: Option<u32>,
