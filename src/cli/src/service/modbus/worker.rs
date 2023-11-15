@@ -43,6 +43,12 @@ pub(crate) enum StreamError {
 pub(crate) enum TerminateError {
   #[error("Channel was disconnected before the request could be finished")]
   ChannelDisconnected(anyhow::Error),
+
+  #[error("Termination timed out")]
+  Timeout(anyhow::Error),
+
+  #[error("Failed joining inner handle")]
+  Join(anyhow::Error),
 }
 
 impl Worker {
@@ -131,10 +137,17 @@ impl Worker {
     };
     if let Some(handle) = handle {
       let abort_handle = handle.abort_handle();
-      if flatten_result(handle.timeout(self.termination_timeout).await).is_err()
-      {
-        abort_handle.abort();
-      }
+      match handle.timeout(self.termination_timeout).await {
+        Ok(Ok(_)) => {}
+        Err(error) => {
+          abort_handle.abort();
+          return Err(TerminateError::Timeout(error.into()));
+        }
+        Ok(Err(error)) => {
+          abort_handle.abort();
+          return Err(TerminateError::Join(error.into()));
+        }
+      };
     }
 
     result.map_err(|error| TerminateError::ChannelDisconnected(error.into()))
@@ -573,14 +586,4 @@ impl Task {
 
     tracing::trace!("Tuned params to {:?}", self.params);
   }
-}
-
-fn flatten_result<
-  T,
-  E1: std::error::Error + Send + Sync + 'static,
-  E2: std::error::Error + Send + Sync + 'static,
->(
-  result: Result<Result<T, E1>, E2>,
-) -> Result<T, anyhow::Error> {
-  Ok(result??)
 }
