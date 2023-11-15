@@ -13,6 +13,7 @@ impl process::Process for Process {
 
 #[async_trait::async_trait]
 impl process::Recurring for Process {
+  #[tracing::instrument(skip(self))]
   async fn execute(&self) -> anyhow::Result<()> {
     let last_pushed_id =
       match self.services.db().get_last_successful_push_log().await? {
@@ -27,6 +28,8 @@ impl process::Recurring for Process {
       .db()
       .get_measurements(last_pushed_id, 1000)
       .await?;
+    let measurements_len = measurements_to_push.len();
+
     let last_push_id =
       match measurements_to_push.iter().max_by(|x, y| x.id.cmp(&y.id)) {
         Some(measurement) => measurement.id,
@@ -52,12 +55,40 @@ impl process::Recurring for Process {
       Ok(cloud::Response {
         success: true,
         text,
-      }) => (db::LogStatus::Success, text),
+        ..
+      }) => {
+        tracing::info!(
+          "Successfully pushed {:?} measurements from {:?} to {:?}",
+          measurements_len,
+          last_pushed_id,
+          last_push_id,
+        );
+        (db::LogStatus::Success, text)
+      }
       Ok(cloud::Response {
         success: false,
         text,
-      }) => (db::LogStatus::Failure, text),
-      Err(_) => (db::LogStatus::Failure, "connection error".to_string()),
+        code,
+      }) => {
+        tracing::info!(
+          "Failed pushing {:?} measurements from {:?} to {:?} with code {:?}",
+          measurements_len,
+          last_pushed_id,
+          last_push_id,
+          code,
+        );
+        (db::LogStatus::Failure, text)
+      }
+      Err(error) => {
+        tracing::info!(
+          "Failed pushing {:?} measurements from {:?} to {:?} {}",
+          measurements_len,
+          last_pushed_id,
+          last_push_id,
+          error
+        );
+        (db::LogStatus::Failure, "connection error".to_string())
+      }
     };
     let log = db::Log {
       id: 0,

@@ -30,6 +30,7 @@ pub(crate) struct Health {
 pub(crate) struct Response {
   pub(crate) success: bool,
   pub(crate) text: String,
+  pub(crate) code: u16,
 }
 
 #[derive(Debug, Clone)]
@@ -147,7 +148,11 @@ impl Service {
       status_code
     );
 
-    let response = Response { success, text };
+    let response = Response {
+      success,
+      text,
+      code: status_code.as_u16(),
+    };
 
     Ok(response)
   }
@@ -189,7 +194,11 @@ impl Service {
       status_code
     );
 
-    let response = Response { success, text };
+    let response = Response {
+      success,
+      text,
+      code: status_code.as_u16(),
+    };
 
     Ok(response)
   }
