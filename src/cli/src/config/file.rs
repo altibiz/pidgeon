@@ -87,7 +87,7 @@ pub(crate) struct Modbus {
   pub(crate) initial_retries: Option<u32>,
   pub(crate) batch_threshold: Option<u16>,
   pub(crate) termination_timeout: Option<u32>,
-  pub(crate) metric_history_size: usOption<ize>,
+  pub(crate) metric_history_size: Option<usize>,
   pub(crate) ping_timeout: Option<u32>,
   pub(crate) inactive_timeout: Option<u32>,
   pub(crate) discovery_timeout: Option<u32>,
@@ -152,7 +152,7 @@ pub(crate) async fn parse_async(
 
   let values = {
     let raw = tokio::fs::read_to_string(location.clone()).await?;
-    match location.extension().map(|str| str.to_str()).flatten() {
+    match location.extension().and_then(|str| str.to_str()) {
       None => return Err(ParseError::MissingExtension),
       Some("yaml" | "yml") => serde_yaml::from_str::<Values>(raw.as_str())?,
       Some("toml") => toml::from_str::<Values>(raw.as_str())?,

@@ -179,7 +179,11 @@ impl Manager {
         config.from_file.health_interval.unwrap_or(60000),
       ),
       hardware: Hardware {
-        temperature_monitor: config.from_file.hardware.temperature_monitor,
+        temperature_monitor: config
+          .from_file
+          .hardware
+          .temperature_monitor
+          .unwrap_or("/sys/class/hwmon/hwmon1/temp1_input".to_owned()),
       },
       cloud: Cloud {
         timeout: file::milliseconds_to_chrono(
@@ -216,25 +220,37 @@ impl Manager {
       },
       modbus: Modbus {
         initial_timeout: file::milliseconds_to_chrono(
-          config.from_file.modbus.initial_timeout,
+          config.from_file.modbus.initial_timeout.unwrap_or(1000),
         ),
         initial_backoff: file::milliseconds_to_chrono(
-          config.from_file.modbus.initial_backoff,
+          config.from_file.modbus.initial_backoff.unwrap_or(10),
         ),
-        initial_retries: config.from_file.modbus.initial_retries,
-        batch_threshold: config.from_file.modbus.batch_threshold,
-        metric_history_size: config.from_file.modbus.metric_history_size,
+        initial_retries: config.from_file.modbus.initial_retries.unwrap_or(3),
+        batch_threshold: config.from_file.modbus.batch_threshold.unwrap_or(3),
+        metric_history_size: config
+          .from_file
+          .modbus
+          .metric_history_size
+          .unwrap_or(10),
         termination_timeout: file::milliseconds_to_chrono(
-          config.from_file.modbus.termination_timeout,
+          config
+            .from_file
+            .modbus
+            .termination_timeout
+            .unwrap_or(10_000),
         ),
         ping_timeout: file::milliseconds_to_chrono(
-          config.from_file.modbus.ping_timeout,
+          config.from_file.modbus.ping_timeout.unwrap_or(10_000),
         ),
         inactive_timeout: file::milliseconds_to_chrono(
-          config.from_file.modbus.inactive_timeout,
+          config
+            .from_file
+            .modbus
+            .inactive_timeout
+            .unwrap_or(60 * 60 * 1000),
         ),
         discovery_timeout: file::milliseconds_to_chrono(
-          config.from_file.modbus.discovery_timeout,
+          config.from_file.modbus.discovery_timeout.unwrap_or(10_000),
         ),
         devices: config
           .from_file
