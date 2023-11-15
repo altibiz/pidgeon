@@ -364,9 +364,7 @@ impl Task {
     }
   }
 
-  #[tracing::instrument(skip_all, fields(
-    destination = ?self.oneshots.iter().next()
-  ))]
+  #[tracing::instrument(skip_all)]
   fn try_recv_new_request(&mut self) -> Result<(), flume::TryRecvError> {
     match self.receiver.try_recv()? {
       TaskRequest::Carrier(carrier) => {
@@ -377,16 +375,19 @@ impl Task {
       TaskRequest::Terminate => {
         self.terminate = true;
         self.streams = Vec::new();
-        tracing::trace!("Terminating");
+        tracing::trace!(
+          "Terminating {:?}",
+          self
+            .oneshots.first()
+            .map(|oneshot| oneshot.destination.address)
+        );
       }
     }
 
     Ok(())
   }
 
-  #[tracing::instrument(skip_all, fields(
-    destination = ?self.oneshots.iter().next()
-  ))]
+  #[tracing::instrument(skip_all)]
   async fn recv_async_new_request(&mut self) -> Result<(), flume::RecvError> {
     match self.receiver.recv_async().await? {
       TaskRequest::Carrier(carrier) => {
@@ -397,7 +398,12 @@ impl Task {
       TaskRequest::Terminate => {
         self.terminate = true;
         self.streams = Vec::new();
-        tracing::trace!("Terminating");
+        tracing::trace!(
+          "Terminating {:?}",
+          self
+            .oneshots.first()
+            .map(|oneshot| oneshot.destination.address)
+        );
       }
     }
 

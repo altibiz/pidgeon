@@ -32,12 +32,15 @@ impl process::Recurring for Process {
         .map(|device| self.ping_device(&config, device)),
     )
     .await;
-
+    let pinged_devices_len = pinged_devices.len();
+    let healthy_count = pinged_devices.iter().filter(|pinged| **pinged).count();
+    let unreachable_count =
+      pinged_devices.iter().filter(|pinged| !**pinged).count();
     tracing::info!(
       "Pinged {:?} devices of which {:?} are healthy and {:?} unreachable",
-      pinged_devices.len(),
-      pinged_devices.iter().filter(|pinged| **pinged).count(),
-      pinged_devices.iter().filter(|pinged| !**pinged).count(),
+      pinged_devices_len,
+      healthy_count,
+      unreachable_count,
     );
 
     let consolidated_devices = join_all(
@@ -47,14 +50,37 @@ impl process::Recurring for Process {
         .map(|(pinged, device)| self.consolidate(&config, device, pinged)),
     )
     .await;
+    let consolidated_devices_len = consolidated_devices.len();
+    let healthy_count = consolidated_devices
+      .iter()
+      .filter(|consolidated| {
+        matches!(**consolidated, Ok((_, db::DeviceStatus::Healthy)))
+      })
+      .count();
+    let unreachable_count = consolidated_devices
+      .iter()
+      .filter(|consolidated| {
+        matches!(**consolidated, Ok((_, db::DeviceStatus::Unreachable)))
+      })
+      .count();
+    let inactive_count = consolidated_devices
+      .iter()
+      .filter(|consolidated| {
+        matches!(**consolidated, Ok((_, db::DeviceStatus::Inactive)))
+      })
+      .count();
+    let failed_count = consolidated_devices
+      .iter()
+      .filter(|consolidated| matches!(**consolidated, Err(_)))
+      .count();
 
     tracing::info!(
       "Consolidated {:?} pinged devices of which {:?} are healthy, {:?} unreachable, {:?} inactive, and {:?} failed",
-      consolidated_devices.len(),
-      consolidated_devices.iter().filter(|consolidated| matches!(**consolidated, Ok((_, db::DeviceStatus::Healthy)))).count(),
-      consolidated_devices.iter().filter(|consolidated| matches!(**consolidated, Ok((_, db::DeviceStatus::Unreachable)))).count(),
-      consolidated_devices.iter().filter(|consolidated| matches!(**consolidated, Ok((_, db::DeviceStatus::Inactive)))).count(),
-      consolidated_devices.iter().filter(|consolidated| matches!(**consolidated, Err(_))).count(),
+      consolidated_devices_len,
+      healthy_count,
+      unreachable_count,
+      inactive_count,
+      failed_count
     );
 
     Ok(())

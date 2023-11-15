@@ -164,7 +164,7 @@ impl Process {
 
     tracing::debug!("Matched device");
 
-    return Some(device_match);
+    Some(device_match)
   }
 
   async fn match_device(
