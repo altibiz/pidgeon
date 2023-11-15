@@ -10,8 +10,6 @@ use tokio::sync::Mutex;
 
 use crate::{service::*, *};
 
-// TODO: check next doesnt consume one too many
-
 pub(crate) struct Process {
   config: config::Manager,
   services: service::Container,
@@ -30,18 +28,23 @@ impl process::Process for Process {
 
 #[async_trait::async_trait]
 impl process::Recurring for Process {
+  #[tracing::instrument(skip(self))]
   async fn execute(&self) -> anyhow::Result<()> {
     let config = self.config.reload_async().await;
     let measurements = self.get_unprocessed_measurements().await;
-    if let Err(error) = self.consolidate(measurements).await {
-      tracing::debug! {
-        %error,
-        "Failed to send measurements to the db"
+    self.consolidate(measurements).await;
+
+    let devices_from_db = self.get_devices_from_db(config).await;
+    match devices_from_db {
+      Err(error) => {
+        tracing::error!("Failed getting devices from db {}", error);
       }
-    }
-    let devices_from_db = self.get_devices_from_db(config).await?;
-    let mut streams = self.streams.clone().lock_owned().await;
-    self.merge_devices(&mut streams, devices_from_db).await;
+      Ok(devices_from_db) => {
+        let mut streams = self.streams.clone().lock_owned().await;
+        self.merge_devices(&mut streams, devices_from_db).await;
+      }
+    };
+
     Ok(())
   }
 }
@@ -82,99 +85,216 @@ struct DeviceRegisters {
 }
 
 impl Process {
+  #[tracing::instrument(skip(self))]
   async fn get_unprocessed_measurements(&self) -> Vec<DeviceRegisters> {
     let mut streams = self.streams.clone().lock_owned().await;
+    let streams_len_before = streams.len();
+
     let mut measurements = Vec::new();
-    for DeviceStream { device, stream } in streams.iter_mut() {
-      loop {
-        match stream.next().now_or_never().flatten().and_then(|x| x.ok()) {
-          Some(registers) => measurements.push(DeviceRegisters {
+    streams.retain_mut(|DeviceStream { device, stream }| loop {
+      match stream.next().now_or_never() {
+        None => {
+          return true;
+        }
+        Some(None) => {
+          tracing::debug!("Stream for {:?} ended", device);
+          return false;
+        }
+        Some(Some(Err(modbus::ServerReadError::FailedToConnect(error)))) => {
+          tracing::warn!("Failed to connect to device {:?} {}", device, error);
+          return false;
+        }
+        Some(Some(Err(modbus::ServerReadError::ServerFailed(error)))) => {
+          tracing::warn!("Device server failed {:?} {}", device, error);
+          return false;
+        }
+        Some(Some(Err(modbus::ServerReadError::ParsingFailed(error)))) => {
+          tracing::warn!("Parsing failed {:?} {}", device, error);
+        }
+        Some(Some(Ok(registers))) => {
+          measurements.push(DeviceRegisters {
             device: device.clone(),
             registers,
-          }),
-          None => break,
+          });
         }
       }
-    }
+    });
+    let measurements_len = measurements.len();
+    let streams_len_after = streams.len();
+
+    tracing::debug!(
+      "Got {:?} new measurements from {:?} streams of which {:?} were removed",
+      measurements_len,
+      streams_len_before,
+      streams_len_after
+    );
+
     measurements
   }
 
+  #[tracing::instrument(skip_all)]
   async fn get_devices_from_db(
     &self,
     config: config::Values,
   ) -> anyhow::Result<Vec<Device>> {
-    Ok(
-      self
-        .services
-        .db()
-        .get_devices()
-        .await?
-        .into_iter()
-        .filter_map(|device| {
-          config
-            .modbus
-            .devices
-            .values()
-            .find(|device_config| device_config.kind == device.kind)
-            .map(|config| Device {
-              id: device.id,
-              kind: device.kind,
-              destination: modbus::Destination {
-                address: network::to_socket(db::to_ip(device.address)),
-                slave: db::to_modbus_slave(device.slave),
-              },
-              id_registers: config.id.clone(),
-              measurement_registers: config.measurement.clone(),
-            })
-        })
-        .collect::<Vec<_>>(),
-    )
+    let db_devices = match self.services.db().get_devices().await {
+      Ok(db_devices) => db_devices,
+      Err(error) => {
+        tracing::error!("Failed fetching devices from db {}", error);
+        return Err(error.into());
+      }
+    };
+    let db_devices_len = db_devices.len();
+
+    let merged_devices = db_devices
+      .into_iter()
+      .filter_map(|device| {
+        config
+          .modbus
+          .devices
+          .values()
+          .find(|device_config| device_config.kind == device.kind)
+          .map(|config| Device {
+            id: device.id,
+            kind: device.kind,
+            destination: modbus::Destination {
+              address: network::to_socket(db::to_ip(device.address)),
+              slave: db::to_modbus_slave(device.slave),
+            },
+            id_registers: config.id.clone(),
+            measurement_registers: config.measurement.clone(),
+          })
+      })
+      .collect::<Vec<_>>();
+    let merged_devices_len = merged_devices.len();
+
+    tracing::debug!(
+      "Fetched {:?} from db of which {:?} had configs",
+      db_devices_len,
+      merged_devices_len
+    );
+
+    Ok(merged_devices)
   }
 
+  #[tracing::instrument(skip_all)]
   async fn merge_devices(
     &self,
-    old_devices: &mut Vec<DeviceStream>,
+    devices: &mut Vec<DeviceStream>,
     new_devices: Vec<Device>,
   ) {
-    let devices = join_all(
-      old_devices
-        .drain(0..)
-        .merge_join_by(new_devices.into_iter(), |x, y| {
-          Ord::cmp(x.device.id.as_str(), y.id.as_str())
-        })
-        .filter_map(|x| match x {
-          itertools::EitherOrBoth::Both(old_device, new_device) => {
-            Some(Either::Left(DeviceStream {
-              device: new_device,
-              stream: old_device.stream,
-            }))
-          }
-          itertools::EitherOrBoth::Left(_old_device) => None,
-          itertools::EitherOrBoth::Right(new_device) => {
-            Some(Either::Right(new_device))
-          }
-        })
-        .map(|x| async move {
-          Ok(match x {
-            Either::Left(stream_device) => stream_device,
-            Either::Right(device) => DeviceStream {
-              stream: match self.make_stream(device.clone()).await {
-                Ok(stream) => stream,
-                Err(error) => {
-                  return Err(std::convert::Into::<anyhow::Error>::into(error))
-                }
-              },
-              device,
-            },
-          })
-        }),
-    )
+    let devices_before_len = devices.len();
+    let new_devices_len = new_devices.len();
+
+    let merged_devices = devices
+      .drain(0..)
+      .merge_join_by(new_devices.into_iter(), |x, y| {
+        Ord::cmp(x.device.id.as_str(), y.id.as_str())
+      })
+      .filter_map(|x| match x {
+        itertools::EitherOrBoth::Both(old_device, new_device) => {
+          Some(Either::Left(DeviceStream {
+            device: new_device,
+            stream: old_device.stream,
+          }))
+        }
+        itertools::EitherOrBoth::Left(_old_device) => None,
+        itertools::EitherOrBoth::Right(new_device) => {
+          Some(Either::Right(new_device))
+        }
+      })
+      .collect::<Vec<_>>();
+    let merged_devices_len = merged_devices.len();
+
+    *devices = join_all(merged_devices.into_iter().map(|x| async move {
+      Ok(match x {
+        Either::Left(stream_device) => stream_device,
+        Either::Right(device) => DeviceStream {
+          stream: match self.make_stream(device.clone()).await {
+            Ok(stream) => stream,
+            Err(error) => return Err((device, error)),
+          },
+          device,
+        },
+      })
+    }))
     .await
     .into_iter()
-    .filter_map(|x| x.ok())
+    .filter_map(|stream| match stream {
+      Ok(stream) => Some(stream),
+      Err((device, error)) => {
+        tracing::debug!("Failed creating stream for {:?} {}", device, error);
+        None
+      }
+    })
     .collect::<Vec<_>>();
+    let devices_after_len = devices.len();
 
-    *old_devices = devices;
+    tracing::debug!(
+      "Merged {:?} old devices and {:?} new devices into {:?} devices of which {:?} could be streamed",
+      devices_before_len,
+      new_devices_len,
+      merged_devices_len,
+      devices_after_len
+    );
+  }
+
+  #[tracing::instrument(skip_all)]
+  async fn consolidate(&self, measurements: Vec<DeviceRegisters>) {
+    let measurements_len = measurements.len();
+
+    let verified_measurements = measurements
+      .into_iter()
+      .filter_map(|measurement| {
+        let id = modbus::make_id(
+          measurement.device.kind,
+          measurement
+            .registers
+            .iter()
+            .cloned()
+            .filter_map(Either::left),
+        );
+
+        let expected_id = measurement.device.id;
+        if id != expected_id {
+          tracing::debug! {
+            "Failed verifying measurement of {:?}: got id {:?}",
+            expected_id,
+            id
+          }
+
+          return None;
+        }
+
+        Some(db::Measurement {
+          id: 0,
+          source: id,
+          timestamp: chrono::Utc::now(),
+          data: modbus::serialize_registers(
+            measurement.registers.into_iter().filter_map(Either::right),
+          ),
+        })
+      })
+      .collect::<Vec<_>>();
+    let verified_measurements_len = verified_measurements.len();
+
+    if let Err(error) = self
+      .services
+      .db()
+      .insert_measurements(verified_measurements)
+      .await
+    {
+      tracing::error!(
+        "Failed sending {:?} measurements to the db",
+        verified_measurements_len
+      );
+    };
+
+    tracing::debug!(
+      "Of {:?} unverified measurements {:?} were verified and sent to the db",
+      measurements_len,
+      verified_measurements_len
+    );
   }
 
   async fn make_stream(
@@ -188,60 +308,13 @@ impl Process {
         .stream_from_id(
           &device.id,
           device
-            .id_registers
+            .measurement_registers
             .into_iter()
-            .map(Either::Left)
-            .chain(device.measurement_registers.into_iter().map(Either::Right))
+            .map(Either::Right)
+            .chain(device.id_registers.into_iter().map(Either::Left))
             .collect::<Vec<_>>(),
         )
         .await?,
     ))
-  }
-
-  async fn consolidate(
-    &self,
-    measurements: Vec<DeviceRegisters>,
-  ) -> anyhow::Result<()> {
-    self
-      .services
-      .db()
-      .insert_measurements(
-        measurements
-          .into_iter()
-          .filter_map(|measurement| {
-            let id = modbus::make_id(
-              measurement.device.kind,
-              measurement
-                .registers
-                .iter()
-                .cloned()
-                .filter_map(Either::left),
-            );
-
-            let expected_id = measurement.device.id;
-            if id != expected_id {
-              tracing::debug! {
-                "Failed verifying measurement of {:?}: got id {:?}",
-                expected_id,
-                id
-              }
-
-              return None;
-            }
-
-            Some(db::Measurement {
-              id: 0,
-              source: id,
-              timestamp: chrono::Utc::now(),
-              data: modbus::serialize_registers(
-                measurement.registers.into_iter().filter_map(Either::right),
-              ),
-            })
-          })
-          .collect::<Vec<_>>(),
-      )
-      .await?;
-
-    Ok(())
   }
 }
