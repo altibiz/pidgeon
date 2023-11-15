@@ -71,11 +71,11 @@ impl process::Recurring for Process {
       .count();
     let failed_count = consolidated_devices
       .iter()
-      .filter(|consolidated| matches!(**consolidated, Err(_)))
+      .filter(|consolidated| consolidated.is_err())
       .count();
 
     tracing::info!(
-      "Consolidated {:?} pinged devices of which {:?} are healthy, {:?} unreachable, {:?} inactive, and {:?} failed",
+      "Consolidated {:?} D {:?} H {:?} U {:?} I {:?} F",
       consolidated_devices_len,
       healthy_count,
       unreachable_count,
@@ -145,12 +145,10 @@ impl Process {
     let now = chrono::Utc::now();
     let status = if pinged {
       db::DeviceStatus::Healthy
+    } else if now - device.seen > config.modbus.inactive_timeout {
+      db::DeviceStatus::Inactive
     } else {
-      if now - device.seen > config.modbus.inactive_timeout {
-        db::DeviceStatus::Inactive
-      } else {
-        db::DeviceStatus::Unreachable
-      }
+      db::DeviceStatus::Unreachable
     };
     let seen = if pinged { now } else { device.seen };
     let update = device.status != status;
