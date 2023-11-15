@@ -53,6 +53,7 @@
           '';
         };
 
+        # TODO: fix getting root dir - maybe use just?
         mkScript = name: pkgs.writeShellApplication {
           name = "${name}";
           runtimeInputs = [ pkgs.poetry ];
