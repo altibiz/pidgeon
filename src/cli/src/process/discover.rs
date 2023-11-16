@@ -196,7 +196,7 @@ impl Process {
       .read_from_destination(destination, device.id)
       .await;
 
-    dbg!(registers.iter());
+    tracing::debug!("REGISTERS {:?}", registers);
 
     let matched = registers.ok().map(|id_registers| DeviceMatch {
       kind: device.kind.clone(),
@@ -204,7 +204,7 @@ impl Process {
       id: modbus::make_id(device.kind, id_registers),
     });
 
-    dbg!(matched.clone());
+    tracing::debug!("MATCHED {:?}", matched);
 
     matched
   }
