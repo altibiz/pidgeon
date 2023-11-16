@@ -196,7 +196,7 @@ impl Process {
       .read_from_destination(destination, device.id)
       .await;
 
-    tracing::debug!("REGISTERS {:?}", registers);
+    tracing::debug!("REGISTERS {:?}", registers); // TODO: remove
 
     let matched = registers.ok().map(|id_registers| DeviceMatch {
       kind: device.kind.clone(),
@@ -204,7 +204,7 @@ impl Process {
       id: modbus::make_id(device.kind, id_registers),
     });
 
-    tracing::debug!("MATCHED {:?}", matched);
+    tracing::debug!("MATCHED {:?}", matched); // TODO: remove
 
     matched
   }
