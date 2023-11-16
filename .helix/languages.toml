@@ -29,9 +29,9 @@ auto-format = true
 language-servers = ["rust-analyzer"]
 
 [language.debugger]
-name = "lldb-vscode"
+name = "rust-lldb"
 transport = "stdio"
-command = "lldb-vscode"
+command = "rust-lldb"
 
 [[language.debugger.templates]]
 name = "cli"
