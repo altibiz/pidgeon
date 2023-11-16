@@ -36,8 +36,8 @@ command = "lldb-vscode"
 [[language.debugger.templates]]
 name = "cli"
 request = "launch"
-completion = [ ]
-args = { program = "target/debug/pidgeon-cli" }
+completion = []
+args = { program = "target/debug/pidgeon-cli", initCommands = ["cargo build"] }
 
 [[language]]
 name = "python"
