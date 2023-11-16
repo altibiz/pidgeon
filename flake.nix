@@ -74,7 +74,6 @@
         ruff
 
         # Rust
-        llvmPackages.clangNoLibcxx
         lldb
         rustc
         cargo
