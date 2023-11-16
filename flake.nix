@@ -53,12 +53,11 @@
           '';
         };
 
-        # TODO: fix getting root dir - maybe use just?
-        mkScript = name: pkgs.writeShellApplication {
-          name = "${name}";
-          runtimeInputs = [ pkgs.poetry ];
+        usql = pkgs.writeShellApplication {
+          name = "usql";
+          runtimeInputs = [ pkgs.usql ];
           text = ''
-            ${self}/scripts/${name}
+            usql pg://pidgeon:pidgeon@localhost/pidgeon?sslmode=disable
           '';
         };
       in
@@ -93,16 +92,12 @@
         shellcheck
 
         # Misc
+        usql
+        just
         nodePackages.prettier
         nodePackages.yaml-language-server
         marksman
         taplo
-
-        # Scripts
-        (mkScript "format")
-        (mkScript "lint")
-        (mkScript "image")
-        (mkScript "mksecrets")
       ];
 
       DATABASE_URL = "postgres://pidgeon:pidgeon@localhost/pidgeon?sslmode=disable";

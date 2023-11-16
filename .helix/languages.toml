@@ -27,7 +27,17 @@ language-servers = ["nil"]
 name = "rust"
 auto-format = true
 language-servers = ["rust-analyzer"]
-debugger = { name = "lldb-vscode", transport = "stdio", command = "lldb-vscode" }
+
+[language.debugger]
+name = "lldb-vscode"
+transport = "stdio"
+command = "lldb-vscode"
+
+[[language.debugger.templates]]
+name = "cli"
+request = "launch"
+completion = [ ]
+args = { program = "target/debug/pidgeon-cli" }
 
 [[language]]
 name = "python"
