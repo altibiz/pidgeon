@@ -172,15 +172,19 @@ impl Process {
     device: config::Device,
     destination: modbus::Destination,
   ) -> Option<config::Device> {
-    self
+    let registers = self
       .services
       .modbus()
       .read_from_destination(destination, device.detect.clone())
       .await
-      .ok()?
+      .ok()?;
+
+    let matched = registers
       .into_iter()
       .all(|register| register.matches())
-      .then_some(device)
+      .then_some(device);
+
+    matched
   }
 
   async fn match_id(
@@ -188,17 +192,23 @@ impl Process {
     device: config::Device,
     destination: modbus::Destination,
   ) -> Option<DeviceMatch> {
-    self
+    let registers = self
       .services
       .modbus()
       .read_from_destination(destination, device.id)
-      .await
-      .ok()
-      .map(|id_registers| DeviceMatch {
-        kind: device.kind.clone(),
-        destination,
-        id: modbus::make_id(device.kind, id_registers),
-      })
+      .await;
+
+    dbg!(registers.iter());
+
+    let matched = registers.ok().map(|id_registers| DeviceMatch {
+      kind: device.kind.clone(),
+      destination,
+      id: modbus::make_id(device.kind, id_registers),
+    });
+
+    dbg!(matched.clone());
+
+    matched
   }
 }
 

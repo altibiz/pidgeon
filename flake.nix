@@ -76,7 +76,7 @@
 
         # Rust
         llvmPackages.clangNoLibcxx
-        llvmPackages.lldb
+        lldb
         rustc
         cargo
         clippy
