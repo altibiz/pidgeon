@@ -11,10 +11,7 @@
           "Custom": {
             "name": "log_status",
             "kind": {
-              "Enum": [
-                "success",
-                "failure"
-              ]
+              "Enum": ["success", "failure"]
             }
           }
         },
@@ -22,10 +19,7 @@
           "Custom": {
             "name": "log_kind",
             "kind": {
-              "Enum": [
-                "push",
-                "update"
-              ]
+              "Enum": ["push", "update"]
             }
           }
         },

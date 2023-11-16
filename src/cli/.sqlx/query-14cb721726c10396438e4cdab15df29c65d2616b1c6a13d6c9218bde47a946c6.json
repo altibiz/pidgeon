@@ -10,11 +10,7 @@
           "Custom": {
             "name": "device_status",
             "kind": {
-              "Enum": [
-                "healthy",
-                "unreachable",
-                "inactive"
-              ]
+              "Enum": ["healthy", "unreachable", "inactive"]
             }
           }
         },
