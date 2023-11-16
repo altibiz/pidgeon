@@ -146,13 +146,17 @@ impl Manager {
     Values {
       log_level: config.from_file.log_level.map_or_else(
         || {
-          #[cfg(debug_assertions)]
-          {
-            tracing::level_filters::LevelFilter::DEBUG
-          }
-          #[cfg(not(debug_assertions))]
-          {
-            tracing::level_filters::LevelFilter::INFO
+          if config.from_args.trace {
+            tracing::level_filters::LevelFilter::TRACE
+          } else {
+            #[cfg(debug_assertions)]
+            {
+              tracing::level_filters::LevelFilter::DEBUG
+            }
+            #[cfg(not(debug_assertions))]
+            {
+              tracing::level_filters::LevelFilter::INFO
+            }
           }
         },
         |log_level| match log_level {
