@@ -179,12 +179,12 @@ impl Process {
       .await
       .ok()?;
 
-    let matched = registers
+    
+
+    registers
       .into_iter()
       .all(|register| register.matches())
-      .then_some(device);
-
-    matched
+      .then_some(device)
   }
 
   async fn match_id(
