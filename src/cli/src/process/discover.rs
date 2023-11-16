@@ -179,8 +179,6 @@ impl Process {
       .await
       .ok()?;
 
-    
-
     registers
       .into_iter()
       .all(|register| register.matches())

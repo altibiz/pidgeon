@@ -9,6 +9,10 @@
   clippy::unreachable,
   // reason = "We have to handle errors properly"
 )]
+#![deny(
+  clippy::dbg_macro,
+  // reason = "Use tracing instead"
+)]
 
 mod config;
 mod process;
