@@ -1,0 +1,14 @@
+{
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "search.exclude": {
+    "**/.direnv": true,
+    "**/.ruff_cache": true,
+    "**/.sqlx": true,
+    "target": true
+  },
+  "files.exclude": {
+    "**/.direnv": true,
+    "**/.ruff_cache": true,
+    "target": true
+  }
+}
