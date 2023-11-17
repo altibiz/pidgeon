@@ -8,8 +8,8 @@
       "cargo": {
         "args": ["build", "--bin", "pidgeon-cli"]
       },
-      "args": ["--config", "${workspaceFolder}/src/cli/config.toml"]
-      // "postRunCommands": ["process handle SIGPIPE -n true -p true -s false"]
+      "args": ["--config", "${workspaceFolder}/src/cli/config.toml"],
+      "postRunCommands": ["process handle SIGPIPE -n true -p true -s false"]
     }
   ]
 }
