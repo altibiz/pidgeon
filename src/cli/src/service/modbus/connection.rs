@@ -76,14 +76,13 @@ impl Connection {
         }
 
         let stream = TcpStream::connect(self.destination.address).await?;
-        let ctx =
-          tokio_modbus::prelude::tcp::attach_slave(stream, Slave(slave));
-        ctx
+        
+        tokio_modbus::prelude::tcp::attach_slave(stream, Slave(slave))
       }
       None => {
         let stream = TcpStream::connect(self.destination.address).await?;
-        let ctx = tokio_modbus::prelude::tcp::attach(stream);
-        ctx
+        
+        tokio_modbus::prelude::tcp::attach(stream)
       }
     };
 
@@ -228,7 +227,9 @@ impl Connection {
     span: SimpleSpan,
     timeout: futures_time::time::Duration,
   ) -> Result<Response, ReadError> {
-    let response = match ctx
+    
+
+    match ctx
       .read_holding_registers(span.address, span.quantity)
       .timeout(timeout)
       .await
@@ -236,9 +237,7 @@ impl Connection {
       Err(timeout_error) => Err(ReadError::Timeout(timeout_error)),
       Ok(Err(connection_error)) => Err(ReadError::Read(connection_error)),
       Ok(Ok(response)) => Ok(response),
-    };
-
-    response
+    }
   }
 }
 

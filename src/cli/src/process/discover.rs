@@ -218,13 +218,13 @@ impl Process {
       .read_from_destination(destination, device.id)
       .await;
 
-    let matched = registers.ok().map(|id_registers| DeviceMatch {
+    
+
+    registers.ok().map(|id_registers| DeviceMatch {
       kind: device.kind.clone(),
       destination,
       id: modbus::make_id(device.kind, id_registers),
-    });
-
-    matched
+    })
   }
 }
 
