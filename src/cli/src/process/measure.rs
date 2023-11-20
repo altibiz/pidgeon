@@ -38,8 +38,8 @@ impl process::Recurring for Process {
     let measurements = self.get_unprocessed_measurements().await;
     self.consolidate(measurements).await;
 
+    let devices_from_db = self.get_devices_from_db(config).await?;
     {
-      let devices_from_db = self.get_devices_from_db(config).await?;
       let mut streams = self.streams.clone().lock_owned().await;
       self.merge_devices(&mut streams, devices_from_db).await;
     }
