@@ -10,7 +10,9 @@ use tokio::sync::Mutex;
 use super::connection::*;
 use super::span::{SimpleSpan, Span};
 
-// TODO: further inspect errors to tune
+// TODO: remove notions of retires and backoff (from config as well)
+// TODO: worker read timeout from config
+// TODO: something with history/metrics?
 
 // OPTIMIZE: remove copying when reading
 // OPTIMIZE: check bounded channel length - maybe config?
@@ -228,7 +230,6 @@ struct Task {
   receiver: RequestReceiver,
   oneshots: Vec<Storage>,
   streams: Vec<Storage>,
-  params: Params,
   terminate: bool,
   history: Vec<Metrics>,
   metric_history: usize,
@@ -245,7 +246,6 @@ impl Task {
       receiver,
       oneshots: Vec::new(),
       streams: Vec::new(),
-      params,
       terminate: false,
       history: Vec::new(),
       metric_history,
@@ -298,7 +298,7 @@ impl Task {
           }
         };
 
-        match Self::read(oneshot, self.params, &mut metrics, connection).await {
+        match Self::read(oneshot, &mut metrics, connection).await {
           Either::Left(partial) => {
             oneshot.partial = partial;
           }
@@ -352,8 +352,7 @@ impl Task {
               }
             };
 
-          match Self::read(stream, self.params, &mut metrics, connection).await
-          {
+          match Self::read(stream, &mut metrics, connection).await {
             Either::Left(partial) => {
               stream.partial = partial;
             }
@@ -386,8 +385,6 @@ impl Task {
           self.streams.iter().map(|stream| stream.id)
         );
       }
-
-      self.tune(metrics);
     }
   }
 
@@ -461,7 +458,7 @@ impl Task {
 
     match kind {
       RequestKind::Oneshot => self.oneshots.push(storage),
-      RequestKind::Stream => self.oneshots.push(storage),
+      RequestKind::Stream => self.streams.push(storage),
     };
 
     tracing::trace!("Added request");
@@ -517,7 +514,6 @@ impl Task {
   #[tracing::instrument(skip_all, fields(address = ?storage.destination))]
   async fn read(
     storage: &Storage,
-    params: Params,
     metrics: &mut Metrics,
     connection: &mut Connection,
   ) -> Either<Partial, Response> {
@@ -528,14 +524,17 @@ impl Task {
       {
         let read = match partial {
           Some(partial) => Some(partial.clone()),
-          None => match (*connection).parameterized_read(span, params).await {
+          None => match (*connection)
+            .simple_read(span, chrono::Duration::seconds(1))
+            .await
+          {
             Ok(read) => Some(read),
-            Err(mut errors) => {
+            Err(error) => {
               metrics
                 .errors
                 .entry(storage.destination)
                 .or_insert_with(Vec::new)
-                .append(&mut errors);
+                .push((format!("{:?}", &error), error));
               None
             }
           },
@@ -548,10 +547,10 @@ impl Task {
     };
 
     if partial.iter().all(|x| x.is_some()) {
-      tracing::trace!("Fully read with params {:?}", params);
+      tracing::trace!("Fully read");
       Either::Right(partial.iter().flatten().cloned().collect::<Vec<_>>())
     } else {
-      tracing::trace!("Partially read with params {:?}", params);
+      tracing::trace!("Partially read");
       Either::Left(partial)
     }
   }
@@ -567,33 +566,5 @@ impl Metrics {
     Self {
       errors: HashMap::new(),
     }
-  }
-}
-
-impl Task {
-  #[tracing::instrument(skip_all)]
-  fn tune(&mut self, metrics: Metrics) {
-    self.history.push(metrics);
-    if self.history.len() > self.metric_history {
-      self.history.remove(0);
-    }
-
-    if let Some(metrics) = self.history.last() {
-      if !metrics.errors.is_empty() {
-        self.params = Params::new(
-          self.params.timeout() * 2,
-          self.params.backoff() * 2,
-          self.params.retries(),
-        );
-      } else {
-        self.params = Params::new(
-          self.params.timeout() / 2,
-          self.params.backoff() / 2,
-          self.params.retries(),
-        );
-      }
-    }
-
-    tracing::trace!("Tuned params to {:?}", self.params);
   }
 }

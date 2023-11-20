@@ -3,8 +3,6 @@ use futures_time::future::FutureExt;
 
 use crate::{service::*, *};
 
-// TODO: make optimization smarter (get devices from db)
-
 pub(crate) struct Process {
   #[allow(unused)]
   config: config::Manager,
@@ -51,8 +49,6 @@ impl process::Recurring for Process {
           .next()
         {
           device_matches.push(device_match);
-        } else {
-          break;
         }
       }
     }
@@ -217,8 +213,6 @@ impl Process {
       .modbus()
       .read_from_destination(destination, device.id)
       .await;
-
-    
 
     registers.ok().map(|id_registers| DeviceMatch {
       kind: device.kind.clone(),
