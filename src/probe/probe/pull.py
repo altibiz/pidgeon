@@ -1,4 +1,5 @@
 import struct
+import asyncio
 from typing import Any, Callable, Coroutine, Optional, TypeVar, Union, List, cast
 from pymodbus.client import AsyncModbusTcpClient
 from pymodbus.framer import ModbusRtuFramer
@@ -32,6 +33,8 @@ class PullClient:
     count: int,
     convert: Callable[..., TRead],
   ) -> Union[None, TRead]:
+    await asyncio.sleep(1)
+
     if not self.__modbus_connected:
       try:
         await self.__modbus_client.connect()
