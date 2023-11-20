@@ -221,7 +221,7 @@ impl Process {
     .filter_map(|stream| match stream {
       Ok(stream) => Some(stream),
       Err((device, error)) => {
-        tracing::warn!("Failed creating stream for {:?} {}", device, error);
+        tracing::warn!("Failed creating stream for {:?} {}", device.id, error);
         None
       }
     })

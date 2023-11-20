@@ -7,8 +7,6 @@ use tokio_modbus::{client::Context, prelude::Reader, Slave};
 
 use super::span::SimpleSpan;
 
-// TODO: some min/max for params
-
 #[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
 pub(crate) struct Destination {
   pub(crate) address: SocketAddr,
@@ -110,8 +108,11 @@ impl Params {
     backoff: chrono::Duration,
     retries: u32,
   ) -> Self {
-    let timeout = timeout_from_chrono(timeout);
-    let backoff = backoff_from_chrono(backoff);
+    let timeout =
+      timeout_from_chrono(timeout.max(chrono::Duration::milliseconds(1)));
+    let backoff =
+      backoff_from_chrono(backoff.max(chrono::Duration::milliseconds(1)));
+    let retries = retries.max(1);
     Self {
       timeout,
       backoff,

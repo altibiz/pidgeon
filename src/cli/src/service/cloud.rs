@@ -157,7 +157,7 @@ impl Service {
     Ok(response)
   }
 
-  #[tracing::instrument(skip(self))]
+  #[tracing::instrument(skip_all, fields(count = health.len()))]
   pub(crate) async fn update(
     &self,
     pidgeon: serde_json::Value,
@@ -178,7 +178,7 @@ impl Service {
     if let Err(error) = &http_response {
       tracing::warn! {
         %error,
-        "Failed pushing {:?} measurements: connection error",
+        "Failed pushing {:?} health: connection error",
         request.health.len(),
       }
     }
