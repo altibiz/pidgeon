@@ -78,7 +78,7 @@ pub(crate) fn make_id<
   id_registers
     .into_iter()
     .map(|id| id.to_string())
-    .fold(kind, |acc, next| acc + next.as_str())
+    .fold(format!("{kind}-"), |acc, next| acc + next.as_str())
 }
 
 impl RegisterStorage for RegisterKind {
