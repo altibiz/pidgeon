@@ -14,7 +14,7 @@ pub(crate) struct Destination {
 }
 
 impl Destination {
-  pub(crate) fn r#for(
+  pub(crate) fn slaves_for(
     address: SocketAddr,
   ) -> impl Iterator<Item = Destination> {
     (Slave::min_device().0..Slave::max_device().0)
@@ -22,10 +22,13 @@ impl Destination {
         address,
         slave: Some(slave),
       })
-      .chain(std::iter::once(Destination {
-        address,
-        slave: None,
-      }))
+  }
+
+  pub(crate) fn standalone_for(address: SocketAddr) -> Destination {
+    Destination {
+      address,
+      slave: None,
+    }
   }
 }
 

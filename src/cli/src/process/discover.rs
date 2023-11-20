@@ -3,6 +3,8 @@ use futures_time::future::FutureExt;
 
 use crate::{service::*, *};
 
+// TODO: make optimization smarter
+
 pub(crate) struct Process {
   #[allow(unused)]
   config: config::Manager,
@@ -26,20 +28,38 @@ impl process::Recurring for Process {
     let addresses = self.services.network().scan_modbus().await;
     let addresses_len = addresses.len();
 
-    let device_matches = join_all(
-      addresses
+    let mut device_matches = Vec::new();
+    for address in addresses.iter() {
+      if let Some(device_match) = self
+        .match_destination(
+          &config,
+          modbus::Destination::standalone_for(*address)
+        )
+        .await
         .into_iter()
-        .flat_map(modbus::Destination::r#for)
-        .map(|destination| self.match_destination(&config, destination)),
-    )
-    .await;
+        .next() {
+        device_matches.push(device_match);
+        continue;
+      }
+
+      for destination in modbus::Destination::slaves_for(*address) {
+        if let Some(device_match) = self
+          .match_destination(&config, destination)
+          .await
+          .into_iter()
+          .next() {
+          device_matches.push(device_match);
+        } else {
+          break;
+        }
+      }
+    }
     let device_matches_len = device_matches.len();
 
     let consolidated_matches = join_all(
       device_matches
         .into_iter()
-        .flatten()
-        .map(|r#match| self.consolidate(r#match)),
+        .map(|device_match| self.consolidate(device_match)),
     )
     .await;
     let consolidated_matches_len = consolidated_matches.len();
@@ -196,15 +216,11 @@ impl Process {
       .read_from_destination(destination, device.id)
       .await;
 
-    tracing::debug!("REGISTERS {:?}", registers); // TODO: remove
-
     let matched = registers.ok().map(|id_registers| DeviceMatch {
       kind: device.kind.clone(),
       destination,
       id: modbus::make_id(device.kind, id_registers),
     });
-
-    tracing::debug!("MATCHED {:?}", matched); // TODO: remove
 
     matched
   }
