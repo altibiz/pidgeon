@@ -2,6 +2,8 @@ use tokio_modbus::{Address, Quantity};
 
 use super::span::*;
 
+// TODO: check what causes overflows on add/subtract
+
 #[derive(Clone, Debug)]
 pub(crate) struct Batch<TSpan: Span> {
   pub(crate) address: Address,
@@ -112,10 +114,15 @@ pub(crate) fn batch_spans<
   };
 
   for span in iter {
-    let end = current.address + current.quantity;
-    let gap = span.address() - end;
+    let gap = span
+      .address()
+      .saturating_sub(current.address.saturating_add(current.quantity));
     if gap < threshold {
-      current.quantity += gap + span.quantity();
+      let quantity = span
+        .address()
+        .saturating_add(span.quantity())
+        .saturating_sub(current.address);
+      current.quantity = quantity;
       current.spans.push(span);
     } else {
       batches.push(current);

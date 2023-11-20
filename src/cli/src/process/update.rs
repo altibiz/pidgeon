@@ -36,7 +36,7 @@ impl process::Recurring for Process {
 
     let last_push_id =
       match health_to_update.iter().max_by(|x, y| x.id.cmp(&y.id)) {
-        Some(measurement) => measurement.id,
+        Some(health) => health.id,
         None => return Ok(()),
       };
 
@@ -86,7 +86,7 @@ impl process::Recurring for Process {
       }
       Err(error) => {
         tracing::error!(
-          "Failed pushing {:?} measurements from {:?} to {:?} {}",
+          "Failed pushing {:?} health from {:?} to {:?} {}",
           health_len,
           last_pushed_id,
           last_push_id,

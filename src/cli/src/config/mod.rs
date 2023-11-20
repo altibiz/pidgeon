@@ -233,7 +233,7 @@ impl Manager {
           config.from_file.modbus.initial_backoff.unwrap_or(1),
         ),
         initial_retries: config.from_file.modbus.initial_retries.unwrap_or(10),
-        batch_threshold: config.from_file.modbus.batch_threshold.unwrap_or(3),
+        batch_threshold: config.from_file.modbus.batch_threshold.unwrap_or(4),
         metric_history_size: config
           .from_file
           .modbus
