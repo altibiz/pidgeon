@@ -66,7 +66,8 @@ class PullClient:
         continue
 
       try:
-        value = convert(*cast(list[int], registers)) # pyright: ignore unknownMemberType
+        value = convert(*cast(list[int],
+                              registers))  # pyright: ignore unknownMemberType
         return value
       except Exception as exception:
         continue

@@ -1,8 +1,16 @@
 import asyncio
-from typing import Any, List, Optional, Tuple
+import time
+from typing import Any, List, Optional, NamedTuple, Callable
 from pull import PullClient
 from args import Args
 from device import DeviceType
+
+
+class Request(NamedTuple):
+  name: str
+  register: int
+  count: int
+  convert: Callable[..., Any]
 
 
 async def main():
@@ -15,72 +23,70 @@ async def main():
 
   if args.device_type() == DeviceType.abb:
     while True:
-      print_measurement(DeviceType.abb, [
-        (
-          "Serial number",
-          await client.read(
-            register=0x8900,
-            count=2,
-            convert=PullClient.to_uint32,
-          ),
+      await measure(client, DeviceType.abb, [
+        Request(
+          name="Serial number",
+          register=0x8900,
+          count=2,
+          convert=PullClient.to_uint32,
         ),
-        (
-          "Mapping version",
-          await client.read(
-            register=0x8910,
-            count=1,
-            convert=PullClient.to_raw_bytes,
-          ),
+        Request(
+          name="Mapping version",
+          register=0x8910,
+          count=1,
+          convert=PullClient.to_raw_bytes,
         ),
-        (
-          "Type designation",
-          await client.read(
-            register=0x8960,
-            count=6,
-            convert=PullClient.to_ascii,
-          ),
+        Request(
+          name="Type designation",
+          register=0x8960,
+          count=6,
+          convert=PullClient.to_ascii,
         ),
-        (
-          "Power",
-          await client.read(
-            register=0x5B14,
-            count=2,
-            convert=PullClient.to_sint32,
-          ),
+        Request(
+          name="Power",
+          register=0x5B14,
+          count=2,
+          convert=PullClient.to_sint32,
         ),
       ])
 
   if args.device_type() == DeviceType.schneider:
     while True:
-      print_measurement(DeviceType.schneider, [(
-        "Model",
-        await client.read(
+      await measure(client, DeviceType.schneider, [
+        Request(
+          name="Model",
           register=0x0031,
           count=20,
           convert=PullClient.to_utf8,
         ),
-      ),
-                                               (
-                                                 "Serial number",
-                                                 await client.read(
-                                                   register=0x0081,
-                                                   count=2,
-                                                   convert=PullClient.to_uint32,
-                                                 ),
-                                               ),
-                                               ("Power", await client.read(
-                                                 register=0x0BF3,
-                                                 count=2,
-                                                 convert=PullClient.to_float32,
-                                               ))])
+        Request(
+          name="Serial number",
+          register=0x0081,
+          count=2,
+          convert=PullClient.to_uint32,
+        ),
+        Request(
+          name="Power",
+          register=0x0BF3,
+          count=2,
+          convert=PullClient.to_float32,
+        )
+      ])
 
 
-def print_measurement(device_type: DeviceType,
-                      registers: List[Tuple[str, Optional[Any]]]):
+async def measure(client: PullClient, device_type: DeviceType,
+                  requests: List[Request]):
   print("Reading", device_type)
-  for register in registers:
-    print(register[0], register[1])
-  print("\n")
+  start = time.time()
+  for request in requests:
+    value = await client.read(
+      register=request.register,
+      count=request.count,
+      convert=request.convert,
+    )
+    print(request.name, value)
+  end = time.time()
+  print("took", end - start, "\n")
 
 
 if __name__ == "__main__":
