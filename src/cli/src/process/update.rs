@@ -63,7 +63,7 @@ impl process::Recurring for Process {
         ..
       }) => {
         tracing::info!(
-          "Successfully pushed {:?} measurements from {:?} to {:?}",
+          "Successfully updated {:?} health from {:?} to {:?}",
           health_len,
           last_pushed_id,
           last_push_id
@@ -76,7 +76,7 @@ impl process::Recurring for Process {
         code,
       }) => {
         tracing::error!(
-          "Failed pushing {:?} measurements from {:?} to {:?} with code {:?}",
+          "Failed updating {:?} health from {:?} to {:?} with code {:?}",
           health_len,
           last_pushed_id,
           last_push_id,

@@ -13,64 +13,66 @@ async def main():
   )
 
   if args.device_type() == DeviceType.abb:
-    print(
-      "Serial number",
-      await client.read(
-        register=0x8900,
-        count=2,
-        convert=PullClient.to_uint32,
-      ),
-    )
-    print(
-      "Mapping version",
-      await client.read(
-        register=0x8910,
-        count=1,
-        convert=PullClient.to_raw_bytes,
-      ),
-    )
-    print(
-      "Type designation",
-      await client.read(
-        register=0x8960,
-        count=6,
-        convert=PullClient.to_ascii,
-      ),
-    )
-    print(
-      "Power",
-      await client.read(
-        register=0x5B14,
-        count=2,
-        convert=PullClient.to_sint32,
-      ),
-    )
+    while True:
+      print(
+        "Serial number",
+        await client.read(
+          register=0x8900,
+          count=2,
+          convert=PullClient.to_uint32,
+        ),
+      )
+      print(
+        "Mapping version",
+        await client.read(
+          register=0x8910,
+          count=1,
+          convert=PullClient.to_raw_bytes,
+        ),
+      )
+      print(
+        "Type designation",
+        await client.read(
+          register=0x8960,
+          count=6,
+          convert=PullClient.to_ascii,
+        ),
+      )
+      print(
+        "Power",
+        await client.read(
+          register=0x5B14,
+          count=2,
+          convert=PullClient.to_sint32,
+        ),
+      )
 
   if args.device_type() == DeviceType.schneider:
-    print(
-      "Model",
-      await client.read(
-        register=0x0031,
-        count=20,
-        convert=PullClient.to_utf8,
-      ),
-    )
-    print(
-      "Serial number",
-      await client.read(
-        register=0x0081,
-        count=2,
-        convert=PullClient.to_uint32,
-      ),
-    )
-    print(
-      "Power",
-      await client.read(
-        register=0x0BF3,
-        count=2,
-        convert=PullClient.to_float32,
-      ),
-    )
+    while True:
+      print(
+        "Model",
+        await client.read(
+          register=0x0031,
+          count=20,
+          convert=PullClient.to_utf8,
+        ),
+      )
+      print(
+        "Serial number",
+        await client.read(
+          register=0x0081,
+          count=2,
+          convert=PullClient.to_uint32,
+        ),
+      )
+      print(
+        "Power",
+        await client.read(
+          register=0x0BF3,
+          count=2,
+          convert=PullClient.to_float32,
+        ),
+      )
 
 
 if __name__ == "__main__":
