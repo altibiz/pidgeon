@@ -58,6 +58,14 @@ impl Connection {
     }
   }
 
+  pub(crate) async fn ensure_connected(&mut self) -> Result<(), ConnectError> {
+    if self.ctx.is_none() {
+      let _ = self.reconnect().await?;
+    }
+
+    Ok(())
+  }
+
   async fn reconnect(&mut self) -> Result<&mut Context, ConnectError> {
     let ctx = match self.destination.slave {
       Some(slave) => {
@@ -208,7 +216,7 @@ impl Connection {
       }
     };
 
-    if let Err(ReadError::Read(_)) = response {
+    if matches!(response, Err(ReadError::Connection(_) | ReadError::Read(_))) {
       self.ctx = None;
     }
 

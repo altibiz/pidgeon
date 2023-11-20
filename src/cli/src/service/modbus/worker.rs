@@ -486,26 +486,29 @@ impl Task {
 
         ConnectionAttempt::Existing(connection)
       }
-      None => match Connection::new(storage.destination).await {
-        Ok(connection) => {
-          tracing::trace!("Connected to new connection");
+      None => {
+        let mut connection = Connection::new(storage.destination);
+        match connection.ensure_connected().await {
+          Ok(()) => {
+            tracing::trace!("Connected to new connection");
 
-          ConnectionAttempt::New(connection)
-        }
-        Err(error) => {
-          tracing::trace!("Failed connecting");
-
-          if let Err(error) = storage.sender.try_send(Err(error.into())) {
-            // NOTE: error -> trace because this should fail when we already cancelled the future from caller
-            tracing::trace!(
-              "Failed sending connection fail from worker task {}",
-              error
-            );
+            ConnectionAttempt::New(connection)
           }
+          Err(error) => {
+            tracing::trace!("Failed connecting");
 
-          ConnectionAttempt::Fail
+            if let Err(error) = storage.sender.try_send(Err(error.into())) {
+              // NOTE: error -> trace because this should fail when we already cancelled the future from caller
+              tracing::trace!(
+                "Failed sending connection fail from worker task {}",
+                error
+              );
+            }
+
+            ConnectionAttempt::Fail
+          }
         }
-      },
+      }
     }
   }
 }

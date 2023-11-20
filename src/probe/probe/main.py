@@ -1,6 +1,6 @@
 import asyncio
 import time
-from typing import Any, List, Optional, NamedTuple, Callable
+from typing import Any, List, NamedTuple, Callable
 from pull import PullClient
 from args import Args
 from device import DeviceType
