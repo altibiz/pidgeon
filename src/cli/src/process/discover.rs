@@ -184,6 +184,10 @@ impl Process {
       }
     }
 
+    self.services.modbus()
+      .bind(device_match.id.clone(), device_match.destination)
+      .await;
+
     tracing::debug!("Matched device");
 
     Some(device_match)

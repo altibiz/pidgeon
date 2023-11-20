@@ -95,19 +95,19 @@ impl Process {
           return true;
         }
         Some(None) => {
-          tracing::debug!("Stream for {:?} ended", device);
+          tracing::debug!("Stream for {:?} ended", device.id);
           return false;
         }
         Some(Some(Err(modbus::ServerReadError::FailedToConnect(error)))) => {
-          tracing::warn!("Failed to connect to device {:?} {}", device, error);
+          tracing::warn!("Failed to connect to device {:?} {}", device.id, error);
           return false;
         }
         Some(Some(Err(modbus::ServerReadError::ServerFailed(error)))) => {
-          tracing::warn!("Device server failed {:?} {}", device, error);
+          tracing::warn!("Device server failed {:?} {}", device.id, error);
           return false;
         }
         Some(Some(Err(modbus::ServerReadError::ParsingFailed(error)))) => {
-          tracing::warn!("Parsing failed {:?} {}", device, error);
+          tracing::warn!("Parsing failed {:?} {}", device.id, error);
         }
         Some(Some(Ok(registers))) => {
           measurements.push(DeviceRegisters {

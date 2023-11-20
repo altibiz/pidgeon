@@ -31,12 +31,12 @@ async fn main() -> anyhow::Result<()> {
 
   tracing::subscriber::set_global_default(
     tracing_subscriber::FmtSubscriber::builder()
-      .with_max_level(config.log_level)
       .with_env_filter(tracing_subscriber::EnvFilter::builder()
+        .with_default_directive(tracing::level_filters::LevelFilter::INFO.into())
         .from_env()?
-        .add_directive("warn".parse()?)
-        .add_directive("pidgeon-cli".parse()?)
+        .add_directive("pidgeon-cli=trace".parse()?)
       )
+      .with_max_level(config.log_level)
       .finish(),
   )?;
 
