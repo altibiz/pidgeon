@@ -38,7 +38,7 @@ pub(crate) type Response = Vec<u16>;
 #[derive(Debug)]
 pub(crate) struct Connection {
   destination: Destination,
-  ctx: Context,
+  ctx: Option<Context>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -51,55 +51,40 @@ pub(crate) enum ConnectError {
 }
 
 impl Connection {
-  pub(crate) async fn connect(
-    destination: Destination,
-  ) -> Result<Self, ConnectError> {
-    match destination.slave {
-      Some(slave) => Self::connect_slave(destination.address, slave).await,
-      None => Self::connect_standalone(destination.address).await,
+  pub(crate) fn new(destination: Destination) -> Self {
+    Self {
+      destination,
+      ctx: None,
     }
   }
 
-  #[tracing::instrument]
-  pub(crate) async fn connect_standalone(
-    socket: SocketAddr,
-  ) -> Result<Self, ConnectError> {
-    let stream = TcpStream::connect(socket).await?;
-    let ctx = tokio_modbus::prelude::tcp::attach(stream);
+  async fn reconnect(&mut self) -> Result<&mut Context, ConnectError> {
+    let ctx = match self.destination.slave {
+      Some(slave) => {
+        if Slave(slave) < Slave::min_device()
+          || Slave(slave) > Slave::max_device()
+        {
+          return Err(ConnectError::Slave);
+        }
+
+        let stream = TcpStream::connect(self.destination.address).await?;
+        let ctx =
+          tokio_modbus::prelude::tcp::attach_slave(stream, Slave(slave));
+        ctx
+      }
+      None => {
+        let stream = TcpStream::connect(self.destination.address).await?;
+        let ctx = tokio_modbus::prelude::tcp::attach(stream);
+        ctx
+      }
+    };
 
     tracing::trace!("Connected");
 
-    Ok(Self {
-      destination: Destination {
-        address: socket,
-        slave: None,
-      },
-      ctx,
-    })
-  }
+    self.ctx = Some(ctx);
 
-  #[tracing::instrument]
-  pub(crate) async fn connect_slave(
-    socket: SocketAddr,
-    slave: u8,
-  ) -> Result<Self, ConnectError> {
-    if Slave(slave) < Slave::min_device() || Slave(slave) > Slave::max_device()
-    {
-      return Err(ConnectError::Slave);
-    }
-
-    let stream = TcpStream::connect(socket).await?;
-    let ctx = tokio_modbus::prelude::rtu::attach_slave(stream, Slave(slave));
-
-    tracing::trace!("Connected");
-
-    Ok(Self {
-      destination: Destination {
-        address: socket,
-        slave: Some(slave),
-      },
-      ctx,
-    })
+    #[allow(clippy::unwrap_used)] // NOTE: we just put it in
+    Ok(self.ctx.as_mut().unwrap())
   }
 }
 
@@ -144,7 +129,10 @@ impl Params {
 #[derive(Debug, Error)]
 pub(crate) enum ReadError {
   #[error("Failed connecting")]
-  Connection(std::io::Error),
+  Connection(#[from] ConnectError),
+
+  #[error("Failed reading")]
+  Read(std::io::Error),
 
   #[error("Connection timed out")]
   Timeout(std::io::Error),
@@ -212,14 +200,33 @@ impl Connection {
     span: SimpleSpan,
     timeout: futures_time::time::Duration,
   ) -> Result<Response, ReadError> {
-    let response = match self
-      .ctx
+    let response = match &mut self.ctx {
+      Some(ctx) => Self::simple_read_impl_connected(ctx, span, timeout).await,
+      None => {
+        let ctx = self.reconnect().await?;
+        Self::simple_read_impl_connected(ctx, span, timeout).await
+      }
+    };
+
+    if let Err(ReadError::Read(_)) = response {
+      self.ctx = None;
+    }
+
+    response
+  }
+
+  async fn simple_read_impl_connected(
+    ctx: &mut Context,
+    span: SimpleSpan,
+    timeout: futures_time::time::Duration,
+  ) -> Result<Response, ReadError> {
+    let response = match ctx
       .read_holding_registers(span.address, span.quantity)
       .timeout(timeout)
       .await
     {
       Err(timeout_error) => Err(ReadError::Timeout(timeout_error)),
-      Ok(Err(connection_error)) => Err(ReadError::Connection(connection_error)),
+      Ok(Err(connection_error)) => Err(ReadError::Read(connection_error)),
       Ok(Ok(response)) => Ok(response),
     };
 

@@ -52,8 +52,7 @@ async def main():
 
   if args.device_type() == DeviceType.schneider:
     while True:
-      print_measurement(DeviceType.schneider, [
-        (
+      print_measurement(DeviceType.schneider, [(
         "Model",
         await client.read(
           register=0x0031,
@@ -69,14 +68,11 @@ async def main():
                                                    convert=PullClient.to_uint32,
                                                  ),
                                                ),
-                                               (
-                                                "Power", await client.read(
+                                               ("Power", await client.read(
                                                  register=0x0BF3,
                                                  count=2,
                                                  convert=PullClient.to_float32,
-                                               )
-                                               )]
-                                               )
+                                               ))])
 
 
 def print_measurement(device_type: DeviceType,

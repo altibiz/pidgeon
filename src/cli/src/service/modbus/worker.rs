@@ -486,7 +486,7 @@ impl Task {
 
         ConnectionAttempt::Existing(connection)
       }
-      None => match Connection::connect(storage.destination).await {
+      None => match Connection::new(storage.destination).await {
         Ok(connection) => {
           tracing::trace!("Connected to new connection");
 
