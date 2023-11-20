@@ -10,7 +10,10 @@
       },
       "cwd": "${workspaceFolder}/src/cli",
       "args": ["--config", "config.toml"],
-      "postRunCommands": ["process handle SIGPIPE -n true -p true -s false"]
+      "postRunCommands": [
+        "process handle SIGPIPE -n true -p true -s false",
+        "process handle SIGSTOP -n true -p true -s false"
+      ]
     }
   ]
 }

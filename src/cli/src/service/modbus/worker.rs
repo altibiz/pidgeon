@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::ops::{Index, IndexMut};
+use std::ops::IndexMut;
 use std::sync::Arc;
 
 use either::Either;
@@ -275,7 +275,12 @@ impl Task {
 
       let mut oneshots_to_remove = Vec::new();
       for index in 0..self.oneshots.len() {
-        let oneshot = self.oneshots.index(index);
+        let oneshot = self.oneshots.index_mut(index);
+        if oneshot.sender.is_disconnected() {
+          oneshots_to_remove.push(oneshot.id);
+          continue;
+        }
+
         let connection = match Self::attempt_connection(
           &mut self.connections,
           oneshot,
@@ -295,7 +300,7 @@ impl Task {
 
         match Self::read(oneshot, self.params, &mut metrics, connection).await {
           Either::Left(partial) => {
-            self.oneshots.index_mut(index).partial = partial
+            oneshot.partial = partial;
           }
           Either::Right(response) => {
             if let Err(error) = oneshot.sender.try_send(Ok(response)) {
@@ -328,7 +333,11 @@ impl Task {
       } else {
         let mut streams_to_remove = Vec::new();
         for index in 0..self.streams.len() {
-          let stream = self.streams.index(index);
+          let stream = self.streams.index_mut(index);
+          if stream.sender.is_disconnected() {
+            streams_to_remove.push(stream.id);
+          }
+
           let connection =
             match Self::attempt_connection(&mut self.connections, stream).await
             {
@@ -346,15 +355,21 @@ impl Task {
           match Self::read(stream, self.params, &mut metrics, connection).await
           {
             Either::Left(partial) => {
-              self.streams.index_mut(index).partial = partial;
+             stream.partial = partial;
             }
             Either::Right(response) => {
               match stream.sender.try_send(Ok(response)) {
                 Ok(()) => {
-                  self.streams.index_mut(index).partial =
-                    vec![None; stream.spans.len()];
+                  stream.partial = vec![None; stream.spans.len()];
                 }
-                Err(_) => {
+                Err(error) => {
+                  // NOTE: error -> trace because this should fail when we already cancelled the future from caller
+                  tracing::trace!(
+                    "Failed sending stream response to {:?} {}",
+                    stream.destination,
+                    error,
+                  );
+
                   streams_to_remove.push(stream.id);
                 }
               }
@@ -563,22 +578,14 @@ impl Task {
     if let Some(metrics) = self.history.last() {
       if !metrics.errors.is_empty() {
         self.params = Params::new(
-          chrono::Duration::milliseconds(
-            self.params.timeout().num_milliseconds() + 10,
-          ),
-          chrono::Duration::milliseconds(
-            self.params.backoff().num_milliseconds() + 10,
-          ),
+          self.params.timeout() + chrono::Duration::milliseconds(10),
+          self.params.backoff() + chrono::Duration::milliseconds(10),
           self.params.retries(),
         );
       } else {
         self.params = Params::new(
-          chrono::Duration::milliseconds(
-            self.params.timeout().num_milliseconds() - 10,
-          ),
-          chrono::Duration::milliseconds(
-            self.params.backoff().num_milliseconds() - 10,
-          ),
+          self.params.timeout() - chrono::Duration::milliseconds(10),
+          self.params.backoff() - chrono::Duration::milliseconds(10),
           self.params.retries(),
         );
       }
