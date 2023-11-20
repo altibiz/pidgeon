@@ -2,7 +2,7 @@ import struct
 import asyncio
 from typing import Any, Callable, Coroutine, Optional, TypeVar, Union, List, cast
 from pymodbus.client import AsyncModbusTcpClient
-from pymodbus.framer import ModbusRtuFramer, ModbusTcpFramer
+from pymodbus.framer import ModbusRtuFramer
 from pymodbus.pdu import ModbusResponse
 
 TRead = TypeVar("TRead")
@@ -21,7 +21,6 @@ class PullClient:
     self.__modbus_client = AsyncModbusTcpClient(
       host=self.__ip_address,
       port=502,
-      framer=ModbusTcpFramer if self.__slave_id == 0 else ModbusRtuFramer,
     )
 
   def __del__(self):
@@ -32,7 +31,6 @@ class PullClient:
     self.__modbus_client = AsyncModbusTcpClient(
       host=self.__ip_address,
       port=502,
-      framer=ModbusTcpFramer if self.__slave_id == 0 else ModbusRtuFramer,
     )
 
   async def read(
@@ -40,42 +38,38 @@ class PullClient:
     register: int,
     count: int,
     convert: Callable[..., TRead],
-  ) -> Union[None, TRead]:
-    await asyncio.sleep(1)
+  ) -> TRead:
+    while True:
+      if not self.__modbus_connected:
+        try:
+          await self.__modbus_client.connect()
+        except Exception as exception:
+          print(exception)
+          continue
 
-    if not self.__modbus_connected:
+      registers: Optional[List[int]] = None
       try:
-        await self.__modbus_client.connect()
+        response = await cast(
+          Coroutine[Any, Any, ModbusResponse],
+          self.__modbus_client.read_holding_registers(
+            address=register,
+            count=count,
+            slave=self.__slave_id,
+          ))
+        if response.isError():
+          continue
+
+        registers = response.registers
+
       except Exception as exception:
-        print(exception)
-        return None
+        self.__reopen()
+        continue
 
-    registers: Optional[List[int]] = None
-    try:
-      response = await cast(
-        Coroutine[Any, Any, ModbusResponse],
-        self.__modbus_client.read_holding_registers(
-          address=register,
-          count=count,
-          slave=self.__slave_id,
-        ))
-      if response.isError():
-        print("Modbus error response", response)
-        return None
-
-      registers = response.registers
-
-    except Exception as exception:
-      print("Exception while reading register", exception)
-      self.__reopen()
-      return None
-
-    try:
-      value = convert(*cast(list[int], registers)) # pyright: ignore unknownMemberType
-      return value
-    except Exception as exception:
-      print("Exception while converting register", exception)
-      return None
+      try:
+        value = convert(*cast(list[int], registers)) # pyright: ignore unknownMemberType
+        return value
+      except Exception as exception:
+        continue
 
   @staticmethod
   def multiplied_by(converter: Callable[..., Union[int, float]],
