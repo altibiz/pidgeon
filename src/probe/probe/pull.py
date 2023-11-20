@@ -62,18 +62,24 @@ class PullClient:
       return None
 
   @staticmethod
+  def multiplied_by(
+      converter: Callable[..., Union[int, float]],
+      multiplier: float
+  ) -> Callable[..., float]:
+    def result(*registers: int) -> float:
+      converted = converter(*registers)
+      multiplied = converted * multiplier
+      return multiplied
+
+    return result
+
+  @staticmethod
   def to_uint32(first: int, second: int) -> int:
     return (first << 16) | second
 
   @staticmethod
   def to_uint64(first: int, second: int, third: int, fourth: int) -> int:
     return (first << 48) | (second << 32) | (third << 16) | fourth
-
-  @staticmethod
-  def to_float32(upper_half: int, lower_half: int) -> int:
-    upper_bytes = struct.pack("!H", upper_half)
-    lower_bytes = struct.pack("!H", lower_half)
-    return struct.unpack("!f", upper_bytes + lower_bytes)[0]
 
   @staticmethod
   def to_sint32(upper_half: int, lower_half: int) -> int:
@@ -89,20 +95,26 @@ class PullClient:
     return register if register < 0x8000 else register - 0x10000
 
   @staticmethod
-  def to_raw_bytes(*uint16s: int) -> List[int]:
+  def to_float32(upper_half: int, lower_half: int) -> float:
+    upper_bytes = struct.pack("!H", upper_half)
+    lower_bytes = struct.pack("!H", lower_half)
+    return struct.unpack("!f", upper_bytes + lower_bytes)[0]
+
+  @staticmethod
+  def to_raw_bytes(*registers: int) -> List[int]:
     return [
-      uint8 for uint16 in uint16s
+      uint8 for uint16 in registers
       for uint8 in [(uint16 >> 8) & 0xFF, uint16 & 0xFF]
     ]
 
   @staticmethod
-  def to_bytes(*uint16s: int) -> bytes:
-    return bytes(PullClient.to_raw_bytes(*uint16s))
+  def to_bytes(*registers: int) -> bytes:
+    return bytes(PullClient.to_raw_bytes(*registers))
 
   @staticmethod
-  def to_ascii(*uint16s: int) -> str:
-    return PullClient.to_bytes(*uint16s).decode("ascii")
+  def to_ascii(*registers: int) -> str:
+    return PullClient.to_bytes(*registers).decode("ascii")
 
   @staticmethod
-  def to_utf8(*uint16s: int) -> str:
-    return PullClient.to_bytes(*uint16s).decode("utf8")
+  def to_utf8(*registers: int) -> str:
+    return PullClient.to_bytes(*registers).decode("utf8")
