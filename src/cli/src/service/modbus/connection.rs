@@ -155,7 +155,7 @@ impl Connection {
     &mut self,
     span: SimpleSpan,
     params: Params,
-  ) -> Result<Response, Vec<ReadError>> {
+  ) -> Result<Response, Vec<(String, ReadError)>> {
     let timeout = params.timeout;
     let backoff = params.backoff;
     let retries = params.retries;
@@ -166,7 +166,7 @@ impl Connection {
       tokio::time::sleep(backoff).await;
       match self.simple_read_impl(span, timeout).await {
         Ok(data) => response = Some(data),
-        Err(error) => errors.push(error),
+        Err(error) => errors.push((format!("{:?}", &error), error)),
       };
       retried += 1;
     }
@@ -217,14 +217,12 @@ impl Connection {
       .timeout(timeout)
       .await
     {
-      Ok(timeout_response) => match timeout_response {
-        Ok(response) => Ok(response),
-        Err(timeout_error) => Err(ReadError::Timeout(timeout_error)),
-      },
-      Err(connection_error) => Err(ReadError::Connection(connection_error)),
-    }?;
+      Err(timeout_error) => Err(ReadError::Timeout(timeout_error)),
+      Ok(Err(connection_error)) => Err(ReadError::Connection(connection_error)),
+      Ok(Ok(response)) => Ok(response),
+    };
 
-    Ok(response)
+    response
   }
 }
 

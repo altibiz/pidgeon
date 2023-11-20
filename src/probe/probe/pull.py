@@ -1,5 +1,5 @@
 import struct
-from typing import Any, Callable, Coroutine, TypeVar, Union, List, cast
+from typing import Any, Callable, Coroutine, Optional, TypeVar, Union, List, cast
 from pymodbus.client import AsyncModbusTcpClient
 from pymodbus.framer import ModbusRtuFramer
 from pymodbus.pdu import ModbusResponse

@@ -541,7 +541,7 @@ impl Task {
 
 #[derive(Debug)]
 struct Metrics {
-  errors: HashMap<Destination, Vec<ReadError>>,
+  errors: HashMap<Destination, Vec<(String, ReadError)>>,
 }
 
 impl Metrics {

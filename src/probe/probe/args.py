@@ -1,5 +1,5 @@
 import re
-from typing import Callable
+from typing import Callable, Optional
 from argparse import ArgumentParser
 from device import DeviceType
 from func import compose
@@ -23,7 +23,8 @@ class Args:
     self.__parser.add_argument(
       "-s",
       "--slave-id",
-      required=True,
+      required=False,
+      default=0,
       type=compose(Args.__regex("^25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9]$"), int),
       help="Slave ID of the modbus device",
     )

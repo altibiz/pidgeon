@@ -227,12 +227,12 @@ impl Manager {
       },
       modbus: Modbus {
         initial_timeout: file::milliseconds_to_chrono(
-          config.from_file.modbus.initial_timeout.unwrap_or(1000),
+          config.from_file.modbus.initial_timeout.unwrap_or(10_000),
         ),
         initial_backoff: file::milliseconds_to_chrono(
-          config.from_file.modbus.initial_backoff.unwrap_or(100),
+          config.from_file.modbus.initial_backoff.unwrap_or(1000),
         ),
-        initial_retries: config.from_file.modbus.initial_retries.unwrap_or(3),
+        initial_retries: config.from_file.modbus.initial_retries.unwrap_or(1),
         batch_threshold: config.from_file.modbus.batch_threshold.unwrap_or(3),
         metric_history_size: config
           .from_file
@@ -247,7 +247,7 @@ impl Manager {
             .unwrap_or(10_000),
         ),
         ping_timeout: file::milliseconds_to_chrono(
-          config.from_file.modbus.ping_timeout.unwrap_or(10_000),
+          config.from_file.modbus.ping_timeout.unwrap_or(30_000),
         ),
         inactive_timeout: file::milliseconds_to_chrono(
           config
@@ -257,7 +257,7 @@ impl Manager {
             .unwrap_or(60 * 60 * 1000),
         ),
         discovery_timeout: file::milliseconds_to_chrono(
-          config.from_file.modbus.discovery_timeout.unwrap_or(10_000),
+          config.from_file.modbus.discovery_timeout.unwrap_or(30_000),
         ),
         devices: config
           .from_file
