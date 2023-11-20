@@ -48,7 +48,7 @@ async fn main() -> anyhow::Result<()> {
   };
   if let Err(error) = processes
     .cancel()
-    .timeout(futures_time::time::Duration::from_millis(10000))
+    .timeout(futures_time::time::Duration::from_millis(10_000))
     .await
   {
     tracing::error!("Timed out cancelling processes {}", error);

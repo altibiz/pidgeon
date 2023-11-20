@@ -568,7 +568,7 @@ impl Metrics {
 }
 
 impl Task {
-  #[tracing::instrument(skip(self))]
+  #[tracing::instrument(skip_all)]
   fn tune(&mut self, metrics: Metrics) {
     self.history.push(metrics);
     if self.history.len() > self.metric_history {
