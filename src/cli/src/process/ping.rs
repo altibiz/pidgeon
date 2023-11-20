@@ -135,7 +135,7 @@ impl Process {
     true
   }
 
-  #[tracing::instrument(skip(self, config))]
+  #[tracing::instrument(skip(self, config, device), fields(id = ?device.id))]
   async fn consolidate(
     &self,
     config: &config::Values,
@@ -167,7 +167,6 @@ impl Process {
 
     if remove {
       self.services.modbus().stop_from_id(&device.id).await;
-      tracing::debug!("Stopped worker");
     } else {
       self
         .services
@@ -180,7 +179,6 @@ impl Process {
           },
         )
         .await;
-      tracing::debug!("Bound worker");
     }
 
     if update {
