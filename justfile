@@ -14,6 +14,5 @@ lint:
 	prettier --check "{{root}}"
 
 default_slave := '0'
-probe ip device slave=default_slave:
-  cd "{{join(root, 'src/probe')}}" && \
-    python ./probe/main.py -i "{{ip}}" -d "{{device}}" -s "{{slave}}"
+probe *args:
+  cd "{{join(root, 'src/probe')}}" && python ./probe/main.py {{args}}
