@@ -86,6 +86,7 @@
         sqlx-cli
 
         # Shell
+        bashInteractiveFHS
         nodePackages.bash-language-server
         shfmt
         shellcheck
