@@ -49,6 +49,8 @@ impl process::Recurring for Process {
           .next()
         {
           device_matches.push(device_match);
+        } else {
+          break;
         }
       }
     }
