@@ -135,7 +135,7 @@ impl Process {
     true
   }
 
-  #[tracing::instrument(skip(self))]
+  #[tracing::instrument(skip(self, config))]
   async fn consolidate(
     &self,
     config: &config::Values,
