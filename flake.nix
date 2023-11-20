@@ -100,8 +100,6 @@
         taplo
       ];
 
-      RUST_LOG = "none,pidgeon-cli=debug";
-
       DATABASE_URL = "postgres://pidgeon:pidgeon@localhost/pidgeon?sslmode=disable";
 
       # PIDGEON_CLOUD_SSL = "1";
