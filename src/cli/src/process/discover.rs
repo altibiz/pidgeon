@@ -3,7 +3,7 @@ use futures_time::future::FutureExt;
 
 use crate::{service::*, *};
 
-// TODO: make optimization smarter
+// TODO: make optimization smarter (get devices from db)
 
 pub(crate) struct Process {
   #[allow(unused)]
@@ -33,11 +33,12 @@ impl process::Recurring for Process {
       if let Some(device_match) = self
         .match_destination(
           &config,
-          modbus::Destination::standalone_for(*address)
+          modbus::Destination::standalone_for(*address),
         )
         .await
         .into_iter()
-        .next() {
+        .next()
+      {
         device_matches.push(device_match);
         continue;
       }
@@ -47,7 +48,8 @@ impl process::Recurring for Process {
           .match_destination(&config, destination)
           .await
           .into_iter()
-          .next() {
+          .next()
+        {
           device_matches.push(device_match);
         } else {
           break;
