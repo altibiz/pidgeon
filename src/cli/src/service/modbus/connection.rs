@@ -17,11 +17,12 @@ impl Destination {
   pub(crate) fn slaves_for(
     address: SocketAddr,
   ) -> impl Iterator<Item = Destination> {
-    (Slave::min_device().0..Slave::max_device().0)
-      .map(move |slave| Destination {
+    (Slave::min_device().0..Slave::max_device().0).map(move |slave| {
+      Destination {
         address,
         slave: Some(slave),
-      })
+      }
+    })
   }
 
   pub(crate) fn standalone_for(address: SocketAddr) -> Destination {

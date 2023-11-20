@@ -62,10 +62,9 @@ class PullClient:
       return None
 
   @staticmethod
-  def multiplied_by(
-      converter: Callable[..., Union[int, float]],
-      multiplier: float
-  ) -> Callable[..., float]:
+  def multiplied_by(converter: Callable[..., Union[int, float]],
+                    multiplier: float) -> Callable[..., float]:
+
     def result(*registers: int) -> float:
       converted = converter(*registers)
       multiplied = converted * multiplier

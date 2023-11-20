@@ -32,10 +32,13 @@ async fn main() -> anyhow::Result<()> {
   let log_level = config.log_level.to_string();
   tracing::subscriber::set_global_default(
     tracing_subscriber::FmtSubscriber::builder()
-      .with_env_filter(tracing_subscriber::EnvFilter::builder()
-        .with_default_directive(tracing::level_filters::LevelFilter::INFO.into())
-        .from_env()?
-        .add_directive(format!("pidgeon={log_level}").parse()?)
+      .with_env_filter(
+        tracing_subscriber::EnvFilter::builder()
+          .with_default_directive(
+            tracing::level_filters::LevelFilter::INFO.into(),
+          )
+          .from_env()?
+          .add_directive(format!("pidgeon={log_level}").parse()?),
       )
       .finish(),
   )?;

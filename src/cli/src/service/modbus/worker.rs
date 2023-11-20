@@ -355,7 +355,7 @@ impl Task {
           match Self::read(stream, self.params, &mut metrics, connection).await
           {
             Either::Left(partial) => {
-             stream.partial = partial;
+              stream.partial = partial;
             }
             Either::Right(response) => {
               match stream.sender.try_send(Ok(response)) {

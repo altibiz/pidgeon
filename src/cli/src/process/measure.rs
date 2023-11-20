@@ -99,7 +99,11 @@ impl Process {
           return false;
         }
         Some(Some(Err(modbus::ServerReadError::FailedToConnect(error)))) => {
-          tracing::warn!("Failed to connect to device {:?} {}", device.id, error);
+          tracing::warn!(
+            "Failed to connect to device {:?} {}",
+            device.id,
+            error
+          );
           return false;
         }
         Some(Some(Err(modbus::ServerReadError::ServerFailed(error)))) => {
