@@ -149,7 +149,7 @@ impl Process {
           .db()
           .update_device_destination(
             &device_match.id,
-            db::to_network(device_match.destination.address.ip()),
+            db::to_db_address(device_match.destination.address.ip()),
             db::to_db_slave(device_match.destination.slave),
             now,
             now,
@@ -172,7 +172,7 @@ impl Process {
             status: db::DeviceStatus::Healthy,
             seen: now,
             pinged: now,
-            address: db::to_network(device_match.destination.address.ip()),
+            address: db::to_db_address(device_match.destination.address.ip()),
             slave: db::to_db_slave(device_match.destination.slave),
           })
           .await
@@ -183,10 +183,6 @@ impl Process {
         }
       }
     }
-
-    self.services.modbus()
-      .bind(device_match.id.clone(), device_match.destination)
-      .await;
 
     tracing::debug!("Matched device");
 

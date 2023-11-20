@@ -329,7 +329,7 @@ impl Service {
       r#"
         select id, source, timestamp, data
         from measurements
-        where measurements.id > $1 
+        where measurements.id > $1
         limit $2
       "#,
       from,
@@ -405,7 +405,7 @@ impl Service {
       r#"
         select id, source, timestamp, status as "status: DeviceStatus", data
         from health
-        where health.id > $1 
+        where health.id > $1
         limit $2
       "#,
       from,
@@ -499,13 +499,21 @@ impl Service {
   }
 }
 
-pub(crate) fn to_network(ip: IpAddr) -> IpNetwork {
+pub(crate) fn to_db_address(address: IpAddr) -> IpNetwork {
   #[allow(clippy::unwrap_used)] // NOTE: 24 is valid for ipv4
-  IpNetwork::new(ip, 24).unwrap()
+  IpNetwork::new(address, 24).unwrap()
 }
 
 pub(crate) fn to_db_slave(slave: Option<u8>) -> Option<i32> {
   slave.map(|slave| slave as i32)
+}
+
+pub(crate) fn to_address(db_address: IpNetwork) -> IpAddr {
+  db_address.ip()
+}
+
+pub(crate) fn to_slave(db_slave: Option<i32>) -> Option<u8> {
+  db_slave.map(|slave| slave as u8)
 }
 
 static MIGRATOR: Migrator = sqlx::migrate!("./migrations");

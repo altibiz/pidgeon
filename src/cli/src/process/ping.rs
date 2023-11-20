@@ -167,7 +167,16 @@ impl Process {
 
     if remove {
       self.services.modbus().stop_from_id(&device.id).await;
-      tracing::debug!("Stopped worker")
+      tracing::debug!("Stopped worker");
+    } else {
+      self.services.modbus().bind(
+        device.id.clone(),
+        modbus::Destination {
+          address: network::to_socket(db::to_address(device.address)),
+          slave: db::to_slave(device.slave)
+        }
+      ).await;
+      tracing::debug!("Bound worker");
     }
 
     if update {
