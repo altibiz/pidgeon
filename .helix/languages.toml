@@ -28,19 +28,21 @@ name = "rust"
 auto-format = true
 language-servers = ["rust-analyzer"]
 
-[language.debugger]
-name = "lldb-vscode"
-transport = "stdio"
-command = "lldb-vscode"
+# TODO: https://github.com/helix-editor/helix/issues/8834
 
-[[language.debugger.templates]]
-name = "cli"
-request = "launch"
-completion = []
-
-[language.debugger.templates.args]
-program = "target/debug/pidgeon-cli"
-args = ["--config", "src/cli/config.toml"]
+# [language.debugger]
+# name = "lldb-vscode"
+# transport = "stdio"
+# command = "lldb-vscode"
+#
+# [[language.debugger.templates]]
+# name = "cli"
+# request = "launch"
+# completion = []
+#
+# [language.debugger.templates.args]
+# program = "target/debug/pidgeon-cli"
+# args = ["--config", "src/cli/config.toml"]
 
 [[language]]
 name = "python"
