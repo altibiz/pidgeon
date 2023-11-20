@@ -83,7 +83,7 @@ def print_measurement(device_type: DeviceType,
                       registers: List[Tuple[str, Optional[Any]]]):
   print("Reading", device_type)
   for register in registers:
-    print(register[0], register[1], "\n")
+    print(register[0], register[1])
   print("\n")
 
 

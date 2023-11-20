@@ -2,7 +2,7 @@ import struct
 import asyncio
 from typing import Any, Callable, Coroutine, Optional, TypeVar, Union, List, cast
 from pymodbus.client import AsyncModbusTcpClient
-from pymodbus.framer import ModbusRtuFramer
+from pymodbus.framer import ModbusRtuFramer, ModbusTcpFramer
 from pymodbus.pdu import ModbusResponse
 
 TRead = TypeVar("TRead")
@@ -21,11 +21,19 @@ class PullClient:
     self.__modbus_client = AsyncModbusTcpClient(
       host=self.__ip_address,
       port=502,
-      framer=ModbusRtuFramer,
+      framer=ModbusTcpFramer if self.__slave_id == 0 else ModbusRtuFramer,
     )
 
   def __del__(self):
     self.__modbus_client.close()
+
+  def __reopen(self):
+    self.__modbus_client.close()
+    self.__modbus_client = AsyncModbusTcpClient(
+      host=self.__ip_address,
+      port=502,
+      framer=ModbusTcpFramer if self.__slave_id == 0 else ModbusRtuFramer,
+    )
 
   async def read(
     self,
@@ -42,6 +50,7 @@ class PullClient:
         print(exception)
         return None
 
+    registers: Optional[List[int]] = None
     try:
       response = await cast(
         Coroutine[Any, Any, ModbusResponse],
@@ -51,14 +60,21 @@ class PullClient:
           slave=self.__slave_id,
         ))
       if response.isError():
-        print(response)
+        print("Modbus error response", response)
         return None
 
-      value = convert(*cast(
-        list[int], response.registers))  # pyright: ignore unknownMemberType
+      registers = response.registers
+
+    except Exception as exception:
+      print("Exception while reading register", exception)
+      self.__reopen()
+      return None
+
+    try:
+      value = convert(*cast(list[int], registers)) # pyright: ignore unknownMemberType
       return value
     except Exception as exception:
-      print(exception)
+      print("Exception while converting register", exception)
       return None
 
   @staticmethod

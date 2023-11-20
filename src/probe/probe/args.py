@@ -1,5 +1,5 @@
 import re
-from typing import Callable, Optional
+from typing import Callable
 from argparse import ArgumentParser
 from device import DeviceType
 from func import compose
