@@ -7,6 +7,8 @@ use tokio_modbus::{client::Context, prelude::Reader, Slave};
 
 use super::span::SimpleSpan;
 
+// TODO: some min/max for params
+
 #[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
 pub(crate) struct Destination {
   pub(crate) address: SocketAddr,
@@ -76,12 +78,12 @@ impl Connection {
         }
 
         let stream = TcpStream::connect(self.destination.address).await?;
-        
+
         tokio_modbus::prelude::tcp::attach_slave(stream, Slave(slave))
       }
       None => {
         let stream = TcpStream::connect(self.destination.address).await?;
-        
+
         tokio_modbus::prelude::tcp::attach(stream)
       }
     };
@@ -227,8 +229,6 @@ impl Connection {
     span: SimpleSpan,
     timeout: futures_time::time::Duration,
   ) -> Result<Response, ReadError> {
-    
-
     match ctx
       .read_holding_registers(span.address, span.quantity)
       .timeout(timeout)

@@ -227,10 +227,10 @@ impl Manager {
       },
       modbus: Modbus {
         initial_timeout: file::milliseconds_to_chrono(
-          config.from_file.modbus.initial_timeout.unwrap_or(1000),
+          config.from_file.modbus.initial_timeout.unwrap_or(5000),
         ),
         initial_backoff: file::milliseconds_to_chrono(
-          config.from_file.modbus.initial_backoff.unwrap_or(100),
+          config.from_file.modbus.initial_backoff.unwrap_or(1),
         ),
         initial_retries: config.from_file.modbus.initial_retries.unwrap_or(10),
         batch_threshold: config.from_file.modbus.batch_threshold.unwrap_or(3),

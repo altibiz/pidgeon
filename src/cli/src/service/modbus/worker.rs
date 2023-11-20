@@ -581,14 +581,14 @@ impl Task {
     if let Some(metrics) = self.history.last() {
       if !metrics.errors.is_empty() {
         self.params = Params::new(
-          self.params.timeout() + chrono::Duration::milliseconds(10),
-          self.params.backoff() + chrono::Duration::milliseconds(10),
+          self.params.timeout() / 2,
+          self.params.backoff() / 2,
           self.params.retries(),
         );
       } else {
         self.params = Params::new(
-          self.params.timeout() - chrono::Duration::milliseconds(10),
-          self.params.backoff() - chrono::Duration::milliseconds(10),
+          self.params.timeout() * 2,
+          self.params.backoff() * 2,
           self.params.retries(),
         );
       }
