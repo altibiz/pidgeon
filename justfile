@@ -13,6 +13,5 @@ lint:
 	shellcheck "{{scripts}}"/*
 	prettier --check "{{root}}"
 
-default_slave := '0'
 probe *args:
   cd "{{join(root, 'src/probe')}}" && python ./probe/main.py {{args}}
