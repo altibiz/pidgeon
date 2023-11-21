@@ -318,7 +318,11 @@ impl Task {
       tracing::trace!(
         "Removed oneshots {:?} - retained {:?}",
         oneshots_to_remove,
-        self.oneshots.iter().map(|oneshot| oneshot.id)
+        self
+          .oneshots
+          .iter()
+          .map(|oneshot| oneshot.id)
+          .collect::<Vec<_>>()
       );
 
       if self.terminate {
@@ -379,7 +383,11 @@ impl Task {
         tracing::trace!(
           "Removed streams {:?} - retained {:?}",
           streams_to_remove,
-          self.streams.iter().map(|stream| stream.id)
+          self
+            .streams
+            .iter()
+            .map(|stream| stream.id)
+            .collect::<Vec<_>>()
         );
       }
     }
