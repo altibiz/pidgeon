@@ -1,3 +1,5 @@
+use std::net::SocketAddr;
+
 use futures::future::join_all;
 use futures_time::future::FutureExt;
 
@@ -26,34 +28,15 @@ impl process::Recurring for Process {
     let addresses = self.services.network().scan_modbus().await;
     let addresses_len = addresses.len();
 
-    let mut device_matches = Vec::new();
-    for address in addresses.iter() {
-      if let Some(device_match) = self
-        .match_destination(
-          &config,
-          modbus::Destination::standalone_for(*address),
-        )
-        .await
+    let device_matches = join_all(
+      addresses
         .into_iter()
-        .next()
-      {
-        device_matches.push(device_match);
-        continue;
-      }
-
-      for destination in modbus::Destination::slaves_for(*address) {
-        if let Some(device_match) = self
-          .match_destination(&config, destination)
-          .await
-          .into_iter()
-          .next()
-        {
-          device_matches.push(device_match);
-        } else {
-          break;
-        }
-      }
-    }
+        .map(|address| self.match_address(&config, address)),
+    )
+    .await
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>();
     let device_matches_len = device_matches.len();
 
     let consolidated_matches = join_all(
@@ -83,6 +66,38 @@ struct DeviceMatch {
 }
 
 impl Process {
+  #[tracing::instrument(skip(self, config))]
+  async fn match_address(
+    &self,
+    config: &config::Values,
+    address: SocketAddr,
+  ) -> Vec<DeviceMatch> {
+    if let Some(device_match) = self
+      .match_destination(&config, modbus::Destination::standalone_for(address))
+      .await
+      .into_iter()
+      .next()
+    {
+      return vec![device_match];
+    }
+
+    let mut device_matches = Vec::new();
+    for destination in modbus::Destination::slaves_for(address) {
+      if let Some(device_match) = self
+        .match_destination(&config, destination)
+        .await
+        .into_iter()
+        .next()
+      {
+        device_matches.push(device_match);
+      } else {
+        break;
+      }
+    }
+
+    device_matches
+  }
+
   #[tracing::instrument(skip(self, config))]
   async fn match_destination(
     &self,
