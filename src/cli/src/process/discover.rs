@@ -214,14 +214,10 @@ impl Process {
       .await
       .ok()?;
 
-    dbg!(&registers);
-
     let matches = registers
       .into_iter()
       .map(|register| register.matches())
       .collect::<Vec<_>>();
-
-    dbg!(&matches);
 
     matches
       .into_iter()
