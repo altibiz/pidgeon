@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::service::modbus;
 
-// TODO: otional values here with #[serde(default = ...)]
+// TODO: optional values here with #[serde(default = ...)]
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Hardware {
@@ -84,12 +84,9 @@ pub(crate) struct Device {
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Modbus {
-  pub(crate) initial_timeout: Option<u32>,
-  pub(crate) initial_backoff: Option<u32>,
-  pub(crate) initial_retries: Option<u32>,
+  pub(crate) read_timeout: Option<u32>,
   pub(crate) batch_threshold: Option<u16>,
   pub(crate) termination_timeout: Option<u32>,
-  pub(crate) metric_history_size: Option<usize>,
   pub(crate) ping_timeout: Option<u32>,
   pub(crate) inactive_timeout: Option<u32>,
   pub(crate) discovery_timeout: Option<u32>,

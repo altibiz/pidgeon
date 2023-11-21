@@ -52,11 +52,8 @@ pub(crate) struct Device {
 
 #[derive(Debug, Clone)]
 pub(crate) struct Modbus {
-  pub(crate) initial_timeout: chrono::Duration,
-  pub(crate) initial_backoff: chrono::Duration,
-  pub(crate) initial_retries: u32,
+  pub(crate) read_timeout: chrono::Duration,
   pub(crate) batch_threshold: u16,
-  pub(crate) metric_history_size: usize,
   pub(crate) termination_timeout: chrono::Duration,
   pub(crate) ping_timeout: chrono::Duration,
   pub(crate) inactive_timeout: chrono::Duration,
@@ -226,19 +223,10 @@ impl Manager {
         ),
       },
       modbus: Modbus {
-        initial_timeout: file::milliseconds_to_chrono(
-          config.from_file.modbus.initial_timeout.unwrap_or(5000),
+        read_timeout: file::milliseconds_to_chrono(
+          config.from_file.modbus.read_timeout.unwrap_or(5000),
         ),
-        initial_backoff: file::milliseconds_to_chrono(
-          config.from_file.modbus.initial_backoff.unwrap_or(1),
-        ),
-        initial_retries: config.from_file.modbus.initial_retries.unwrap_or(10),
         batch_threshold: config.from_file.modbus.batch_threshold.unwrap_or(4),
-        metric_history_size: config
-          .from_file
-          .modbus
-          .metric_history_size
-          .unwrap_or(10),
         termination_timeout: file::milliseconds_to_chrono(
           config
             .from_file

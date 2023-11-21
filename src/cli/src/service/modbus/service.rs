@@ -7,7 +7,7 @@ use tokio::sync::Mutex;
 use crate::*;
 
 use super::batch::*;
-use super::connection::{Destination, Params};
+use super::connection::Destination;
 use super::span::*;
 use super::worker::*;
 
@@ -19,10 +19,9 @@ pub(crate) type Response<TSpan> = Vec<TSpan>;
 pub(crate) struct Service {
   devices: Arc<Mutex<HashMap<String, Device>>>,
   servers: Arc<Mutex<HashMap<SocketAddr, Server>>>,
-  initial_params: Params,
+  read_timeout: chrono::Duration,
   batch_threshold: u16,
   termination_timeout: chrono::Duration,
-  metric_history_size: usize,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -66,14 +65,9 @@ impl service::Service for Service {
     Self {
       devices: Arc::new(Mutex::new(HashMap::new())),
       servers: Arc::new(Mutex::new(HashMap::new())),
-      initial_params: Params::new(
-        config.modbus.initial_timeout,
-        config.modbus.initial_backoff,
-        config.modbus.initial_retries,
-      ),
+      read_timeout: config.modbus.read_timeout,
       batch_threshold: config.modbus.batch_threshold,
       termination_timeout: config.modbus.termination_timeout,
-      metric_history_size: config.modbus.metric_history_size,
     }
   }
 }
@@ -392,11 +386,7 @@ impl Service {
     let worker = workers
       .entry(destination.address)
       .or_insert_with(|| Server {
-        worker: Worker::new(
-          self.initial_params,
-          self.termination_timeout,
-          self.metric_history_size,
-        ),
+        worker: Worker::new(self.read_timeout, self.termination_timeout),
       })
       .clone();
     worker

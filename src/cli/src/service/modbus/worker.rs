@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::net::SocketAddr;
 use std::ops::IndexMut;
 use std::sync::Arc;
 
@@ -9,10 +10,6 @@ use tokio::sync::Mutex;
 
 use super::connection::*;
 use super::span::{SimpleSpan, Span};
-
-// TODO: remove notions of retires and backoff (from config as well)
-// TODO: worker read timeout from config
-// TODO: something with history/metrics?
 
 // OPTIMIZE: remove copying when reading
 // OPTIMIZE: check bounded channel length - maybe config?
@@ -55,12 +52,11 @@ pub(crate) enum TerminateError {
 
 impl Worker {
   pub(crate) fn new(
-    initial_params: Params,
+    read_timeout: chrono::Duration,
     termination_timeout: chrono::Duration,
-    metric_history_size: usize,
   ) -> Self {
     let (sender, receiver) = flume::unbounded();
-    let task = Task::new(initial_params, receiver, metric_history_size);
+    let task = Task::new(read_timeout, receiver);
     let handle = tokio::spawn(task.execute());
     Self {
       sender,
@@ -226,20 +222,18 @@ struct Storage {
 
 #[derive(Debug)]
 struct Task {
-  connections: HashMap<Destination, Connection>,
+  connections: HashMap<SocketAddr, Connection>,
   receiver: RequestReceiver,
   oneshots: Vec<Storage>,
   streams: Vec<Storage>,
   terminate: bool,
-  history: Vec<Metrics>,
-  metric_history: usize,
+  read_timeout: chrono::Duration,
 }
 
 impl Task {
   pub(crate) fn new(
-    params: Params,
+    read_timeout: chrono::Duration,
     receiver: RequestReceiver,
-    metric_history: usize,
   ) -> Self {
     Self {
       connections: HashMap::new(),
@@ -247,8 +241,7 @@ impl Task {
       oneshots: Vec::new(),
       streams: Vec::new(),
       terminate: false,
-      history: Vec::new(),
-      metric_history,
+      read_timeout,
     }
   }
 
@@ -290,7 +283,7 @@ impl Task {
           ConnectionAttempt::Existing(connection) => connection,
           ConnectionAttempt::New(connection) => self
             .connections
-            .entry(oneshot.destination)
+            .entry(oneshot.destination.address)
             .or_insert(connection),
           ConnectionAttempt::Fail => {
             oneshots_to_remove.push(oneshot.id);
@@ -298,7 +291,9 @@ impl Task {
           }
         };
 
-        match Self::read(oneshot, &mut metrics, connection).await {
+        match Self::read(oneshot, &mut metrics, connection, self.read_timeout)
+          .await
+        {
           Either::Left(partial) => {
             oneshot.partial = partial;
           }
@@ -344,7 +339,7 @@ impl Task {
               ConnectionAttempt::Existing(connection) => connection,
               ConnectionAttempt::New(connection) => self
                 .connections
-                .entry(stream.destination)
+                .entry(stream.destination.address)
                 .or_insert(connection),
               ConnectionAttempt::Fail => {
                 oneshots_to_remove.push(stream.id);
@@ -352,7 +347,9 @@ impl Task {
               }
             };
 
-          match Self::read(stream, &mut metrics, connection).await {
+          match Self::read(stream, &mut metrics, connection, self.read_timeout)
+            .await
+          {
             Either::Left(partial) => {
               stream.partial = partial;
             }
@@ -474,17 +471,17 @@ enum ConnectionAttempt<'a> {
 impl Task {
   #[tracing::instrument(skip_all, fields(address = ?storage.destination))]
   async fn attempt_connection<'a>(
-    connections: &'a mut HashMap<Destination, Connection>,
+    connections: &'a mut HashMap<SocketAddr, Connection>,
     storage: &Storage,
   ) -> ConnectionAttempt<'a> {
-    match connections.get_mut(&storage.destination) {
+    match connections.get_mut(&storage.destination.address) {
       Some(connection) => {
         tracing::trace!("Connected to existing connection");
 
         ConnectionAttempt::Existing(connection)
       }
       None => {
-        let mut connection = Connection::new(storage.destination);
+        let mut connection = Connection::new(storage.destination.address);
         match connection.ensure_connected().await {
           Ok(()) => {
             tracing::trace!("Connected to new connection");
@@ -516,6 +513,7 @@ impl Task {
     storage: &Storage,
     metrics: &mut Metrics,
     connection: &mut Connection,
+    timeout: chrono::Duration,
   ) -> Either<Partial, Response> {
     let partial = {
       let mut data = Vec::new();
@@ -525,7 +523,7 @@ impl Task {
         let read = match partial {
           Some(partial) => Some(partial.clone()),
           None => match (*connection)
-            .simple_read(span, chrono::Duration::seconds(1))
+            .read(storage.destination.slave, span, timeout)
             .await
           {
             Ok(read) => Some(read),
