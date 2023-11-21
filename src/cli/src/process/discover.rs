@@ -216,9 +216,16 @@ impl Process {
 
     dbg!(&registers);
 
-    registers
+    let matches = registers
       .into_iter()
-      .all(|register| register.matches())
+      .map(|register| register.matches())
+      .collect::<Vec<_>>();
+
+    dbg!(&matches);
+
+    matches
+      .into_iter()
+      .all(std::convert::identity)
       .then_some(device)
   }
 
