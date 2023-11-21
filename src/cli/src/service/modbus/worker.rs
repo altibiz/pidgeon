@@ -11,8 +11,6 @@ use tokio::sync::Mutex;
 use super::connection::*;
 use super::span::{SimpleSpan, Span};
 
-// TODO: concurrent up to gateway/device max sockets
-
 // OPTIMIZE: remove copying when reading
 // OPTIMIZE: check bounded channel length - maybe config?
 
