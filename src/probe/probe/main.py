@@ -25,22 +25,16 @@ async def main():
     while True:
       await measure(client, DeviceType.abb, [
         Request(
-          name="Serial number",
-          register=0x8900,
-          count=2,
-          convert=PullClient.to_uint32,
-        ),
-        Request(
-          name="Mapping version",
-          register=0x8910,
-          count=1,
-          convert=PullClient.to_raw_bytes,
-        ),
-        Request(
           name="Type designation",
           register=0x8960,
           count=6,
           convert=PullClient.to_ascii,
+        ),
+        Request(
+          name="Serial number",
+          register=0x8900,
+          count=2,
+          convert=PullClient.to_uint32,
         ),
         Request(
           name="Power",
