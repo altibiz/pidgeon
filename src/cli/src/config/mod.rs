@@ -224,7 +224,7 @@ impl Manager {
       },
       modbus: Modbus {
         read_timeout: file::milliseconds_to_chrono(
-          config.from_file.modbus.read_timeout.unwrap_or(5000),
+          config.from_file.modbus.read_timeout.unwrap_or(100),
         ),
         batch_threshold: config.from_file.modbus.batch_threshold.unwrap_or(4),
         termination_timeout: file::milliseconds_to_chrono(
