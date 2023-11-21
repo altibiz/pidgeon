@@ -215,7 +215,7 @@ impl Manager {
       },
       network: Network {
         timeout: file::milliseconds_to_chrono(
-          config.from_file.network.timeout.unwrap_or(30000),
+          config.from_file.network.timeout.unwrap_or(5_000),
         ),
         ip_range: file::make_ip_range(
           config.from_env.network.ip_range_start,
@@ -245,7 +245,7 @@ impl Manager {
             .unwrap_or(60 * 60 * 1000),
         ),
         discovery_timeout: file::milliseconds_to_chrono(
-          config.from_file.modbus.discovery_timeout.unwrap_or(30_000),
+          config.from_file.modbus.discovery_timeout.unwrap_or(5_000),
         ),
         devices: config
           .from_file

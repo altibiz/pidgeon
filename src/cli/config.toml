@@ -103,7 +103,7 @@ address = 0x1067
 kind = { s64 = { multiplier = 1 } }
 
 [[modbus.devices.abb.detect]]
-match = "\u0003"
+match = "\u0003\u0000"
 address = 0x8910
 kind = { string = { length = 1 } }
 
