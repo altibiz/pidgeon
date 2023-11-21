@@ -1,3 +1,4 @@
+import asyncio
 import struct
 from typing import Any, Callable, Coroutine, Optional, TypeVar, Union, List, cast
 from pymodbus.client import AsyncModbusTcpClient
@@ -16,10 +17,7 @@ class PullClient:
     self.__ip_address = ip_address
     self.__slave_id = slave_id
     self.__modbus_connected = False
-    self.__modbus_client = AsyncModbusTcpClient(
-      host=self.__ip_address,
-      port=502,
-    )
+    self.__modbus_client = self.__create_client()
 
   def __del__(self):
     self.__modbus_client.close()
@@ -27,10 +25,14 @@ class PullClient:
   def __reopen(self):
     self.__modbus_connected = False
     self.__modbus_client.close()
-    self.__modbus_client = AsyncModbusTcpClient(
-      host=self.__ip_address,
-      port=502,
-    )
+    self.__modbus_client = self.__create_client()
+
+  def __create_client(self):
+    return AsyncModbusTcpClient(host=self.__ip_address,
+                                port=502,
+                                retries=0,
+                                timeout=0.1,
+                                retry_on_empty=False)
 
   async def read(
     self,
@@ -43,7 +45,7 @@ class PullClient:
         try:
           await self.__modbus_client.connect()
           self.__modbus_connected = True
-        except Exception:
+        except Exception as exception:
           continue
 
       registers: Optional[List[int]] = None
@@ -60,7 +62,7 @@ class PullClient:
 
         registers = response.registers
 
-      except Exception:
+      except Exception as exception:
         self.__reopen()
         continue
 
@@ -68,7 +70,7 @@ class PullClient:
         value = convert(*cast(list[int],
                               registers))  # pyright: ignore unknownMemberType
         return value
-      except Exception:
+      except Exception as exception:
         continue
 
   @staticmethod

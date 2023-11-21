@@ -214,6 +214,8 @@ impl Process {
       .await
       .ok()?;
 
+    dbg!(&registers);
+
     registers
       .into_iter()
       .all(|register| register.matches())
