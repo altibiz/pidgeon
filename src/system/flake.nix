@@ -120,9 +120,9 @@
 
           users.users."pidgeon" = {
             isNormalUser = true;
-            initialPassword = (builtins.readFile ./secrets/password.key);
+            hashedPassword = (builtins.readFile ./secrets/password.pub);
             extraGroups = [ "wheel" ];
-            shell = pkgs.nushell;
+            shell = pkgs.bashInteractive;
             openssh.authorizedKeys.keys = [
               (builtins.readFile ./secrets/authorized.pub)
             ];
