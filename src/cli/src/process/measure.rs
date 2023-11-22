@@ -245,7 +245,7 @@ impl Process {
     let verified_measurements = measurements
       .into_iter()
       .filter_map(|measurement| {
-        let id = modbus::make_id(
+        let source = modbus::make_id(
           measurement.device.kind,
           measurement
             .registers
@@ -254,24 +254,34 @@ impl Process {
             .filter_map(Either::left),
         );
 
-        let expected_id = measurement.device.id;
-        if id != expected_id {
+        if source != measurement.device.id {
           tracing::warn! {
             "Failed verifying measurement of {:?}: got id {:?}",
-            expected_id,
-            id
+            measurement.device.id,
+            source
           }
 
           return None;
         }
 
+        let timestamp = measurement
+          .registers
+          .iter()
+          .cloned()
+          .find_map(Either::left)
+          .unwrap()
+          .storage
+          .timestamp();
+
+        let data = modbus::serialize_registers(
+          measurement.registers.into_iter().filter_map(Either::right),
+        );
+
         Some(db::Measurement {
           id: 0,
-          source: id,
-          timestamp: chrono::Utc::now(),
-          data: modbus::serialize_registers(
-            measurement.registers.into_iter().filter_map(Either::right),
-          ),
+          source,
+          timestamp,
+          data,
         })
       })
       .collect::<Vec<_>>();

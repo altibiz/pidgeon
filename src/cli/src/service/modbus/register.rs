@@ -55,6 +55,22 @@ pub(crate) enum RegisterValueStorage {
   String(RegisterValue<String>),
 }
 
+impl RegisterValueStorage {
+  pub(crate) fn timestamp(&self) -> chrono::DateTime<chrono::Utc> {
+    match self {
+      RegisterValueStorage::U16(storage) => storage.timestamp,
+      RegisterValueStorage::U32(storage) => storage.timestamp,
+      RegisterValueStorage::U64(storage) => storage.timestamp,
+      RegisterValueStorage::S16(storage) => storage.timestamp,
+      RegisterValueStorage::S32(storage) => storage.timestamp,
+      RegisterValueStorage::S64(storage) => storage.timestamp,
+      RegisterValueStorage::F32(storage) => storage.timestamp,
+      RegisterValueStorage::F64(storage) => storage.timestamp,
+      RegisterValueStorage::String(storage) => storage.timestamp,
+    }
+  }
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct MeasurementRegister<T: RegisterStorage> {
   pub(crate) address: Address,
