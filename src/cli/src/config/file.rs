@@ -35,7 +35,7 @@ pub(crate) enum LogLevel {
 pub(crate) struct MeasurementRegister {
   pub(crate) name: String,
   pub(crate) address: u16,
-  pub(crate) kind: RegisterKind,
+  pub(crate) kind: RegisterKindStorage,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -50,7 +50,7 @@ pub(crate) struct NumericRegisterKind {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub(crate) enum RegisterKind {
+pub(crate) enum RegisterKindStorage {
   U16(NumericRegisterKind),
   U32(NumericRegisterKind),
   U64(NumericRegisterKind),
@@ -65,14 +65,14 @@ pub(crate) enum RegisterKind {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct DetectRegister {
   pub(crate) address: u16,
-  pub(crate) kind: RegisterKind,
+  pub(crate) kind: RegisterKindStorage,
   pub(crate) r#match: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct IdRegister {
   pub(crate) address: u16,
-  pub(crate) kind: RegisterKind,
+  pub(crate) kind: RegisterKindStorage,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
@@ -169,8 +169,8 @@ pub(crate) async fn parse_async(
 
 pub(crate) fn to_modbus_measurement_register(
   register: MeasurementRegister,
-) -> modbus::MeasurementRegister<modbus::RegisterKind> {
-  modbus::MeasurementRegister::<modbus::RegisterKind> {
+) -> modbus::MeasurementRegister<modbus::RegisterKindStorage> {
+  modbus::MeasurementRegister::<modbus::RegisterKindStorage> {
     address: register.address,
     storage: to_modbus_register_kind(register.kind),
     name: register.name,
@@ -179,8 +179,8 @@ pub(crate) fn to_modbus_measurement_register(
 
 pub(crate) fn to_modbus_detect_register(
   register: DetectRegister,
-) -> modbus::DetectRegister<modbus::RegisterKind> {
-  modbus::DetectRegister::<modbus::RegisterKind> {
+) -> modbus::DetectRegister<modbus::RegisterKindStorage> {
+  modbus::DetectRegister::<modbus::RegisterKindStorage> {
     address: register.address,
     storage: to_modbus_register_kind(register.kind),
     r#match: match regex::Regex::new(register.r#match.as_str()) {
@@ -192,43 +192,59 @@ pub(crate) fn to_modbus_detect_register(
 
 pub(crate) fn to_modbus_id_register(
   register: IdRegister,
-) -> modbus::IdRegister<modbus::RegisterKind> {
-  modbus::IdRegister::<modbus::RegisterKind> {
+) -> modbus::IdRegister<modbus::RegisterKindStorage> {
+  modbus::IdRegister::<modbus::RegisterKindStorage> {
     address: register.address,
     storage: to_modbus_register_kind(register.kind),
   }
 }
 
 pub(crate) fn to_modbus_register_kind(
-  register: RegisterKind,
-) -> modbus::RegisterKind {
+  register: RegisterKindStorage,
+) -> modbus::RegisterKindStorage {
   match register {
-    RegisterKind::U16(NumericRegisterKind { multiplier }) => {
-      modbus::RegisterKind::U16(modbus::NumericRegisterKind { multiplier })
+    RegisterKindStorage::U16(NumericRegisterKind { multiplier }) => {
+      modbus::RegisterKindStorage::U16(modbus::NumericRegisterKind {
+        multiplier,
+      })
     }
-    RegisterKind::U32(NumericRegisterKind { multiplier }) => {
-      modbus::RegisterKind::U32(modbus::NumericRegisterKind { multiplier })
+    RegisterKindStorage::U32(NumericRegisterKind { multiplier }) => {
+      modbus::RegisterKindStorage::U32(modbus::NumericRegisterKind {
+        multiplier,
+      })
     }
-    RegisterKind::U64(NumericRegisterKind { multiplier }) => {
-      modbus::RegisterKind::U64(modbus::NumericRegisterKind { multiplier })
+    RegisterKindStorage::U64(NumericRegisterKind { multiplier }) => {
+      modbus::RegisterKindStorage::U64(modbus::NumericRegisterKind {
+        multiplier,
+      })
     }
-    RegisterKind::S16(NumericRegisterKind { multiplier }) => {
-      modbus::RegisterKind::S16(modbus::NumericRegisterKind { multiplier })
+    RegisterKindStorage::S16(NumericRegisterKind { multiplier }) => {
+      modbus::RegisterKindStorage::S16(modbus::NumericRegisterKind {
+        multiplier,
+      })
     }
-    RegisterKind::S32(NumericRegisterKind { multiplier }) => {
-      modbus::RegisterKind::S32(modbus::NumericRegisterKind { multiplier })
+    RegisterKindStorage::S32(NumericRegisterKind { multiplier }) => {
+      modbus::RegisterKindStorage::S32(modbus::NumericRegisterKind {
+        multiplier,
+      })
     }
-    RegisterKind::S64(NumericRegisterKind { multiplier }) => {
-      modbus::RegisterKind::S64(modbus::NumericRegisterKind { multiplier })
+    RegisterKindStorage::S64(NumericRegisterKind { multiplier }) => {
+      modbus::RegisterKindStorage::S64(modbus::NumericRegisterKind {
+        multiplier,
+      })
     }
-    RegisterKind::F32(NumericRegisterKind { multiplier }) => {
-      modbus::RegisterKind::F32(modbus::NumericRegisterKind { multiplier })
+    RegisterKindStorage::F32(NumericRegisterKind { multiplier }) => {
+      modbus::RegisterKindStorage::F32(modbus::NumericRegisterKind {
+        multiplier,
+      })
     }
-    RegisterKind::F64(NumericRegisterKind { multiplier }) => {
-      modbus::RegisterKind::F64(modbus::NumericRegisterKind { multiplier })
+    RegisterKindStorage::F64(NumericRegisterKind { multiplier }) => {
+      modbus::RegisterKindStorage::F64(modbus::NumericRegisterKind {
+        multiplier,
+      })
     }
-    RegisterKind::String(StringRegisterKind { length }) => {
-      modbus::RegisterKind::String(modbus::StringRegisterKind { length })
+    RegisterKindStorage::String(StringRegisterKind { length }) => {
+      modbus::RegisterKindStorage::String(modbus::StringRegisterKind { length })
     }
   }
 }

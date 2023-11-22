@@ -7,6 +7,7 @@
   clippy::expect_used,
   clippy::panic,
   clippy::unreachable,
+  clippy::arithmetic_side_effects
   // reason = "We have to handle errors properly"
 )]
 #![deny(

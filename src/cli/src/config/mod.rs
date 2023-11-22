@@ -46,10 +46,10 @@ pub(crate) struct Cloud {
 #[derive(Debug, Clone)]
 pub(crate) struct Device {
   pub(crate) kind: String,
-  pub(crate) id: Vec<modbus::IdRegister<modbus::RegisterKind>>,
-  pub(crate) detect: Vec<modbus::DetectRegister<modbus::RegisterKind>>,
+  pub(crate) id: Vec<modbus::IdRegister<modbus::RegisterKindStorage>>,
+  pub(crate) detect: Vec<modbus::DetectRegister<modbus::RegisterKindStorage>>,
   pub(crate) measurement:
-    Vec<modbus::MeasurementRegister<modbus::RegisterKind>>,
+    Vec<modbus::MeasurementRegister<modbus::RegisterKindStorage>>,
 }
 
 #[derive(Debug, Clone)]

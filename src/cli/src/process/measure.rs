@@ -50,8 +50,8 @@ impl process::Recurring for Process {
 
 type MeasurementStreamRegisters = Vec<
   Either<
-    modbus::IdRegister<modbus::RegisterValue>,
-    modbus::MeasurementRegister<modbus::RegisterValue>,
+    modbus::IdRegister<modbus::RegisterValueStorage>,
+    modbus::MeasurementRegister<modbus::RegisterValueStorage>,
   >,
 >;
 
@@ -67,8 +67,9 @@ type BoxedMeasurementStream = Pin<
 struct Device {
   id: String,
   kind: String,
-  id_registers: Vec<modbus::IdRegister<modbus::RegisterKind>>,
-  measurement_registers: Vec<modbus::MeasurementRegister<modbus::RegisterKind>>,
+  id_registers: Vec<modbus::IdRegister<modbus::RegisterKindStorage>>,
+  measurement_registers:
+    Vec<modbus::MeasurementRegister<modbus::RegisterKindStorage>>,
 }
 
 struct DeviceStream {

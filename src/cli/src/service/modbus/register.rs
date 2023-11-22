@@ -23,7 +23,7 @@ pub(crate) struct NumericRegisterKind {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) enum RegisterKind {
+pub(crate) enum RegisterKindStorage {
   U16(NumericRegisterKind),
   U32(NumericRegisterKind),
   U64(NumericRegisterKind),
@@ -36,17 +36,23 @@ pub(crate) enum RegisterKind {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct RegisterValue<T> {
+  pub(crate) value: T,
+  pub(crate) timestamp: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
-pub(crate) enum RegisterValue {
-  U16(u16),
-  U32(u32),
-  U64(u64),
-  S16(i16),
-  S32(i32),
-  S64(i64),
-  F32(f32),
-  F64(f64),
-  String(String),
+pub(crate) enum RegisterValueStorage {
+  U16(RegisterValue<u16>),
+  U32(RegisterValue<u32>),
+  U64(RegisterValue<u64>),
+  S16(RegisterValue<i16>),
+  S32(RegisterValue<i32>),
+  S64(RegisterValue<i64>),
+  F32(RegisterValue<f32>),
+  F64(RegisterValue<f64>),
+  String(RegisterValue<String>),
 }
 
 #[derive(Debug, Clone)]
@@ -70,7 +76,7 @@ pub(crate) struct IdRegister<T: RegisterStorage> {
 }
 
 pub(crate) fn make_id<
-  TIntoIterator: IntoIterator<Item = IdRegister<RegisterValue>>,
+  TIntoIterator: IntoIterator<Item = IdRegister<RegisterValueStorage>>,
 >(
   kind: String,
   id_registers: TIntoIterator,
@@ -81,58 +87,76 @@ pub(crate) fn make_id<
     .fold(format!("{kind}-"), |acc, next| acc + next.as_str())
 }
 
-impl RegisterStorage for RegisterKind {
+impl RegisterStorage for RegisterKindStorage {
   fn quantity(&self) -> Quantity {
     match self {
-      RegisterKind::U16(_) => 1,
-      RegisterKind::U32(_) => 2,
-      RegisterKind::U64(_) => 4,
-      RegisterKind::S16(_) => 1,
-      RegisterKind::S32(_) => 2,
-      RegisterKind::S64(_) => 4,
-      RegisterKind::F32(_) => 2,
-      RegisterKind::F64(_) => 4,
-      RegisterKind::String(StringRegisterKind { length }) => *length,
+      RegisterKindStorage::U16(_) => 1,
+      RegisterKindStorage::U32(_) => 2,
+      RegisterKindStorage::U64(_) => 4,
+      RegisterKindStorage::S16(_) => 1,
+      RegisterKindStorage::S32(_) => 2,
+      RegisterKindStorage::S64(_) => 4,
+      RegisterKindStorage::F32(_) => 2,
+      RegisterKindStorage::F64(_) => 4,
+      RegisterKindStorage::String(StringRegisterKind { length }) => *length,
     }
   }
 }
 
-impl RegisterStorage for RegisterValue {
+impl RegisterStorage for RegisterValueStorage {
   fn quantity(&self) -> Quantity {
     match self {
-      RegisterValue::U16(_) => 1,
-      RegisterValue::U32(_) => 2,
-      RegisterValue::U64(_) => 4,
-      RegisterValue::S16(_) => 1,
-      RegisterValue::S32(_) => 2,
-      RegisterValue::S64(_) => 4,
-      RegisterValue::F32(_) => 2,
-      RegisterValue::F64(_) => 4,
-      RegisterValue::String(value) => value.len() as Quantity,
+      RegisterValueStorage::U16(_) => 1,
+      RegisterValueStorage::U32(_) => 2,
+      RegisterValueStorage::U64(_) => 4,
+      RegisterValueStorage::S16(_) => 1,
+      RegisterValueStorage::S32(_) => 2,
+      RegisterValueStorage::S64(_) => 4,
+      RegisterValueStorage::F32(_) => 2,
+      RegisterValueStorage::F64(_) => 4,
+      RegisterValueStorage::String(storage) => storage.value.len() as Quantity,
     }
   }
 }
 
-impl Display for RegisterValue {
+impl Display for RegisterValueStorage {
   fn fmt(
     &self,
     f: &mut std::fmt::Formatter<'_>,
   ) -> Result<(), std::fmt::Error> {
     match self {
-      RegisterValue::U16(value) => std::fmt::Display::fmt(&value, f),
-      RegisterValue::U32(value) => std::fmt::Display::fmt(&value, f),
-      RegisterValue::U64(value) => std::fmt::Display::fmt(&value, f),
-      RegisterValue::S16(value) => std::fmt::Display::fmt(&value, f),
-      RegisterValue::S32(value) => std::fmt::Display::fmt(&value, f),
-      RegisterValue::S64(value) => std::fmt::Display::fmt(&value, f),
-      RegisterValue::F32(value) => std::fmt::Display::fmt(&value, f),
-      RegisterValue::F64(value) => std::fmt::Display::fmt(&value, f),
-      RegisterValue::String(value) => std::fmt::Debug::fmt(&value, f),
+      RegisterValueStorage::U16(storage) => {
+        std::fmt::Display::fmt(&storage.value, f)
+      }
+      RegisterValueStorage::U32(storage) => {
+        std::fmt::Display::fmt(&storage.value, f)
+      }
+      RegisterValueStorage::U64(storage) => {
+        std::fmt::Display::fmt(&storage.value, f)
+      }
+      RegisterValueStorage::S16(storage) => {
+        std::fmt::Display::fmt(&storage.value, f)
+      }
+      RegisterValueStorage::S32(storage) => {
+        std::fmt::Display::fmt(&storage.value, f)
+      }
+      RegisterValueStorage::S64(storage) => {
+        std::fmt::Display::fmt(&storage.value, f)
+      }
+      RegisterValueStorage::F32(storage) => {
+        std::fmt::Display::fmt(&storage.value, f)
+      }
+      RegisterValueStorage::F64(storage) => {
+        std::fmt::Display::fmt(&storage.value, f)
+      }
+      RegisterValueStorage::String(storage) => {
+        std::fmt::Debug::fmt(&storage.value, f)
+      }
     }
   }
 }
 
-impl DetectRegister<RegisterValue> {
+impl DetectRegister<RegisterValueStorage> {
   pub(crate) fn matches(&self) -> bool {
     let storage = self.storage.to_string();
     match &self.r#match {
@@ -143,7 +167,7 @@ impl DetectRegister<RegisterValue> {
 }
 
 pub(crate) fn serialize_registers<
-  TIntoIterator: IntoIterator<Item = MeasurementRegister<RegisterValue>>,
+  TIntoIterator: IntoIterator<Item = MeasurementRegister<RegisterValueStorage>>,
 >(
   registers: TIntoIterator,
 ) -> serde_json::Value {
@@ -151,9 +175,9 @@ pub(crate) fn serialize_registers<
     registers
       .into_iter()
       .map(
-        |MeasurementRegister::<RegisterValue> { name, storage, .. }| {
-          (name.clone(), serde_json::json!(storage))
-        },
+        |MeasurementRegister::<RegisterValueStorage> {
+           name, storage, ..
+         }| { (name.clone(), serde_json::json!(storage)) },
       )
       .collect::<serde_json::Map<String, serde_json::Value>>(),
   )
@@ -181,7 +205,7 @@ macro_rules! impl_register {
       }
     }
 
-    impl Display for $type<RegisterValue> {
+    impl Display for $type<RegisterValueStorage> {
       fn fmt(
         &self,
         f: &mut std::fmt::Formatter<'_>,
@@ -201,9 +225,12 @@ macro_rules! parse_integer_register {
     let bytes = parse_numeric_bytes($data);
     let slice = bytes.as_slice().try_into()?;
     let value = <$type>::from_ne_bytes(slice);
-    RegisterValue::$variant(match $multiplier {
-      Some($multiplier) => ((value as f64) * $multiplier).round() as $type,
-      None => value,
+    RegisterValueStorage::$variant(RegisterValue::<$type> {
+      value: match $multiplier {
+        Some($multiplier) => ((value as f64) * $multiplier).round() as $type,
+        None => value,
+      },
+      timestamp: chrono::Utc::now(),
     })
   }};
 }
@@ -213,9 +240,12 @@ macro_rules! parse_floating_register {
     let bytes = parse_numeric_bytes($data);
     let slice = bytes.as_slice().try_into()?;
     let value = <$type>::from_ne_bytes(slice);
-    RegisterValue::$variant(match $multiplier {
-      Some($multiplier) => ((value as f64) * $multiplier) as $type,
-      None => value,
+    RegisterValueStorage::$variant(RegisterValue::<$type> {
+      value: match $multiplier {
+        Some($multiplier) => ((value as f64) * $multiplier) as $type,
+        None => value,
+      },
+      timestamp: chrono::Utc::now(),
     })
   }};
 }
@@ -223,33 +253,36 @@ macro_rules! parse_floating_register {
 macro_rules! parse_register {
   ($self: ident, $data: ident, $result: expr) => {{
     let value = match $self.storage {
-      RegisterKind::U16(NumericRegisterKind { multiplier }) => {
+      RegisterKindStorage::U16(NumericRegisterKind { multiplier }) => {
         parse_integer_register!(U16, u16, $data, multiplier)
       }
-      RegisterKind::U32(NumericRegisterKind { multiplier }) => {
+      RegisterKindStorage::U32(NumericRegisterKind { multiplier }) => {
         parse_integer_register!(U32, u32, $data, multiplier)
       }
-      RegisterKind::U64(NumericRegisterKind { multiplier }) => {
+      RegisterKindStorage::U64(NumericRegisterKind { multiplier }) => {
         parse_integer_register!(U64, u64, $data, multiplier)
       }
-      RegisterKind::S16(NumericRegisterKind { multiplier }) => {
+      RegisterKindStorage::S16(NumericRegisterKind { multiplier }) => {
         parse_integer_register!(S16, i16, $data, multiplier)
       }
-      RegisterKind::S32(NumericRegisterKind { multiplier }) => {
+      RegisterKindStorage::S32(NumericRegisterKind { multiplier }) => {
         parse_integer_register!(S32, i32, $data, multiplier)
       }
-      RegisterKind::S64(NumericRegisterKind { multiplier }) => {
+      RegisterKindStorage::S64(NumericRegisterKind { multiplier }) => {
         parse_integer_register!(S64, i64, $data, multiplier)
       }
-      RegisterKind::F32(NumericRegisterKind { multiplier }) => {
+      RegisterKindStorage::F32(NumericRegisterKind { multiplier }) => {
         parse_floating_register!(F32, f32, $data, multiplier)
       }
-      RegisterKind::F64(NumericRegisterKind { multiplier }) => {
+      RegisterKindStorage::F64(NumericRegisterKind { multiplier }) => {
         parse_floating_register!(F64, f64, $data, multiplier)
       }
-      RegisterKind::String(_) => {
+      RegisterKindStorage::String(_) => {
         let bytes = parse_string_bytes($data);
-        RegisterValue::String(String::from_utf8(bytes)?)
+        RegisterValueStorage::String(RegisterValue::<String> {
+          value: String::from_utf8(bytes)?,
+          timestamp: chrono::Utc::now(),
+        })
       }
     };
 
@@ -260,11 +293,13 @@ macro_rules! parse_register {
 
 macro_rules! impl_parse_register {
   ($type: ident, $result: expr) => {
-    impl SpanParser<$type<RegisterValue>> for $type<RegisterKind> {
+    impl SpanParser<$type<RegisterValueStorage>>
+      for $type<RegisterKindStorage>
+    {
       fn parse<TIterator, TIntoIterator>(
         &self,
         data: TIntoIterator,
-      ) -> anyhow::Result<$type<RegisterValue>>
+      ) -> anyhow::Result<$type<RegisterValueStorage>>
       where
         TIterator: DoubleEndedIterator<Item = u16>,
         TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
@@ -273,11 +308,13 @@ macro_rules! impl_parse_register {
       }
     }
 
-    impl SpanParser<$type<RegisterValue>> for &$type<RegisterKind> {
+    impl SpanParser<$type<RegisterValueStorage>>
+      for &$type<RegisterKindStorage>
+    {
       fn parse<TIterator, TIntoIterator>(
         &self,
         data: TIntoIterator,
-      ) -> anyhow::Result<$type<RegisterValue>>
+      ) -> anyhow::Result<$type<RegisterValueStorage>>
       where
         TIterator: DoubleEndedIterator<Item = u16>,
         TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
@@ -290,8 +327,8 @@ macro_rules! impl_parse_register {
 
 impl_parse_register!(
   MeasurementRegister,
-  |register: &MeasurementRegister::<RegisterKind>, storage| {
-    MeasurementRegister::<RegisterValue> {
+  |register: &MeasurementRegister::<RegisterKindStorage>, storage| {
+    MeasurementRegister::<RegisterValueStorage> {
       address: register.address,
       storage,
       name: register.name.clone(),
@@ -300,17 +337,19 @@ impl_parse_register!(
 );
 impl_parse_register!(
   DetectRegister,
-  |register: &DetectRegister::<RegisterKind>, storage| {
-    DetectRegister::<RegisterValue> {
+  |register: &DetectRegister::<RegisterKindStorage>, storage| {
+    DetectRegister::<RegisterValueStorage> {
       address: register.address,
       storage,
       r#match: register.r#match.clone(),
     }
   }
 );
-impl_parse_register!(IdRegister, |register: &IdRegister::<RegisterKind>,
+impl_parse_register!(IdRegister, |register: &IdRegister::<
+  RegisterKindStorage,
+>,
                                   storage| {
-  IdRegister::<RegisterValue> {
+  IdRegister::<RegisterValueStorage> {
     address: register.address,
     storage,
   }
