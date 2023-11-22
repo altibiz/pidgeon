@@ -81,9 +81,6 @@
         rustfmt
         rust-analyzer
         cargo-edit
-        pkg-config
-        openssl
-        sqlx-cli
 
         # Shell
         bashInteractiveFHS
@@ -98,6 +95,13 @@
         nodePackages.yaml-language-server
         marksman
         taplo
+
+        # Tools
+        openssh
+        age
+        pkg-config
+        openssl
+        sqlx-cli
       ];
 
       DATABASE_URL = "postgres://pidgeon:pidgeon@localhost/pidgeon?sslmode=disable";
