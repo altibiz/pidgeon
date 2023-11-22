@@ -103,6 +103,7 @@
         openssl
         sqlx-cli
         jq
+        sops
       ];
 
       DATABASE_URL = "postgres://pidgeon:pidgeon@localhost/pidgeon?sslmode=disable";
