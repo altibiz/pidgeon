@@ -20,6 +20,7 @@
       specialArgs = inputs;
       modules = [
         sops-nix.nixosModules.sops
+
         ({ nixos-hardware, modulesPath, ... }: {
           imports = [
             nixos-hardware.nixosModules.raspberry-pi-4
