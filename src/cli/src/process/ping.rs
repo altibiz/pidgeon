@@ -145,7 +145,9 @@ impl Process {
     let now = chrono::Utc::now();
     let status = if pinged {
       db::DeviceStatus::Healthy
-    } else if now - device.seen > config.modbus.inactive_timeout {
+    } else if now.signed_duration_since(device.seen)
+      > config.modbus.inactive_timeout
+    {
       db::DeviceStatus::Inactive
     } else {
       db::DeviceStatus::Unreachable
