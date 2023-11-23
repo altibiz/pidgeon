@@ -2,7 +2,8 @@ use tokio_modbus::{Address, Quantity};
 
 use super::span::*;
 
-// TODO: check what causes overflows on add/subtract
+// TODO: better error handling for span batching
+// TODO: macros to implement batch parsing
 
 #[derive(Clone, Debug)]
 pub(crate) struct Batch<TSpan: Span> {
@@ -31,121 +32,77 @@ impl<TSpan: Span> Span for &Batch<TSpan> {
   }
 }
 
-impl<TSpan: Span, TSpanParser: Span + SpanParser<TSpan>>
-  SpanParser<Batch<TSpan>> for Batch<TSpanParser>
-{
-  fn parse<TIterator, TIntoIterator>(
-    &self,
-    data: TIntoIterator,
-  ) -> anyhow::Result<Batch<TSpan>>
-  where
-    TIterator: DoubleEndedIterator<Item = u16>,
-    TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
-  {
-    let mut registers = Vec::with_capacity(self.spans.len());
-    let data = data.into_iter().collect::<Vec<_>>();
+macro_rules! parse_batch {
+  ($self: ident, $data: ident, $timestamp: expr) => {{
+    let mut spans = Vec::with_capacity($self.spans.len());
+    let data = $data.into_iter().collect::<Vec<_>>();
 
-    for register in &self.spans {
-      let start = (register.address() - self.address) as usize;
-      let end = start + register.quantity() as usize;
-      let slice = &data[start..end];
-      let parsed = register.parse(slice.iter().cloned())?;
-      registers.push(parsed);
-    }
-
-    Ok(Batch::<TSpan> {
-      address: self.address,
-      quantity: self.quantity,
-      spans: registers,
-    })
-  }
-
-  fn parse_with_timestamp<TIterator, TIntoIterator>(
-    &self,
-    data: TIntoIterator,
-    timestamp: chrono::DateTime<chrono::Utc>,
-  ) -> anyhow::Result<Batch<TSpan>>
-  where
-    TIterator: DoubleEndedIterator<Item = u16>,
-    TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
-  {
-    let mut registers = Vec::with_capacity(self.spans.len());
-    let data = data.into_iter().collect::<Vec<_>>();
-
-    for register in &self.spans {
-      let start = (register.address() - self.address) as usize;
-      let end = start + register.quantity() as usize;
+    for span in &$self.spans {
+      let start = Into::<usize>::into(
+        span.address().checked_sub($self.address).ok_or_else(|| {
+          anyhow::anyhow!(
+            "Failed getting starting address for span {:?} {:?}",
+            span.address(),
+            span.quantity()
+          )
+        })?,
+      );
+      let end = start
+        .checked_add(Into::<usize>::into(span.quantity()))
+        .ok_or_else(|| {
+          anyhow::anyhow!(
+            "Failed getting ending address for span {:?} {:?}",
+            span.address(),
+            span.quantity()
+          )
+        })?;
       let slice = &data[start..end];
       let parsed =
-        register.parse_with_timestamp(slice.iter().cloned(), timestamp)?;
-      registers.push(parsed);
+        span.parse_with_timestamp(slice.iter().cloned(), $timestamp)?;
+      spans.push(parsed);
     }
 
     Ok(Batch::<TSpan> {
-      address: self.address,
-      quantity: self.quantity,
-      spans: registers,
+      address: $self.address,
+      quantity: $self.quantity,
+      spans,
     })
-  }
+  }};
 }
 
-impl<TSpan: Span, TSpanParser: Span + SpanParser<TSpan>>
-  SpanParser<Batch<TSpan>> for &Batch<TSpanParser>
-{
-  fn parse<TIterator, TIntoIterator>(
-    &self,
-    data: TIntoIterator,
-  ) -> anyhow::Result<Batch<TSpan>>
-  where
-    TIterator: DoubleEndedIterator<Item = u16>,
-    TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
-  {
-    let mut registers = Vec::with_capacity(self.spans.len());
-    let data = data.into_iter().collect::<Vec<_>>();
+macro_rules! impl_batch_span_parser {
+  ($type: ty) => {
+    impl<TSpan: Span, TSpanParser: Span + SpanParser<TSpan>>
+      SpanParser<Batch<TSpan>> for $type
+    {
+      fn parse<TIterator, TIntoIterator>(
+        &self,
+        data: TIntoIterator,
+      ) -> anyhow::Result<Batch<TSpan>>
+      where
+        TIterator: DoubleEndedIterator<Item = u16>,
+        TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
+      {
+        parse_batch!(self, data, chrono::Utc::now())
+      }
 
-    for register in &self.spans {
-      let start = (register.address() - self.address) as usize;
-      let end = start + register.quantity() as usize;
-      let slice = &data[start..end];
-      let parsed = register.parse(slice.iter().cloned())?;
-      registers.push(parsed);
+      fn parse_with_timestamp<TIterator, TIntoIterator>(
+        &self,
+        data: TIntoIterator,
+        timestamp: chrono::DateTime<chrono::Utc>,
+      ) -> anyhow::Result<Batch<TSpan>>
+      where
+        TIterator: DoubleEndedIterator<Item = u16>,
+        TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
+      {
+        parse_batch!(self, data, timestamp)
+      }
     }
-
-    Ok(Batch::<TSpan> {
-      address: self.address,
-      quantity: self.quantity,
-      spans: registers,
-    })
-  }
-
-  fn parse_with_timestamp<TIterator, TIntoIterator>(
-    &self,
-    data: TIntoIterator,
-    timestamp: chrono::DateTime<chrono::Utc>,
-  ) -> anyhow::Result<Batch<TSpan>>
-  where
-    TIterator: DoubleEndedIterator<Item = u16>,
-    TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
-  {
-    let mut registers = Vec::with_capacity(self.spans.len());
-    let data = data.into_iter().collect::<Vec<_>>();
-
-    for register in &self.spans {
-      let start = (register.address() - self.address) as usize;
-      let end = start + register.quantity() as usize;
-      let slice = &data[start..end];
-      let parsed =
-        register.parse_with_timestamp(slice.iter().cloned(), timestamp)?;
-      registers.push(parsed);
-    }
-
-    Ok(Batch::<TSpan> {
-      address: self.address,
-      quantity: self.quantity,
-      spans: registers,
-    })
-  }
+  };
 }
+
+impl_batch_span_parser!(Batch<TSpanParser>);
+impl_batch_span_parser!(&Batch<TSpanParser>);
 
 pub(crate) fn batch_spans<
   TSpan: Span,
@@ -170,14 +127,19 @@ pub(crate) fn batch_spans<
   };
 
   for span in iter {
+    #[allow(clippy::unwrap_used)] // NOTE: i want this to fail
     let gap = span
       .address()
-      .saturating_sub(current.address.saturating_add(current.quantity));
+      .checked_sub(current.address.checked_add(current.quantity).unwrap())
+      .unwrap();
     if gap < threshold {
+      #[allow(clippy::unwrap_used)] // NOTE: i want this to fail
       let quantity = span
         .address()
-        .saturating_add(span.quantity())
-        .saturating_sub(current.address);
+        .checked_add(span.quantity())
+        .unwrap()
+        .checked_sub(current.address)
+        .unwrap();
       current.quantity = quantity;
       current.spans.push(span);
     } else {

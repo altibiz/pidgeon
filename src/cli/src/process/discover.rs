@@ -73,7 +73,7 @@ impl Process {
     address: SocketAddr,
   ) -> Vec<DeviceMatch> {
     if let Some(device_match) = self
-      .match_destination(&config, modbus::Destination::standalone_for(address))
+      .match_destination(config, modbus::Destination::standalone_for(address))
       .await
       .into_iter()
       .next()
@@ -84,7 +84,7 @@ impl Process {
     let mut device_matches = Vec::new();
     for destination in modbus::Destination::slaves_for(address) {
       if let Some(device_match) = self
-        .match_destination(&config, destination)
+        .match_destination(config, destination)
         .await
         .into_iter()
         .next()

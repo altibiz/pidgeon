@@ -244,7 +244,9 @@ macro_rules! parse_integer_register {
     let value = Decimal::from(<$type>::from_ne_bytes(slice));
     RegisterValueStorage::$variant(RegisterValue::<Decimal> {
       value: match $multiplier {
-        Some($multiplier) => value * $multiplier,
+        Some($multiplier) => value
+          .checked_mul($multiplier)
+          .ok_or_else(|| anyhow::anyhow!("Failed multiplyting register"))?,
         None => value,
       },
       timestamp: $timestamp,
@@ -259,7 +261,9 @@ macro_rules! parse_floating_register {
     let value = Decimal::try_from(<$type>::from_ne_bytes(slice))?;
     RegisterValueStorage::$variant(RegisterValue::<Decimal> {
       value: match $multiplier {
-        Some($multiplier) => value * $multiplier,
+        Some($multiplier) => value
+          .checked_mul($multiplier)
+          .ok_or_else(|| anyhow::anyhow!("Failed multiplying register"))?,
         None => value,
       },
       timestamp: $timestamp,

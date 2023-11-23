@@ -264,12 +264,17 @@ impl Process {
           return None;
         }
 
-        let timestamp = measurement
-          .registers
-          .iter()
-          .cloned()
-          .find_map(Either::left)
-          .unwrap()
+        let timestamp =
+          match measurement.registers.iter().cloned().find_map(Either::left) {
+            None => {
+              tracing::warn! {
+                "No id register found for measurement of {:?}",
+                measurement.device.id
+              };
+              return None;
+            }
+            Some(register) => register,
+          }
           .storage
           .timestamp();
 
