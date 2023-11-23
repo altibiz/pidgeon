@@ -21,7 +21,7 @@ kind = { f32 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
 name = "voltageL3_V"
-address = 0x0BD5
+address = 0x0BD7
 kind = { f32 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
