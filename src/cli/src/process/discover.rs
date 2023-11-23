@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use futures::future::join_all;
 use futures_time::future::FutureExt;
 
-use crate::{config::Device, service::*, *};
+use crate::{service::*, *};
 
 pub(crate) struct Process {
   #[allow(unused)]
