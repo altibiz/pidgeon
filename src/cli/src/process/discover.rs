@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use futures::future::join_all;
 use futures_time::future::FutureExt;
 
-use crate::{service::*, *};
+use crate::{config::Device, service::*, *};
 
 pub(crate) struct Process {
   #[allow(unused)]
@@ -201,6 +201,12 @@ impl Process {
         }
       }
     }
+
+    self
+      .services
+      .modbus()
+      .bind(device_match.id.clone(), device_match.destination)
+      .await;
 
     tracing::debug!("Matched device");
 
