@@ -17,6 +17,15 @@ pub(crate) trait SpanParser<TParsed: Span> {
   where
     TIterator: DoubleEndedIterator<Item = u16>,
     TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>;
+
+  fn parse_with_timestamp<TIterator, TIntoIterator>(
+    &self,
+    data: TIntoIterator,
+    timestamp: chrono::DateTime<chrono::Utc>,
+  ) -> anyhow::Result<TParsed>
+  where
+    TIterator: DoubleEndedIterator<Item = u16>,
+    TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>;
 }
 
 #[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
@@ -70,6 +79,25 @@ impl<
     match self {
       Either::Left(parser) => Ok(Either::Left(parser.parse(data)?)),
       Either::Right(parser) => Ok(Either::Right(parser.parse(data)?)),
+    }
+  }
+
+  fn parse_with_timestamp<TIterator, TIntoIterator>(
+    &self,
+    data: TIntoIterator,
+    timestamp: chrono::DateTime<chrono::Utc>,
+  ) -> anyhow::Result<Either<TLeftSpan, TRightSpan>>
+  where
+    TIterator: DoubleEndedIterator<Item = u16>,
+    TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
+  {
+    match self {
+      Either::Left(parser) => {
+        Ok(Either::Left(parser.parse_with_timestamp(data, timestamp)?))
+      }
+      Either::Right(parser) => {
+        Ok(Either::Right(parser.parse_with_timestamp(data, timestamp)?))
+      }
     }
   }
 }

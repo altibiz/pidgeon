@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use crate::service::modbus;
@@ -45,7 +46,7 @@ pub(crate) struct StringRegisterKind {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub(crate) struct NumericRegisterKind {
-  pub(crate) multiplier: Option<f64>,
+  pub(crate) multiplier: Option<Decimal>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

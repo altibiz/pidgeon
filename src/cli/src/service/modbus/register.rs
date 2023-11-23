@@ -20,7 +20,7 @@ pub(crate) struct StringRegisterKind {
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct NumericRegisterKind {
-  pub(crate) multiplier: Option<f64>,
+  pub(crate) multiplier: Option<Decimal>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -238,67 +238,67 @@ impl_register!(DetectRegister);
 impl_register!(IdRegister);
 
 macro_rules! parse_integer_register {
-  ($variant: ident, $type: ty, $data: ident, $multiplier: ident) => {{
+  ($variant: ident, $type: ty, $data: ident, $multiplier: ident, $timestamp: expr) => {{
     let bytes = parse_numeric_bytes($data);
     let slice = bytes.as_slice().try_into()?;
-    let value = <$type>::from_ne_bytes(slice);
-    RegisterValueStorage::$variant(RegisterValue::<$type> {
+    let value = Decimal::from(<$type>::from_ne_bytes(slice));
+    RegisterValueStorage::$variant(RegisterValue::<Decimal> {
       value: match $multiplier {
-        Some($multiplier) => ((value as f64) * $multiplier).round() as $type,
+        Some($multiplier) => value * $multiplier,
         None => value,
       },
-      timestamp: chrono::Utc::now(),
+      timestamp: $timestamp,
     })
   }};
 }
 
 macro_rules! parse_floating_register {
-  ($variant: ident, $type: ty, $data: ident, $multiplier: ident) => {{
+  ($variant: ident, $type: ty, $data: ident, $multiplier: ident, $timestamp: expr) => {{
     let bytes = parse_numeric_bytes($data);
     let slice = bytes.as_slice().try_into()?;
-    let value = <$type>::from_ne_bytes(slice);
-    RegisterValueStorage::$variant(RegisterValue::<$type> {
+    let value = Decimal::try_from(<$type>::from_ne_bytes(slice))?;
+    RegisterValueStorage::$variant(RegisterValue::<Decimal> {
       value: match $multiplier {
-        Some($multiplier) => ((value as f64) * $multiplier) as $type,
+        Some($multiplier) => value * $multiplier,
         None => value,
       },
-      timestamp: chrono::Utc::now(),
+      timestamp: $timestamp,
     })
   }};
 }
 
 macro_rules! parse_register {
-  ($self: ident, $data: ident, $result: expr) => {{
+  ($self: ident, $data: ident, $result: expr, $timestamp: expr) => {{
     let value = match $self.storage {
       RegisterKindStorage::U16(NumericRegisterKind { multiplier }) => {
-        parse_integer_register!(U16, u16, $data, multiplier)
+        parse_integer_register!(U16, u16, $data, multiplier, $timestamp)
       }
       RegisterKindStorage::U32(NumericRegisterKind { multiplier }) => {
-        parse_integer_register!(U32, u32, $data, multiplier)
+        parse_integer_register!(U32, u32, $data, multiplier, $timestamp)
       }
       RegisterKindStorage::U64(NumericRegisterKind { multiplier }) => {
-        parse_integer_register!(U64, u64, $data, multiplier)
+        parse_integer_register!(U64, u64, $data, multiplier, $timestamp)
       }
       RegisterKindStorage::S16(NumericRegisterKind { multiplier }) => {
-        parse_integer_register!(S16, i16, $data, multiplier)
+        parse_integer_register!(S16, i16, $data, multiplier, $timestamp)
       }
       RegisterKindStorage::S32(NumericRegisterKind { multiplier }) => {
-        parse_integer_register!(S32, i32, $data, multiplier)
+        parse_integer_register!(S32, i32, $data, multiplier, $timestamp)
       }
       RegisterKindStorage::S64(NumericRegisterKind { multiplier }) => {
-        parse_integer_register!(S64, i64, $data, multiplier)
+        parse_integer_register!(S64, i64, $data, multiplier, $timestamp)
       }
       RegisterKindStorage::F32(NumericRegisterKind { multiplier }) => {
-        parse_floating_register!(F32, f32, $data, multiplier)
+        parse_floating_register!(F32, f32, $data, multiplier, $timestamp)
       }
       RegisterKindStorage::F64(NumericRegisterKind { multiplier }) => {
-        parse_floating_register!(F64, f64, $data, multiplier)
+        parse_floating_register!(F64, f64, $data, multiplier, $timestamp)
       }
       RegisterKindStorage::String(_) => {
         let bytes = parse_string_bytes($data);
         RegisterValueStorage::String(RegisterValue::<String> {
           value: String::from_utf8(bytes)?,
-          timestamp: chrono::Utc::now(),
+          timestamp: $timestamp,
         })
       }
     };
@@ -321,7 +321,19 @@ macro_rules! impl_parse_register {
         TIterator: DoubleEndedIterator<Item = u16>,
         TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
       {
-        parse_register!(self, data, $result)
+        parse_register!(self, data, $result, chrono::Utc::now())
+      }
+
+      fn parse_with_timestamp<TIterator, TIntoIterator>(
+        &self,
+        data: TIntoIterator,
+        timestamp: chrono::DateTime<chrono::Utc>,
+      ) -> anyhow::Result<$type<RegisterValueStorage>>
+      where
+        TIterator: DoubleEndedIterator<Item = u16>,
+        TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
+      {
+        parse_register!(self, data, $result, timestamp)
       }
     }
 
@@ -336,7 +348,19 @@ macro_rules! impl_parse_register {
         TIterator: DoubleEndedIterator<Item = u16>,
         TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
       {
-        parse_register!(self, data, $result)
+        parse_register!(self, data, $result, chrono::Utc::now())
+      }
+
+      fn parse_with_timestamp<TIterator, TIntoIterator>(
+        &self,
+        data: TIntoIterator,
+        timestamp: chrono::DateTime<chrono::Utc>,
+      ) -> anyhow::Result<$type<RegisterValueStorage>>
+      where
+        TIterator: DoubleEndedIterator<Item = u16>,
+        TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
+      {
+        parse_register!(self, data, $result, timestamp)
       }
     }
   };

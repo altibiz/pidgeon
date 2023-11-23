@@ -59,6 +59,34 @@ impl<TSpan: Span, TSpanParser: Span + SpanParser<TSpan>>
       spans: registers,
     })
   }
+
+  fn parse_with_timestamp<TIterator, TIntoIterator>(
+    &self,
+    data: TIntoIterator,
+    timestamp: chrono::DateTime<chrono::Utc>,
+  ) -> anyhow::Result<Batch<TSpan>>
+  where
+    TIterator: DoubleEndedIterator<Item = u16>,
+    TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
+  {
+    let mut registers = Vec::with_capacity(self.spans.len());
+    let data = data.into_iter().collect::<Vec<_>>();
+
+    for register in &self.spans {
+      let start = (register.address() - self.address) as usize;
+      let end = start + register.quantity() as usize;
+      let slice = &data[start..end];
+      let parsed =
+        register.parse_with_timestamp(slice.iter().cloned(), timestamp)?;
+      registers.push(parsed);
+    }
+
+    Ok(Batch::<TSpan> {
+      address: self.address,
+      quantity: self.quantity,
+      spans: registers,
+    })
+  }
 }
 
 impl<TSpan: Span, TSpanParser: Span + SpanParser<TSpan>>
@@ -80,6 +108,34 @@ impl<TSpan: Span, TSpanParser: Span + SpanParser<TSpan>>
       let end = start + register.quantity() as usize;
       let slice = &data[start..end];
       let parsed = register.parse(slice.iter().cloned())?;
+      registers.push(parsed);
+    }
+
+    Ok(Batch::<TSpan> {
+      address: self.address,
+      quantity: self.quantity,
+      spans: registers,
+    })
+  }
+
+  fn parse_with_timestamp<TIterator, TIntoIterator>(
+    &self,
+    data: TIntoIterator,
+    timestamp: chrono::DateTime<chrono::Utc>,
+  ) -> anyhow::Result<Batch<TSpan>>
+  where
+    TIterator: DoubleEndedIterator<Item = u16>,
+    TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
+  {
+    let mut registers = Vec::with_capacity(self.spans.len());
+    let data = data.into_iter().collect::<Vec<_>>();
+
+    for register in &self.spans {
+      let start = (register.address() - self.address) as usize;
+      let end = start + register.quantity() as usize;
+      let slice = &data[start..end];
+      let parsed =
+        register.parse_with_timestamp(slice.iter().cloned(), timestamp)?;
       registers.push(parsed);
     }
 
