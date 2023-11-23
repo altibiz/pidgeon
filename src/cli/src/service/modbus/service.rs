@@ -371,10 +371,11 @@ impl Service {
 
     let mut response = Vec::with_capacity(len);
     for (parser, data) in batches.into_iter().zip(data.into_iter()) {
-      let mut parsed = match parser.parse(data) {
-        Ok(parsed) => parsed,
-        Err(error) => return Err(ServerReadError::ParsingFailed(error)),
-      };
+      let mut parsed =
+        match parser.parse_with_timestamp(data.span, data.timestamp) {
+          Ok(parsed) => parsed,
+          Err(error) => return Err(ServerReadError::ParsingFailed(error)),
+        };
       response.append(&mut parsed.spans);
     }
 

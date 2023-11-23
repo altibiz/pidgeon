@@ -14,7 +14,13 @@ use super::span::{SimpleSpan, Span};
 // OPTIMIZE: remove copying when reading
 // OPTIMIZE: check bounded channel length - maybe config?
 
-pub(crate) type Response = Vec<super::connection::Response>;
+#[derive(Debug, Clone)]
+pub(crate) struct SpanResponse {
+  pub(crate) span: super::connection::Response,
+  pub(crate) timestamp: chrono::DateTime<chrono::Utc>,
+}
+
+pub(crate) type Response = Vec<SpanResponse>;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Worker {
@@ -208,7 +214,7 @@ type RequestSender = flume::Sender<TaskRequest>;
 type RequestReceiver = flume::Receiver<TaskRequest>;
 type ResponseSender = flume::Sender<Result<Response, SendError>>;
 
-type Partial = Vec<Option<super::connection::Response>>;
+type Partial = Vec<Option<SpanResponse>>;
 type Id = uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -534,7 +540,10 @@ impl Task {
             .read(storage.destination.slave, span, timeout)
             .await
           {
-            Ok(read) => Some(read),
+            Ok(span) => Some(SpanResponse {
+              span,
+              timestamp: chrono::Utc::now(),
+            }),
             Err(error) => {
               metrics
                 .errors
