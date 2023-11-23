@@ -67,6 +67,8 @@
             age
             ssh-to-age
             sops
+            git
+            helix
           ];
           environment.sessionVariables = {
             PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
@@ -127,6 +129,9 @@
               (builtins.readFile ./secrets/authorized.pub)
             ];
           };
+
+          programs.direnv.enable = true;
+          programs.direnv.nix-direnv.enable = true;
 
           system.stateVersion = "23.11";
         })
