@@ -14,11 +14,13 @@ use crate::{config, service};
 // OPTIMIZE: all processes by removing unnecessary cloning at least
 
 pub(crate) trait Process {
-  fn new(config: config::Manager, services: service::Container) -> Self;
+  fn process_name(&self) -> &'static str {
+    std::any::type_name::<Self>()
+  }
 }
 
 #[async_trait::async_trait]
-pub(crate) trait Recurring {
+pub(crate) trait Recurring: Process {
   async fn execute(&self) -> anyhow::Result<()>;
 }
 
@@ -74,31 +76,33 @@ impl Container {
   }
 }
 
+macro_rules! make_recurring_spec {
+  ($self: ident, $type: ty, $interval: expr) => {
+    RecurringSpec {
+      process: Box::new(<$type>::new(
+        $self.config.clone(),
+        $self.services.clone(),
+      )),
+      interval: $interval,
+    }
+  };
+}
+
 impl Container {
   pub(crate) async fn spawn(&self) {
     let config = self.config.values().await;
     let specs = vec![
-      self.make_recurring_spec::<discover::Process>(config.discover_interval),
-      self.make_recurring_spec::<ping::Process>(config.ping_interval),
-      self.make_recurring_spec::<measure::Process>(config.measure_interval),
-      self.make_recurring_spec::<push::Process>(config.push_interval),
-      self.make_recurring_spec::<update::Process>(config.update_interval),
-      self.make_recurring_spec::<health::Process>(config.health_interval),
+      make_recurring_spec!(self, discover::Process, config.discover_interval),
+      make_recurring_spec!(self, ping::Process, config.ping_interval),
+      make_recurring_spec!(self, measure::Process, config.measure_interval),
+      make_recurring_spec!(self, push::Process, config.push_interval),
+      make_recurring_spec!(self, update::Process, config.update_interval),
+      make_recurring_spec!(self, health::Process, config.health_interval),
     ];
 
     {
       let mut handles = self.handles.clone().lock_owned().await;
       *handles = Some(specs.into_iter().map(Handle::recurring).collect());
-    }
-  }
-
-  fn make_recurring_spec<T: Process + Recurring + Send + Sync + 'static>(
-    &self,
-    interval: chrono::Duration,
-  ) -> RecurringSpec {
-    RecurringSpec {
-      process: Box::new(T::new(self.config.clone(), self.services.clone())),
-      interval,
     }
   }
 }
@@ -128,7 +132,11 @@ impl Handle {
             _ = child_token.cancelled() => { return; },
             _ = async {
                 if let Err(error) = spec.process.execute().await {
-                    tracing::error! { %error, "Process execution failed" };
+                  tracing::error!(
+                    "Process execution failed {} for {}",
+                    error,
+                    spec.process.process_name()
+                  );
                 }
 
                 interval.tick().await;

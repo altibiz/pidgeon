@@ -13,14 +13,19 @@ pub(crate) struct Process {
   services: service::Container,
 }
 
-impl process::Process for Process {
-  fn new(config: config::Manager, services: service::Container) -> Self {
+impl Process {
+  pub(crate) fn new(
+    config: config::Manager,
+    services: service::Container,
+  ) -> Self {
     Self { config, services }
   }
 }
 
+impl super::Process for Process {}
+
 #[async_trait::async_trait]
-impl process::Recurring for Process {
+impl super::Recurring for Process {
   #[tracing::instrument(skip(self))]
   async fn execute(&self) -> anyhow::Result<()> {
     let config = self.config.reload().await;

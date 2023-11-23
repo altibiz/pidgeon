@@ -8,11 +8,16 @@ pub(crate) struct Process {
   services: service::Container,
 }
 
-impl process::Process for Process {
-  fn new(config: config::Manager, services: service::Container) -> Self {
+impl Process {
+  pub(crate) fn new(
+    config: config::Manager,
+    services: service::Container,
+  ) -> Self {
     Self { config, services }
   }
 }
+
+impl super::Process for Process {}
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 struct PidgeonHealth {

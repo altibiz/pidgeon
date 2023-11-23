@@ -20,8 +20,11 @@ pub(crate) struct Process {
   streams: Arc<Mutex<Vec<DeviceStream>>>,
 }
 
-impl process::Process for Process {
-  fn new(config: config::Manager, services: service::Container) -> Self {
+impl Process {
+  pub(crate) fn new(
+    config: config::Manager,
+    services: service::Container,
+  ) -> Self {
     Self {
       config,
       services,
@@ -29,6 +32,8 @@ impl process::Process for Process {
     }
   }
 }
+
+impl super::Process for Process {}
 
 #[async_trait::async_trait]
 impl process::Recurring for Process {
