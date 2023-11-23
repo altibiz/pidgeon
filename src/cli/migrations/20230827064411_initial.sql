@@ -1,5 +1,7 @@
 begin;
 
+-- TODO: https://github.com/timescale/timescaledb/issues/836
+
 create extension if not exists timescaledb cascade;
 
 create type device_status as enum ('healthy', 'unreachable', 'inactive');

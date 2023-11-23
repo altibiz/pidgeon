@@ -3,6 +3,7 @@ use std::fmt::Display;
 
 use either::Either;
 use regex::Regex;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use tokio_modbus::{Address, Quantity};
 
@@ -44,14 +45,14 @@ pub(crate) struct RegisterValue<T> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub(crate) enum RegisterValueStorage {
-  U16(RegisterValue<u16>),
-  U32(RegisterValue<u32>),
-  U64(RegisterValue<u64>),
-  S16(RegisterValue<i16>),
-  S32(RegisterValue<i32>),
-  S64(RegisterValue<i64>),
-  F32(RegisterValue<f32>),
-  F64(RegisterValue<f64>),
+  U16(RegisterValue<Decimal>),
+  U32(RegisterValue<Decimal>),
+  U64(RegisterValue<Decimal>),
+  S16(RegisterValue<Decimal>),
+  S32(RegisterValue<Decimal>),
+  S64(RegisterValue<Decimal>),
+  F32(RegisterValue<Decimal>),
+  F64(RegisterValue<Decimal>),
   String(RegisterValue<String>),
 }
 

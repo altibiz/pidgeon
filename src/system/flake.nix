@@ -1,6 +1,8 @@
 # TODO: with nixos-generate
 # TODO: CLI
 # TODO: cert renewal
+# TODO: configure smartd
+# TODO: find more monitoring tools like smartd
 
 {
   description = "Raspberry Pi message broker";
@@ -109,6 +111,9 @@
             PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
           };
 
+          environment.shells = [ "${pkgs.bashInteractiveFHS}/bin/bash" ];
+          users.defaultUserShell = "${pkgs.bashInteractiveFHS}/bin/bash";
+
           location.provider = "geoclue2";
           time.timeZone = "Etc/UTC";
           i18n.defaultLocale = "en_US.UTF-8";
@@ -121,9 +126,10 @@
 
           users.users."pidgeon" = {
             isNormalUser = true;
+            createHome = true;
             hashedPassword = (builtins.readFile ./secrets/password.pub);
             extraGroups = [ "wheel" ];
-            shell = pkgs.bashInteractive;
+            useDefaultShell = true;
             openssh.authorizedKeys.keys = [
               (builtins.readFile ./secrets/authorized.pub)
             ];
@@ -191,6 +197,19 @@
 
         # cli
         ({ pkgs, ... }: { })
+
+        # maintenance
+        {
+          services.postgresql.settings = {
+            checkpoint_timeout = "30min";
+            checkpoint_completion_target = 0.9;
+            max_wal_size = "1GB";
+          };
+
+          services.fstrim.enable = true;
+
+          services.smartd.enable = true;
+        }
       ];
     };
   };
