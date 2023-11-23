@@ -75,6 +75,8 @@
             man-pages
             man-pages-posix
             kitty
+            nushell
+            starship
             lazygit
             git
             helix
@@ -108,9 +110,7 @@
           services.postgresql.ensureUsers = [
             {
               name = "pidgeon";
-              ensurePermissions = {
-                "DATABASE pidgeon" = "ALL PRIVILEGES";
-              };
+              ensureDBOwnership = true;
               ensureClauses = {
                 login = true;
               };
