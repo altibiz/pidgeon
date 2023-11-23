@@ -67,7 +67,9 @@
             age
             ssh-to-age
             sops
+            kitty
             git
+            lazygit
             helix
           ];
           environment.sessionVariables = {
