@@ -139,12 +139,15 @@
               name = "usql";
               runtimeInputs = [ pkgs.usql ];
               text = ''
-                usql pg://localhost/pidgeon?sslmode=disable
+                usql pg://localhost/pidgeon?sslmode=disable "$@"
               '';
             };
           in
           {
-            environment.systemPackages = [ usql ];
+            environment.systemPackages = with pkgs; [
+              usql
+              feedgnuplot
+            ];
 
             services.postgresql.enable = true;
             services.postgresql.package = pkgs.postgresql_14;

@@ -57,7 +57,7 @@
           name = "usql";
           runtimeInputs = [ pkgs.usql ];
           text = ''
-            usql pg://pidgeon:pidgeon@localhost/pidgeon?sslmode=disable
+            usql pg://pidgeon:pidgeon@localhost/pidgeon?sslmode=disable "$@"
           '';
         };
       in
@@ -104,6 +104,7 @@
         sqlx-cli
         jq
         sops
+        feedgnuplot
       ];
 
       DATABASE_URL = "postgres://pidgeon:pidgeon@localhost/pidgeon?sslmode=disable";
