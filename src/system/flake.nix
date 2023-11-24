@@ -198,7 +198,8 @@
         {
           services.grafana.enable = true;
 
-          services.grafana.datasources.settings = {
+          services.grafana.provision.enable = true;
+          services.grafana.provision.datasources.settings = {
             apiVersion = 1;
             datasources = [
               {
