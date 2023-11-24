@@ -12,6 +12,7 @@ use super::connection::*;
 use super::span::{SimpleSpan, Span};
 
 // TODO: confirm that u64 is large enough for generations
+// TODO: added streams should have max generation
 
 // NOTE: discovery Read(Custom { kind: Other, error: ExceptionResponse { function: 3, exception: IllegalDataAddress } })
 // NOTE: timeout clog Read(Custom { kind: InvalidData, error: \"Invalid response header: expected/request = Header { transaction_id: 0, unit_id: 255 }, actual/response = Header { transaction_id: 0, unit_id: 2 }\" })
@@ -361,7 +362,7 @@ impl Task {
       self
         .oneshots
         .iter()
-        .map(|oneshot| oneshot.id)
+        .map(|oneshot| (oneshot.id, oneshot.destination.slave))
         .collect::<Vec<_>>()
     );
   }
@@ -434,7 +435,7 @@ impl Task {
       self
         .streams
         .iter()
-        .map(|stream| stream.id)
+        .map(|stream| (stream.id, stream.destination.slave))
         .collect::<Vec<_>>()
     );
   }
@@ -505,7 +506,12 @@ impl Task {
       destination,
       spans,
       partial: vec![None; spans_len],
-      generation: 0,
+      generation: self
+        .streams
+        .iter()
+        .map(|stream| stream.generation)
+        .max()
+        .unwrap_or(0),
     };
 
     match kind {
