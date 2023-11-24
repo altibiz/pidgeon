@@ -85,9 +85,6 @@
             man-pages
             man-pages-posix
             kitty
-            nushell
-            starship
-            lazygit
             git
             helix
 
@@ -102,7 +99,6 @@
             inxi # NOTE: overall hardware info
             hwinfo # NOTE: overall hardware info
             htop # NOTE: CPU process manager
-            tokei # NOTE: count lines of code
             dog # NOTE: dns client
             upower # NOTE: battery power
           ];
