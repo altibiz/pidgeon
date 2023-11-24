@@ -195,7 +195,7 @@
         ({ pkgs, ... }: { })
 
         # visualization
-        ({}: {
+        {
           services.grafana.enable = true;
 
           services.grafana.datasources.settings = {
@@ -215,7 +215,7 @@
               }
             ];
           };
-        })
+        }
 
         # maintenance
         {
