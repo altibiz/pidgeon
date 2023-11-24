@@ -11,6 +11,8 @@ use tokio::sync::Mutex;
 use super::connection::*;
 use super::span::{SimpleSpan, Span};
 
+// TODO: confirm that u64 is large enough for generations
+
 // NOTE: discovery Read(Custom { kind: Other, error: ExceptionResponse { function: 3, exception: IllegalDataAddress } })
 // NOTE: timeout clog Read(Custom { kind: InvalidData, error: \"Invalid response header: expected/request = Header { transaction_id: 0, unit_id: 255 }, actual/response = Header { transaction_id: 0, unit_id: 2 }\" })
 // NOTE: timeout Timeout(Custom { kind: TimedOut, error: \"future timed out\" })
@@ -228,6 +230,7 @@ struct Storage {
   destination: Destination,
   spans: SimpleSpans,
   partial: Partial,
+  generation: u64,
 }
 
 #[derive(Debug)]
@@ -276,20 +279,37 @@ impl Task {
 
       let mut metrics = Metrics::new();
 
-      let mut oneshots_to_remove = Vec::new();
-      for index in 0..self.oneshots.len() {
-        let oneshot = self.oneshots.index_mut(index);
-        if oneshot.sender.is_disconnected() {
-          oneshots_to_remove.push(oneshot.id);
-          continue;
-        }
+      self.process_oneshots(&mut metrics).await;
 
-        let connection = match Self::attempt_connection(
-          &mut self.connections,
-          oneshot,
-        )
-        .await
+      if self.terminate {
+        if !self.streams.is_empty() {
+          self.streams = Vec::new();
+        }
+      } else {
+        if let Some(max_generation) =
+          self.streams.iter().map(|stream| stream.generation).max()
         {
+          self.process_streams(&mut metrics, max_generation).await;
+        }
+      }
+
+      if !self.terminate {
+        tracing::trace!("{:#?}", metrics);
+      }
+    }
+  }
+
+  async fn process_oneshots(&mut self, mut metrics: &mut Metrics) {
+    let mut oneshots_to_remove = Vec::new();
+    for index in 0..self.oneshots.len() {
+      let oneshot = self.oneshots.index_mut(index);
+      if oneshot.sender.is_disconnected() {
+        oneshots_to_remove.push(oneshot.id);
+        continue;
+      }
+
+      let connection =
+        match Self::attempt_connection(&mut self.connections, oneshot).await {
           ConnectionAttempt::Existing(connection) => connection,
           ConnectionAttempt::New(connection) => self
             .connections
@@ -301,110 +321,110 @@ impl Task {
           }
         };
 
-        match Self::read(oneshot, &mut metrics, connection, self.read_timeout)
-          .await
-        {
-          Either::Left(partial) => {
-            oneshot.partial = partial;
+      match Self::read(oneshot, &mut metrics, connection, self.read_timeout)
+        .await
+      {
+        Either::Left(partial) => {
+          oneshot.partial = partial;
+        }
+        Either::Right(response) => {
+          if let Err(error) = oneshot.sender.try_send(Ok(response)) {
+            // NOTE: error -> trace because this should fail when we already cancelled the future from caller
+            tracing::trace!(
+              "Failed sending oneshot response to {:?} {}",
+              oneshot.destination,
+              error,
+            )
           }
-          Either::Right(response) => {
-            if let Err(error) = oneshot.sender.try_send(Ok(response)) {
-              // NOTE: error -> trace because this should fail when we already cancelled the future from caller
-              tracing::trace!(
-                "Failed sending oneshot response to {:?} {}",
-                oneshot.destination,
-                error,
-              )
-            }
 
-            oneshots_to_remove.push(oneshot.id);
+          oneshots_to_remove.push(oneshot.id);
+        }
+      };
+    }
+    self
+      .oneshots
+      .retain(|oneshot| !oneshots_to_remove.iter().any(|id| *id == oneshot.id));
+
+    tracing::trace!(
+      "Removed oneshots {:?} - retained {:?}",
+      oneshots_to_remove,
+      self
+        .oneshots
+        .iter()
+        .map(|oneshot| oneshot.id)
+        .collect::<Vec<_>>()
+    );
+  }
+
+  async fn process_streams(
+    &mut self,
+    mut metrics: &mut Metrics,
+    max_generation: u64,
+  ) {
+    let mut streams_to_remove = Vec::new();
+    for index in 0..self.streams.len() {
+      let stream = self.streams.index_mut(index);
+      if stream.sender.is_disconnected() {
+        streams_to_remove.push(stream.id);
+        continue;
+      }
+
+      if stream.generation == max_generation {
+        continue;
+      }
+
+      let connection =
+        match Self::attempt_connection(&mut self.connections, stream).await {
+          ConnectionAttempt::Existing(connection) => connection,
+          ConnectionAttempt::New(connection) => self
+            .connections
+            .entry(stream.destination.address)
+            .or_insert(connection),
+          ConnectionAttempt::Fail => {
+            streams_to_remove.push(stream.id);
+            continue;
           }
         };
-      }
-      self.oneshots.retain(|oneshot| {
-        !oneshots_to_remove.iter().any(|id| *id == oneshot.id)
-      });
 
-      tracing::trace!(
-        "Removed oneshots {:?} - retained {:?}",
-        oneshots_to_remove,
-        self
-          .oneshots
-          .iter()
-          .map(|oneshot| oneshot.id)
-          .collect::<Vec<_>>()
-      );
-
-      if self.terminate {
-        if !self.streams.is_empty() {
-          self.streams = Vec::new();
+      match Self::read(stream, &mut metrics, connection, self.read_timeout)
+        .await
+      {
+        Either::Left(partial) => {
+          stream.partial = partial;
         }
-      } else {
-        let mut streams_to_remove = Vec::new();
-        for index in 0..self.streams.len() {
-          let stream = self.streams.index_mut(index);
-          if stream.sender.is_disconnected() {
-            streams_to_remove.push(stream.id);
+        Either::Right(response) => {
+          match stream.sender.try_send(Ok(response)) {
+            Ok(()) => {
+              stream.partial = vec![None; stream.spans.len()];
+              stream.generation = stream.generation.saturating_add(1);
+            }
+            Err(error) => {
+              // NOTE: error -> trace because this should fail when we already cancelled the future from caller
+              tracing::trace!(
+                "Failed sending stream response to {:?} {}",
+                stream.destination,
+                error,
+              );
+
+              streams_to_remove.push(stream.id);
+            }
           }
-
-          let connection =
-            match Self::attempt_connection(&mut self.connections, stream).await
-            {
-              ConnectionAttempt::Existing(connection) => connection,
-              ConnectionAttempt::New(connection) => self
-                .connections
-                .entry(stream.destination.address)
-                .or_insert(connection),
-              ConnectionAttempt::Fail => {
-                oneshots_to_remove.push(stream.id);
-                continue;
-              }
-            };
-
-          match Self::read(stream, &mut metrics, connection, self.read_timeout)
-            .await
-          {
-            Either::Left(partial) => {
-              stream.partial = partial;
-            }
-            Either::Right(response) => {
-              match stream.sender.try_send(Ok(response)) {
-                Ok(()) => {
-                  stream.partial = vec![None; stream.spans.len()];
-                }
-                Err(error) => {
-                  // NOTE: error -> trace because this should fail when we already cancelled the future from caller
-                  tracing::trace!(
-                    "Failed sending stream response to {:?} {}",
-                    stream.destination,
-                    error,
-                  );
-
-                  streams_to_remove.push(stream.id);
-                }
-              }
-            }
-          };
         }
-        self.streams.retain(|stream| {
-          !streams_to_remove.iter().any(|id| *id == stream.id)
-        });
-
-        tracing::trace!(
-          "Removed streams {:?} - retained {:?}",
-          streams_to_remove,
-          self
-            .streams
-            .iter()
-            .map(|stream| stream.id)
-            .collect::<Vec<_>>()
-        );
-      }
-
-      if !self.terminate {
-        tracing::trace!("{:#?}", metrics);
-      }
+      };
     }
+    self
+      .streams
+      .retain(|stream| !streams_to_remove.iter().any(|id| *id == stream.id));
+
+    tracing::trace!(
+      "Removed streams {:?} - retained {:?}",
+      streams_to_remove,
+      self
+        .streams
+        .iter()
+        .map(|stream| stream.id)
+        .collect::<Vec<_>>()
+    );
   }
 
   #[tracing::instrument(skip_all)]
@@ -473,6 +493,7 @@ impl Task {
       destination,
       spans,
       partial: vec![None; spans_len],
+      generation: 0,
     };
 
     match kind {
