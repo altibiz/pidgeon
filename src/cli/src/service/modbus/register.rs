@@ -4,7 +4,6 @@ use std::fmt::Display;
 use either::Either;
 use regex::Regex;
 use rust_decimal::Decimal;
-use serde::{Deserialize, Serialize};
 use tokio_modbus::{Address, Quantity};
 
 use super::span::*;
@@ -36,14 +35,13 @@ pub(crate) enum RegisterKindStorage {
   String(StringRegisterKind),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub(crate) struct RegisterValue<T> {
   pub(crate) value: T,
   pub(crate) timestamp: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
+#[derive(Debug, Clone)]
 pub(crate) enum RegisterValueStorage {
   U16(RegisterValue<Decimal>),
   U32(RegisterValue<Decimal>),
@@ -68,6 +66,20 @@ impl RegisterValueStorage {
       RegisterValueStorage::F32(storage) => storage.timestamp,
       RegisterValueStorage::F64(storage) => storage.timestamp,
       RegisterValueStorage::String(storage) => storage.timestamp,
+    }
+  }
+
+  pub(crate) fn serialize(&self) -> serde_json::Value {
+    match self {
+      RegisterValueStorage::U16(storage) => serde_json::json!(storage.value),
+      RegisterValueStorage::U32(storage) => serde_json::json!(storage.value),
+      RegisterValueStorage::U64(storage) => serde_json::json!(storage.value),
+      RegisterValueStorage::S16(storage) => serde_json::json!(storage.value),
+      RegisterValueStorage::S32(storage) => serde_json::json!(storage.value),
+      RegisterValueStorage::S64(storage) => serde_json::json!(storage.value),
+      RegisterValueStorage::F32(storage) => serde_json::json!(storage.value),
+      RegisterValueStorage::F64(storage) => serde_json::json!(storage.value),
+      RegisterValueStorage::String(storage) => serde_json::json!(storage.value),
     }
   }
 }
@@ -194,7 +206,7 @@ pub(crate) fn serialize_registers<
       .map(
         |MeasurementRegister::<RegisterValueStorage> {
            name, storage, ..
-         }| { (name.clone(), serde_json::json!(storage)) },
+         }| { (name.clone(), storage.serialize()) },
       )
       .collect::<serde_json::Map<String, serde_json::Value>>(),
   )

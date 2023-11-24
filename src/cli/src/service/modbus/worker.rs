@@ -398,7 +398,7 @@ impl Task {
       }
 
       if !self.terminate {
-        tracing::trace!(?metrics);
+        tracing::trace!("{:#?}", metrics);
       }
     }
   }
@@ -543,7 +543,7 @@ impl Task {
           None => {
             if let Err(error) = connection.ensure_connected().await {
               metrics
-                .errors
+                .reads
                 .entry(storage.destination)
                 .or_insert_with(Vec::new)
                 .push(ReadMetric {
@@ -567,7 +567,7 @@ impl Task {
               match data {
                 Ok(data) => {
                   metrics
-                    .errors
+                    .reads
                     .entry(storage.destination)
                     .or_insert_with(Vec::new)
                     .push(ReadMetric {
@@ -584,7 +584,7 @@ impl Task {
                 }
                 Err(error) => {
                   metrics
-                    .errors
+                    .reads
                     .entry(storage.destination)
                     .or_insert_with(Vec::new)
                     .push(ReadMetric {
@@ -630,13 +630,13 @@ struct ReadMetric {
 
 #[derive(Debug, Clone)]
 struct Metrics {
-  errors: HashMap<Destination, Vec<ReadMetric>>,
+  reads: HashMap<Destination, Vec<ReadMetric>>,
 }
 
 impl Metrics {
   fn new() -> Self {
     Self {
-      errors: HashMap::new(),
+      reads: HashMap::new(),
     }
   }
 }
