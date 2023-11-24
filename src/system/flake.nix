@@ -197,6 +197,14 @@
         # visualization
         {
           services.grafana.enable = true;
+          services.grafana.settings.server = {
+            http_addr = "0.0.0.0";
+            http_port = 3000;
+          };
+
+          networking.firewall.allowedTCPPorts = [
+            3000
+          ];
 
           services.grafana.provision.enable = true;
           services.grafana.provision.datasources.settings = {
