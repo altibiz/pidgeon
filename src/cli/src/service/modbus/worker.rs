@@ -13,6 +13,7 @@ use super::span::{SimpleSpan, Span};
 
 // TODO: Read(Custom { kind: Other, error: ExceptionResponse { function: 3, exception: IllegalDataAddress } })
 // TODO: Read(Custom { kind: InvalidData, error: \"Invalid response header: expected/request = Header { transaction_id: 0, unit_id: 255 }, actual/response = Header { transaction_id: 0, unit_id: 2 }\" })
+// TODO: Timeout(Custom { kind: TimedOut, error: \"future timed out\" })
 
 // OPTIMIZE: remove copying when reading
 // OPTIMIZE: check bounded channel length - maybe config?
@@ -551,7 +552,7 @@ impl Task {
                 .or_insert_with(Vec::new)
                 .push(ReadMetric {
                   message: format!(
-                    "Failed reading span {:?} {:?}",
+                    "Failed connecting span {:?} {:?}",
                     span, &error
                   ),
                   error: true,
