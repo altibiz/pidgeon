@@ -11,9 +11,9 @@ use tokio::sync::Mutex;
 use super::connection::*;
 use super::span::{SimpleSpan, Span};
 
-// NOTE: Read(Custom { kind: Other, error: ExceptionResponse { function: 3, exception: IllegalDataAddress } })
-// NOTE: Read(Custom { kind: InvalidData, error: \"Invalid response header: expected/request = Header { transaction_id: 0, unit_id: 255 }, actual/response = Header { transaction_id: 0, unit_id: 2 }\" })
-// NOTE: Timeout(Custom { kind: TimedOut, error: \"future timed out\" })
+// NOTE: discovery Read(Custom { kind: Other, error: ExceptionResponse { function: 3, exception: IllegalDataAddress } })
+// NOTE: timeout clog Read(Custom { kind: InvalidData, error: \"Invalid response header: expected/request = Header { transaction_id: 0, unit_id: 255 }, actual/response = Header { transaction_id: 0, unit_id: 2 }\" })
+// NOTE: timeout Timeout(Custom { kind: TimedOut, error: \"future timed out\" })
 
 // OPTIMIZE: remove copying when reading
 // OPTIMIZE: check bounded channel length - maybe config?
