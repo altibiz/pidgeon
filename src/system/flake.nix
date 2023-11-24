@@ -194,6 +194,29 @@
         # cli
         ({ pkgs, ... }: { })
 
+        # Grafana
+        ({}: {
+          services.grafana.enable = true;
+
+          services.grafana.datasources.settings = {
+            apiVersion = 1;
+            datasources = [
+              {
+                name = "Pidgeon DB";
+                type = "postgres";
+                url = "localhost:5432";
+                user = "pidgeon";
+                jsonData = {
+                  database = "pidgeon";
+                  sslmode = "disable";
+                  version = 10; # NOTE: >=10
+                  timescaledb = true;
+                };
+              }
+            ];
+          };
+        })
+
         # maintenance
         {
           services.postgresql.settings = {
