@@ -197,9 +197,15 @@
         # visualization
         {
           services.grafana.enable = true;
-          services.grafana.settings.server = {
-            http_addr = "0.0.0.0";
-            http_port = 3000;
+          services.grafana.settings = {
+            server = {
+
+              http_addr = "0.0.0.0";
+              http_port = 3000;
+            };
+            date_formats = {
+              default_timezone = "utc";
+            };
           };
 
           networking.firewall.allowedTCPPorts = [
