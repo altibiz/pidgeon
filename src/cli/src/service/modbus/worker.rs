@@ -621,6 +621,16 @@ impl Task {
                       span,
                       time: Some(end.signed_duration_since(start)),
                     });
+
+                  if let ReadError::Read(io_error) = error {
+                    if io_error.kind() == std::io::ErrorKind::InvalidData {
+                      tokio::time::sleep(tokio::time::Duration::from_millis(
+                        50,
+                      ))
+                      .await;
+                    }
+                  };
+
                   None
                 }
               }
