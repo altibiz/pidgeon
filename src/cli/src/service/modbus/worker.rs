@@ -66,9 +66,10 @@ impl Worker {
   pub(crate) fn new(
     read_timeout: chrono::Duration,
     termination_timeout: chrono::Duration,
+    congestion_backoff: chrono::Duration,
   ) -> Self {
     let (sender, receiver) = flume::unbounded();
-    let task = Task::new(read_timeout, receiver);
+    let task = Task::new(read_timeout, receiver, congestion_backoff);
     let handle = tokio::spawn(task.execute());
     Self {
       sender,
@@ -241,12 +242,14 @@ struct Task {
   streams: Vec<Storage>,
   terminate: bool,
   read_timeout: chrono::Duration,
+  congestion_backoff: tokio::time::Duration,
 }
 
 impl Task {
   pub(crate) fn new(
     read_timeout: chrono::Duration,
     receiver: RequestReceiver,
+    congestion_backoff: chrono::Duration,
   ) -> Self {
     Self {
       connections: HashMap::new(),
@@ -255,6 +258,9 @@ impl Task {
       streams: Vec::new(),
       terminate: false,
       read_timeout,
+      congestion_backoff: tokio::time::Duration::from_millis(
+        congestion_backoff.num_milliseconds() as u64,
+      ),
     }
   }
 
@@ -321,8 +327,14 @@ impl Task {
           }
         };
 
-      match Self::read(oneshot, &mut metrics, connection, self.read_timeout)
-        .await
+      match Self::read(
+        oneshot,
+        &mut metrics,
+        connection,
+        self.read_timeout,
+        self.congestion_backoff,
+      )
+      .await
       {
         Either::Left(partial) => {
           oneshot.partial = partial;
@@ -386,8 +398,14 @@ impl Task {
           }
         };
 
-      match Self::read(stream, &mut metrics, connection, self.read_timeout)
-        .await
+      match Self::read(
+        stream,
+        &mut metrics,
+        connection,
+        self.read_timeout,
+        self.congestion_backoff,
+      )
+      .await
       {
         Either::Left(partial) => {
           stream.partial = partial;
@@ -557,6 +575,7 @@ impl Task {
     metrics: &mut Metrics,
     connection: &mut Connection,
     timeout: chrono::Duration,
+    congestion_backoff: tokio::time::Duration,
   ) -> Either<Partial, Response> {
     let partial = {
       let mut data = Vec::new();
@@ -624,10 +643,7 @@ impl Task {
 
                   if let ReadError::Read(io_error) = error {
                     if io_error.kind() == std::io::ErrorKind::InvalidData {
-                      tokio::time::sleep(tokio::time::Duration::from_millis(
-                        50,
-                      ))
-                      .await;
+                      tokio::time::sleep(congestion_backoff).await;
                     }
                   };
 

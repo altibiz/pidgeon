@@ -22,6 +22,7 @@ pub(crate) struct Service {
   read_timeout: chrono::Duration,
   batch_threshold: u16,
   termination_timeout: chrono::Duration,
+  congestion_backoff: chrono::Duration,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -68,6 +69,7 @@ impl service::Service for Service {
       read_timeout: config.modbus.read_timeout,
       batch_threshold: config.modbus.batch_threshold,
       termination_timeout: config.modbus.termination_timeout,
+      congestion_backoff: config.modbus.congestion_backoff,
     }
   }
 }
@@ -387,7 +389,11 @@ impl Service {
     let worker = workers
       .entry(destination.address)
       .or_insert_with(|| Server {
-        worker: Worker::new(self.read_timeout, self.termination_timeout),
+        worker: Worker::new(
+          self.read_timeout,
+          self.termination_timeout,
+          self.congestion_backoff,
+        ),
       })
       .clone();
     worker

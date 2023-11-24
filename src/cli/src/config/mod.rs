@@ -57,6 +57,7 @@ pub(crate) struct Modbus {
   pub(crate) read_timeout: chrono::Duration,
   pub(crate) batch_threshold: u16,
   pub(crate) termination_timeout: chrono::Duration,
+  pub(crate) congestion_backoff: chrono::Duration,
   pub(crate) ping_timeout: chrono::Duration,
   pub(crate) inactive_timeout: chrono::Duration,
   pub(crate) discovery_timeout: chrono::Duration,
@@ -235,6 +236,9 @@ impl Manager {
             .modbus
             .termination_timeout
             .unwrap_or(10_000),
+        ),
+        congestion_backoff: file::milliseconds_to_chrono(
+          config.from_file.modbus.termination_timeout.unwrap_or(50),
         ),
         ping_timeout: file::milliseconds_to_chrono(
           config.from_file.modbus.ping_timeout.unwrap_or(30_000),
