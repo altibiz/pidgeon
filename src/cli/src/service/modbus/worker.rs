@@ -286,10 +286,10 @@ impl Task {
           self.streams = Vec::new();
         }
       } else {
-        if let Some(max_generation) =
-          self.streams.iter().map(|stream| stream.generation).max()
+        if let Some(generation) =
+          self.streams.iter().map(|stream| stream.generation).min()
         {
-          self.process_streams(&mut metrics, max_generation).await;
+          self.process_streams(&mut metrics, generation).await;
         }
       }
 
@@ -359,7 +359,7 @@ impl Task {
   async fn process_streams(
     &mut self,
     mut metrics: &mut Metrics,
-    max_generation: u64,
+    generation: u64,
   ) {
     let mut streams_to_remove = Vec::new();
     for index in 0..self.streams.len() {
@@ -369,7 +369,7 @@ impl Task {
         continue;
       }
 
-      if stream.generation == max_generation {
+      if stream.generation != generation {
         continue;
       }
 
