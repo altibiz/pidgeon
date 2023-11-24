@@ -144,10 +144,7 @@
             };
           in
           {
-            environment.systemPackages = with pkgs; [
-              usql
-              feedgnuplot
-            ];
+            environment.systemPackages = [ usql ];
 
             services.postgresql.enable = true;
             services.postgresql.package = pkgs.postgresql_14;

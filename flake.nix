@@ -104,7 +104,6 @@
         sqlx-cli
         jq
         sops
-        feedgnuplot
       ];
 
       DATABASE_URL = "postgres://pidgeon:pidgeon@localhost/pidgeon?sslmode=disable";
