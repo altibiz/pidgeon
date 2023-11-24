@@ -291,12 +291,10 @@ impl Task {
         if !self.streams.is_empty() {
           self.streams = Vec::new();
         }
-      } else {
-        if let Some(generation) =
-          self.streams.iter().map(|stream| stream.generation).min()
-        {
-          self.process_streams(&mut metrics, generation).await;
-        }
+      } else if let Some(generation) =
+        self.streams.iter().map(|stream| stream.generation).min()
+      {
+        self.process_streams(&mut metrics, generation).await;
       }
 
       if !self.terminate {
@@ -305,7 +303,7 @@ impl Task {
     }
   }
 
-  async fn process_oneshots(&mut self, mut metrics: &mut Metrics) {
+  async fn process_oneshots(&mut self, metrics: &mut Metrics) {
     let mut oneshots_to_remove = Vec::new();
     for index in 0..self.oneshots.len() {
       let oneshot = self.oneshots.index_mut(index);
@@ -329,7 +327,7 @@ impl Task {
 
       match Self::read(
         oneshot,
-        &mut metrics,
+        metrics,
         connection,
         self.read_timeout,
         self.congestion_backoff,
@@ -368,11 +366,7 @@ impl Task {
     );
   }
 
-  async fn process_streams(
-    &mut self,
-    mut metrics: &mut Metrics,
-    generation: u64,
-  ) {
+  async fn process_streams(&mut self, metrics: &mut Metrics, generation: u64) {
     let mut streams_to_remove = Vec::new();
     for index in 0..self.streams.len() {
       let stream = self.streams.index_mut(index);
@@ -400,7 +394,7 @@ impl Task {
 
       match Self::read(
         stream,
-        &mut metrics,
+        metrics,
         connection,
         self.read_timeout,
         self.congestion_backoff,
