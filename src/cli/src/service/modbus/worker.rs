@@ -396,6 +396,10 @@ impl Task {
             .collect::<Vec<_>>()
         );
       }
+
+      if !self.terminate {
+        tracing::trace!(?metrics);
+      }
     }
   }
 
@@ -536,23 +540,67 @@ impl Task {
       {
         let read = match partial {
           Some(partial) => Some(partial.clone()),
-          None => match (*connection)
-            .read(storage.destination.slave, span, timeout)
-            .await
-          {
-            Ok(span) => Some(SpanResponse {
-              span,
-              timestamp: chrono::Utc::now(),
-            }),
-            Err(error) => {
+          None => {
+            if let Err(error) = connection.ensure_connected().await {
               metrics
                 .errors
                 .entry(storage.destination)
                 .or_insert_with(Vec::new)
-                .push((format!("{:?}", &error), error));
+                .push(ReadMetric {
+                  message: format!(
+                    "Failed reading span {:?} {:?}",
+                    span, &error
+                  ),
+                  error: true,
+                  span,
+                  time: None,
+                });
+
               None
+            } else {
+              let start = chrono::Utc::now();
+              let data = (*connection)
+                .read(storage.destination.slave, span, timeout)
+                .await;
+              let end = chrono::Utc::now();
+
+              match data {
+                Ok(data) => {
+                  metrics
+                    .errors
+                    .entry(storage.destination)
+                    .or_insert_with(Vec::new)
+                    .push(ReadMetric {
+                      message: format!("Successfully read span {:?}", span),
+                      error: true,
+                      span,
+                      time: Some(end.signed_duration_since(start)),
+                    });
+
+                  Some(SpanResponse {
+                    span: data,
+                    timestamp: chrono::Utc::now(),
+                  })
+                }
+                Err(error) => {
+                  metrics
+                    .errors
+                    .entry(storage.destination)
+                    .or_insert_with(Vec::new)
+                    .push(ReadMetric {
+                      message: format!(
+                        "Failed reading span {:?} {:?}",
+                        span, &error
+                      ),
+                      error: true,
+                      span,
+                      time: Some(end.signed_duration_since(start)),
+                    });
+                  None
+                }
+              }
             }
-          },
+          }
         };
 
         data.push(read);
@@ -571,9 +619,18 @@ impl Task {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+#[allow(unused)]
+struct ReadMetric {
+  message: String,
+  error: bool,
+  span: SimpleSpan,
+  time: Option<chrono::Duration>,
+}
+
+#[derive(Debug, Clone)]
 struct Metrics {
-  errors: HashMap<Destination, Vec<(String, ReadError)>>,
+  errors: HashMap<Destination, Vec<ReadMetric>>,
 }
 
 impl Metrics {

@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-use futures::future::join_all;
+use futures::future::{join_all, select_all};
 use futures_time::future::FutureExt;
 
 use crate::{service::*, *};
@@ -80,19 +80,14 @@ impl Process {
     if let Some(device_match) = self
       .match_destination(config, modbus::Destination::standalone_for(address))
       .await
-      .into_iter()
-      .next()
     {
       return vec![device_match];
     }
 
     let mut device_matches = Vec::new();
     for destination in modbus::Destination::slaves_for(address) {
-      if let Some(device_match) = self
-        .match_destination(config, destination)
-        .await
-        .into_iter()
-        .next()
+      if let Some(device_match) =
+        self.match_destination(config, destination).await
       {
         device_matches.push(device_match);
       } else {
@@ -108,40 +103,33 @@ impl Process {
     &self,
     config: &config::Values,
     destination: modbus::Destination,
-  ) -> Vec<DeviceMatch> {
-    let destination_matches =
-      join_all(config.modbus.devices.values().map(|device| {
+  ) -> Option<DeviceMatch> {
+    let device = select_all(config.modbus.devices.values().map(|device| {
+      Box::pin(
         self
           .match_device(device.clone(), destination)
-          .timeout(timeout_from_chrono(config.modbus.discovery_timeout))
-      }))
-      .await
-      .into_iter()
-      .flatten()
-      .flatten()
-      .collect::<Vec<_>>();
-    let destination_matches_len = destination_matches.len();
+          .timeout(timeout_from_chrono(config.modbus.discovery_timeout)),
+      )
+    }))
+    .await
+    .0
+    .ok()
+    .flatten()?;
 
-    let device_matches =
-      join_all(destination_matches.into_iter().map(|device| {
-        self
-          .match_id(device, destination)
-          .timeout(timeout_from_chrono(config.modbus.discovery_timeout))
-      }))
+    let device_match = self
+      .match_id(device, destination)
+      .timeout(timeout_from_chrono(config.modbus.discovery_timeout))
       .await
-      .into_iter()
-      .flatten()
-      .flatten()
-      .collect::<Vec<_>>();
-    let device_matches_len = device_matches.len();
+      .ok()
+      .flatten()?;
 
     tracing::debug!(
-      "Matched {:?} devices of which {:?} had ids",
-      destination_matches_len,
-      device_matches_len
+      "Matched {:?} devices on {:?}",
+      device_match.id,
+      device_match.destination
     );
 
-    device_matches
+    Some(device_match)
   }
 
   #[tracing::instrument(skip(self))]
