@@ -194,7 +194,7 @@
         # cli
         ({ pkgs, ... }: { })
 
-        # Grafana
+        # visualization
         ({}: {
           services.grafana.enable = true;
 
