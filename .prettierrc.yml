@@ -1,6 +1,6 @@
-# TODO: https://github.com/prettier/prettier/issues/15255
-# editorconfig: true
 printWidth: 80
-useTabs: false
 tabWidth: 2
+useTabs: false
+trailingComma: all
 endOfLine: lf
+proseWrap: always
