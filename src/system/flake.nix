@@ -1,5 +1,5 @@
 # TODO: CLI service
-# TODO: monitoring with collectd or similar
+# TODO: monitoring with collectd/netdata
 
 {
   description = "Raspberry Pi message broker";
