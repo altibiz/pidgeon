@@ -2,8 +2,8 @@ use tokio_modbus::{Address, Quantity};
 
 use super::span::*;
 
-// TODO: better error handling for span batching
-// TODO: macros to implement batch parsing
+// NITPICK: better error handling for span batching
+// NITPICK: macros to implement batch parsing
 
 #[derive(Clone, Debug)]
 pub(crate) struct Batch<TSpan: Span> {

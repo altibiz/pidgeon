@@ -1,6 +1,6 @@
 begin;
 
--- TODO: https://github.com/timescale/timescaledb/issues/836
+-- NITPICK: https://github.com/timescale/timescaledb/issues/836
 
 create extension if not exists timescaledb cascade;
 

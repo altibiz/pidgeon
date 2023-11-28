@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::service::modbus;
 
-// TODO: optional values here with #[serde(default = ...)]
+// NITPICK: optional values here with #[serde(default = ...)]
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Hardware {
