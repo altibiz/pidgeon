@@ -32,7 +32,7 @@
           '';
         };
 
-        # TODO: https://github.com/astral-sh/ruff/issues/1699
+        # NITPICK: https://github.com/astral-sh/ruff/issues/1699
         # ruff = pkgs.writeShellApplication {
         #   name = "ruff";
         #   runtimeInputs = [ pkgs.poetry ];
