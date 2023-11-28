@@ -1,8 +1,6 @@
-# TODO: with nixos-generate
-# TODO: CLI
+# TODO: CLI service
 # TODO: cert renewal
-# TODO: configure smartd
-# TODO: find more monitoring tools like smartd
+# TODO: monitoring with collectd or similar
 
 {
   description = "Raspberry Pi message broker";
@@ -26,7 +24,7 @@
         # nix
         ({ pkgs, modulesPath, ... }: {
           imports = [
-            # NOTE: doesn't work without this for now
+            # NITPICK: doesn't work without this for now
             # it should work with just `nixos-generate`
             "${modulesPath}/installer/sd-card/sd-image-aarch64.nix"
           ];
