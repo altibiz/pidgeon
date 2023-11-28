@@ -1,5 +1,4 @@
 # TODO: CLI service
-# TODO: cert renewal
 # TODO: monitoring with collectd or similar
 
 {
@@ -150,6 +149,7 @@
               timescaledb
             ];
             services.postgresql.settings.shared_preload_libraries = "timescaledb";
+
             services.postgresql.ensureDatabases = [ "pidgeon" ];
             services.postgresql.ensureUsers = [
               {
@@ -160,6 +160,7 @@
                 };
               }
             ];
+
             services.postgresql.authentication = pkgs.lib.mkOverride 10 ''
               # NOTE: do not remove local privileges because that breaks timescaledb
               # TYPE    DATABASE    USER        ADDRESS         METHOD        OPTIONS
@@ -171,6 +172,8 @@
             services.postgresql.enableTCPIP = true;
             services.postgresql.port = 5432;
             networking.firewall.allowedTCPPorts = [ 5432 ];
+
+            # NITPICK: cert renewal
             services.postgresql.settings.ssl = "on";
             services.postgresql.settings.ssl_cert_file = "/etc/postgresql/server.crt";
             sops.secrets."postgres.crt".path = "/etc/postgresql/server.crt";
