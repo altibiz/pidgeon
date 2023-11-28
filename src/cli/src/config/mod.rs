@@ -58,6 +58,7 @@ pub(crate) struct Modbus {
   pub(crate) batch_threshold: u16,
   pub(crate) termination_timeout: chrono::Duration,
   pub(crate) congestion_backoff: chrono::Duration,
+  pub(crate) partial_retries: u32,
   pub(crate) ping_timeout: chrono::Duration,
   pub(crate) inactive_timeout: chrono::Duration,
   pub(crate) discovery_timeout: chrono::Duration,
@@ -240,6 +241,7 @@ impl Manager {
         congestion_backoff: file::milliseconds_to_chrono(
           config.from_file.modbus.termination_timeout.unwrap_or(50),
         ),
+        partial_retries: config.from_file.modbus.partial_retries.unwrap_or(10),
         ping_timeout: file::milliseconds_to_chrono(
           config.from_file.modbus.ping_timeout.unwrap_or(30_000),
         ),
@@ -248,7 +250,7 @@ impl Manager {
             .from_file
             .modbus
             .inactive_timeout
-            .unwrap_or(60 * 60 * 1000),
+            .unwrap_or(5 * 60 * 1000),
         ),
         discovery_timeout: file::milliseconds_to_chrono(
           config.from_file.modbus.discovery_timeout.unwrap_or(5_000),

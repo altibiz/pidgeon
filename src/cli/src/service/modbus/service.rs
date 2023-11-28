@@ -23,6 +23,7 @@ pub(crate) struct Service {
   batch_threshold: u16,
   termination_timeout: chrono::Duration,
   congestion_backoff: chrono::Duration,
+  partial_retries: u32,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -70,6 +71,7 @@ impl service::Service for Service {
       batch_threshold: config.modbus.batch_threshold,
       termination_timeout: config.modbus.termination_timeout,
       congestion_backoff: config.modbus.congestion_backoff,
+      partial_retries: config.modbus.partial_retries,
     }
   }
 }
@@ -393,6 +395,7 @@ impl Service {
           self.read_timeout,
           self.termination_timeout,
           self.congestion_backoff,
+          self.partial_retries,
         ),
       })
       .clone();

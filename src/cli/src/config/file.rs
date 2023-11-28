@@ -89,6 +89,7 @@ pub(crate) struct Modbus {
   pub(crate) batch_threshold: Option<u16>,
   pub(crate) termination_timeout: Option<u32>,
   pub(crate) congestion_backoff: Option<u32>,
+  pub(crate) partial_retries: Option<u32>,
   pub(crate) ping_timeout: Option<u32>,
   pub(crate) inactive_timeout: Option<u32>,
   pub(crate) discovery_timeout: Option<u32>,

@@ -11,9 +11,6 @@ use tokio::sync::Mutex;
 use super::connection::*;
 use super::span::{SimpleSpan, Span};
 
-// TODO: confirm that u64 is large enough for generations
-// TODO: added streams should have max generation
-
 // NOTE: discovery Read(Custom { kind: Other, error: ExceptionResponse { function: 3, exception: IllegalDataAddress } })
 // NOTE: timeout clog Read(Custom { kind: InvalidData, error: \"Invalid response header: expected/request = Header { transaction_id: 0, unit_id: 255 }, actual/response = Header { transaction_id: 0, unit_id: 2 }\" })
 // NOTE: timeout Timeout(Custom { kind: TimedOut, error: \"future timed out\" })
@@ -68,9 +65,11 @@ impl Worker {
     read_timeout: chrono::Duration,
     termination_timeout: chrono::Duration,
     congestion_backoff: chrono::Duration,
+    partial_retries: u32,
   ) -> Self {
     let (sender, receiver) = flume::unbounded();
-    let task = Task::new(read_timeout, receiver, congestion_backoff);
+    let task =
+      Task::new(read_timeout, receiver, congestion_backoff, partial_retries);
     let handle = tokio::spawn(task.execute());
     Self {
       sender,
@@ -222,8 +221,13 @@ type RequestSender = flume::Sender<TaskRequest>;
 type RequestReceiver = flume::Receiver<TaskRequest>;
 type ResponseSender = flume::Sender<Result<Response, SendError>>;
 
-type Partial = Vec<Option<SpanResponse>>;
 type Id = uuid::Uuid;
+
+#[derive(Debug, Clone)]
+struct Partial {
+  spans: Vec<Option<SpanResponse>>,
+  retries: u32,
+}
 
 #[derive(Debug, Clone)]
 struct Storage {
@@ -244,6 +248,7 @@ struct Task {
   terminate: bool,
   read_timeout: chrono::Duration,
   congestion_backoff: tokio::time::Duration,
+  partial_retries: u32,
 }
 
 impl Task {
@@ -251,6 +256,7 @@ impl Task {
     read_timeout: chrono::Duration,
     receiver: RequestReceiver,
     congestion_backoff: chrono::Duration,
+    partial_retries: u32,
   ) -> Self {
     Self {
       connections: HashMap::new(),
@@ -262,6 +268,7 @@ impl Task {
       congestion_backoff: tokio::time::Duration::from_millis(
         congestion_backoff.num_milliseconds() as u64,
       ),
+      partial_retries,
     }
   }
 
@@ -380,6 +387,15 @@ impl Task {
         continue;
       }
 
+      if stream.partial.retries > self.partial_retries {
+        stream.generation = stream.generation.saturating_add(1);
+        stream.partial = Partial {
+          spans: vec![None; stream.spans.len()],
+          retries: 0,
+        };
+        continue;
+      }
+
       let connection =
         match Self::attempt_connection(&mut self.connections, stream).await {
           ConnectionAttempt::Existing(connection) => connection,
@@ -408,7 +424,10 @@ impl Task {
         Either::Right(response) => {
           match stream.sender.try_send(Ok(response)) {
             Ok(()) => {
-              stream.partial = vec![None; stream.spans.len()];
+              stream.partial = Partial {
+                spans: vec![None; stream.spans.len()],
+                retries: 0,
+              };
               stream.generation = stream.generation.saturating_add(1);
             }
             Err(error) => {
@@ -505,7 +524,10 @@ impl Task {
       sender,
       destination,
       spans,
-      partial: vec![None; spans_len],
+      partial: Partial {
+        spans: vec![None; spans_len],
+        retries: 0,
+      },
       generation: self
         .streams
         .iter()
@@ -579,8 +601,11 @@ impl Task {
   ) -> Either<Partial, Response> {
     let partial = {
       let mut data = Vec::new();
-      for (span, partial) in
-        storage.spans.iter().cloned().zip(storage.partial.iter())
+      for (span, partial) in storage
+        .spans
+        .iter()
+        .cloned()
+        .zip(storage.partial.spans.iter())
       {
         let read = match partial {
           Some(partial) => Some(partial.clone()),
@@ -665,7 +690,10 @@ impl Task {
       Either::Right(partial.iter().flatten().cloned().collect::<Vec<_>>())
     } else {
       tracing::trace!("Partially read");
-      Either::Left(partial)
+      Either::Left(Partial {
+        spans: partial,
+        retries: storage.partial.retries.saturating_add(1),
+      })
     }
   }
 }
