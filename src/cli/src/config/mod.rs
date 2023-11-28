@@ -10,8 +10,6 @@ use tokio::sync::Mutex;
 
 use crate::service::modbus;
 
-// TODO: timeout per device - maybe worth investigating
-
 #[derive(Debug, Clone)]
 pub(crate) struct Db {
   pub(crate) timeout: chrono::Duration,
