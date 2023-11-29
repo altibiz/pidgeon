@@ -69,6 +69,21 @@ kind = { f32 = { multiplier = 1000 } }
 # schneider-iEM3xxx cumulative
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "activeEnergyImportL1_Wh"
+address = 0x0DBD
+kind = { s64 = { multiplier = 1 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "activeEnergyImportL2_Wh"
+address = 0x0DC1
+kind = { s64 = { multiplier = 1 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "activeEnergyImportL3_Wh"
+address = 0x0DC5
+kind = { s64 = { multiplier = 1 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
 name = "activeEnergyImportTotal_Wh"
 address = 0x0C83
 kind = { s64 = { multiplier = 1 } }
