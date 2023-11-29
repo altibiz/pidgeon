@@ -32,7 +32,8 @@
           nix.extraOptions = "experimental-features = nix-command flakes";
 
           nixpkgs.config = { allowUnfree = true; };
-          # TODO: https://github.com/NixOS/nixpkgs/issues/154163#issuecomment-1008362877  
+
+          # NOTE: https://github.com/NixOS/nixpkgs/issues/154163#issuecomment-1008362877  
           nixpkgs.overlays = [
             (final: super: {
               makeModulesClosure = x:
