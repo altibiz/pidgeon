@@ -43,6 +43,12 @@ async def main():
           convert=PullClient.to_sint32,
         ),
         Request(
+          name="Active power export L1",
+          register=0x546C,
+          count=4,
+          convert=PullClient.to_raw_bytes,
+        ),
+        Request(
           name="Reactive Power",
           register=0x5B1C,
           count=2,
