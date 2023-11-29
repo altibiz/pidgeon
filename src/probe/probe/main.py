@@ -76,7 +76,31 @@ async def main():
           register=0x0BF3,
           count=2,
           convert=PullClient.to_float32,
-        )
+        ),
+        Request(
+          name="Active energy import total",
+          register=0x0C83,
+          count=4,
+          convert=PullClient.to_sint64,
+        ),
+        Request(
+          name="Active energy import L1",
+          register=0x0DBD,
+          count=4,
+          convert=PullClient.to_sint64,
+        ),
+        Request(
+          name="Active energy import L2",
+          register=0x0DC1,
+          count=4,
+          convert=PullClient.to_sint64,
+        ),
+        Request(
+          name="Active energy import L3",
+          register=0x0DC5,
+          count=4,
+          convert=PullClient.to_sint64,
+        ),
       ])
 
 

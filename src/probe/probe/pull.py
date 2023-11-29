@@ -101,6 +101,15 @@ class PullClient:
     return combined_value
 
   @staticmethod
+  def to_sint64(first: int, second: int, third: int, fourth: int) -> int:
+    combined_value = (first << 48) | (second << 32) | (third << 16) | fourth
+
+    if combined_value & 0x8000000000000000:
+      combined_value -= 0x10000000000000000
+
+    return combined_value
+
+  @staticmethod
   def to_sint16(register: int) -> int:
     return register if register < 0x8000 else register - 0x10000
 
