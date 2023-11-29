@@ -37,10 +37,16 @@ async def main():
           convert=PullClient.to_uint32,
         ),
         Request(
-          name="Power",
+          name="Active power",
           register=0x5B14,
           count=2,
           convert=PullClient.to_sint32,
+        ),
+        Request(
+          name="Reactive Power",
+          register=0x5B1C,
+          count=2,
+          convert=PullClient.to_raw_bytes,
         ),
       ])
 
@@ -60,7 +66,7 @@ async def main():
           convert=PullClient.to_uint32,
         ),
         Request(
-          name="Power",
+          name="Active Power",
           register=0x0BF3,
           count=2,
           convert=PullClient.to_float32,
