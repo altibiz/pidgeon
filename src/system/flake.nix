@@ -123,14 +123,14 @@
           };
 
           sops.secrets."password.pub".path = "/home/pidgeon/password.pub";
-          sops.secrets."password.pub".owner = "root";
-          sops.secrets."password.pub".group = "root";
-          sops.secrets."password.pub".mode = "0600";
+          sops.secrets."password.pub".owner = "pidgeon";
+          sops.secrets."password.pub".group = "users";
+          sops.secrets."password.pub".mode = "0644";
 
           sops.secrets."authorized.pub".path = "/home/pidgeon/.ssh/authorized_keys";
-          sops.secrets."authorized.pub".owner = "root";
-          sops.secrets."authorized.pub".group = "root";
-          sops.secrets."authorized.pub".mode = "0600";
+          sops.secrets."authorized.pub".owner = "pidgeon";
+          sops.secrets."authorized.pub".group = "users";
+          sops.secrets."authorized.pub".mode = "0644";
         })
 
         # database
