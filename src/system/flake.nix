@@ -63,12 +63,8 @@
             sops
           ];
 
-          sops.defaultSopsFile = ./secrets/secrets.enc.yaml;
-          environment.etc."sops-nix/key.txt" = {
-            text = (builtins.readFile ./secrets/pidgeon-age.key);
-            mode = "0600";
-          };
-          sops.age.keyFile = "/etc/sops-nix/key.txt";
+          sops.defaultSopsFile = ./secrets/secrets.sops.enc.yaml;
+          sops.age.keyFile = "/root/.sops/secrets.age";
         })
 
         # system
