@@ -63,7 +63,7 @@
             sops
           ];
 
-          sops.defaultSopsFile = ./secrets/secrets.sops.enc.yaml;
+          sops.defaultSopsFile = ./secrets.sops.enc.yaml;
           sops.age.keyFile = "/root/.sops/secrets.age";
         })
 
