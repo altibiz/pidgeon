@@ -120,9 +120,6 @@
             hashedPasswordFile = "/home/pidgeon/password.pub";
             extraGroups = [ "wheel" ];
             useDefaultShell = true;
-            openssh.authorizedKeys.keyFiles = [
-              "/home/pidgeon/authorized.pub"
-            ];
           };
 
           sops.secrets."password.pub".path = "/home/pidgeon/password.pub";
@@ -130,7 +127,7 @@
           sops.secrets."password.pub".group = "root";
           sops.secrets."password.pub".mode = "0600";
 
-          sops.secrets."authorized.pub".path = "/home/pidgeon/authorized.pub";
+          sops.secrets."authorized.pub".path = "/home/pidgeon/.ssh/authorized_keys";
           sops.secrets."authorized.pub".owner = "root";
           sops.secrets."authorized.pub".group = "root";
           sops.secrets."authorized.pub".mode = "0600";
