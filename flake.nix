@@ -114,6 +114,7 @@
       # PIDGEON_CLOUD_ID = "pidgeon";
 
       PIDGEON_DB_DOMAIN = "localhost";
+      PIDGEON_DB_PORT = "5433";
       PIDGEON_DB_USER = "pidgeon";
       PIDGEON_DB_PASSWORD = "pidgeon";
       PIDGEON_DB_NAME = "pidgeon";
