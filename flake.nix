@@ -57,7 +57,7 @@
           name = "usql";
           runtimeInputs = [ pkgs.usql ];
           text = ''
-            usql pg://pidgeon:pidgeon@localhost/pidgeon?sslmode=disable "$@"
+            usql pg://pidgeon:pidgeon@localhost:5433/pidgeon?sslmode=disable "$@"
           '';
         };
       in
@@ -106,7 +106,7 @@
         sops
       ];
 
-      DATABASE_URL = "postgres://pidgeon:pidgeon@localhost/pidgeon?sslmode=disable";
+      DATABASE_URL = "postgres://pidgeon:pidgeon@localhost:5433/pidgeon?sslmode=disable";
 
       # PIDGEON_CLOUD_SSL = "1";
       # PIDGEON_CLOUD_DOMAIN = "localhost:5001";
