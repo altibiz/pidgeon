@@ -330,6 +330,7 @@ impl Service {
         select id, source, timestamp, data
         from measurements
         where measurements.id > $1
+        order by measurements.id asc
         limit $2
       "#,
       from,
