@@ -178,6 +178,8 @@ kind = { s32 = { multiplier = 0.01 } }
 
 # abb-B2x cumulative
 
+# TODO: rename all Power to Energy here
+
 [[modbus.devices.abb-B2x.measurement]]
 name = "activePowerImportL1_Wh"
 address = 0x5460
