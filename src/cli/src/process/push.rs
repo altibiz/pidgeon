@@ -62,6 +62,7 @@ impl process::Recurring for Process {
       )
       .await;
     let end = chrono::Utc::now();
+    let took = end.signed_duration_since(start).num_milliseconds();
 
     let (log_status, log_response) = match result {
       Ok(cloud::Response {
@@ -70,7 +71,7 @@ impl process::Recurring for Process {
         ..
       }) => {
         tracing::info!(
-          "Successfully pushed {:?} measurements from {:?} to {:?} took {}",
+          "Successfully pushed {:?} measurements from {:?} to {:?} took {} ms",
           measurements_len,
           last_pushed_id,
           last_push_id,
@@ -84,7 +85,7 @@ impl process::Recurring for Process {
         code,
       }) => {
         tracing::error!(
-          "Failed pushing {:?} measurements from {:?} to {:?} with code {:?} took {}",
+          "Failed pushing {:?} measurements from {:?} to {:?} with code {:?} took {} ms",
           measurements_len,
           last_pushed_id,
           last_push_id,
@@ -95,7 +96,7 @@ impl process::Recurring for Process {
       }
       Err(error) => {
         tracing::error!(
-          "Failed pushing {:?} measurements from {:?} to {:?} took {} {}",
+          "Failed pushing {:?} measurements from {:?} to {:?} took {} ms {}",
           measurements_len,
           last_pushed_id,
           last_push_id,
