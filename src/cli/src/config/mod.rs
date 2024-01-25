@@ -194,9 +194,9 @@ impl Manager {
       },
       cloud: Cloud {
         timeout: file::milliseconds_to_chrono(
-          config.from_file.cloud.timeout.unwrap_or(60000),
+          config.from_file.cloud.timeout.unwrap_or(30000),
         ),
-        message_limit: config.from_file.cloud.message_limit.unwrap_or(100),
+        message_limit: config.from_file.cloud.message_limit.unwrap_or(1000),
         ssl: config.from_env.cloud.ssl,
         domain: config.from_env.cloud.domain,
         api_key: config.from_env.cloud.api_key,
