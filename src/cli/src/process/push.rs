@@ -46,6 +46,7 @@ impl process::Recurring for Process {
         None => return Ok(()),
       };
 
+    let start = chrono::Utc::now();
     let result = self
       .services
       .cloud()
@@ -60,6 +61,8 @@ impl process::Recurring for Process {
           .collect(),
       )
       .await;
+    let end = chrono::Utc::now();
+    let took = end - start;
 
     let (log_status, log_response) = match result {
       Ok(cloud::Response {
@@ -68,10 +71,11 @@ impl process::Recurring for Process {
         ..
       }) => {
         tracing::info!(
-          "Successfully pushed {:?} measurements from {:?} to {:?}",
+          "Successfully pushed {:?} measurements from {:?} to {:?} took {}",
           measurements_len,
           last_pushed_id,
           last_push_id,
+          took,
         );
         (db::LogStatus::Success, text)
       }
@@ -81,21 +85,23 @@ impl process::Recurring for Process {
         code,
       }) => {
         tracing::error!(
-          "Failed pushing {:?} measurements from {:?} to {:?} with code {:?}",
+          "Failed pushing {:?} measurements from {:?} to {:?} with code {:?} took {}",
           measurements_len,
           last_pushed_id,
           last_push_id,
           code,
+          took,
         );
         (db::LogStatus::Failure, text)
       }
       Err(error) => {
         tracing::error!(
-          "Failed pushing {:?} measurements from {:?} to {:?} {}",
+          "Failed pushing {:?} measurements from {:?} to {:?} took {} {}",
           measurements_len,
           last_pushed_id,
           last_push_id,
-          error
+          took,
+          error,
         );
         (db::LogStatus::Failure, error.to_string())
       }
