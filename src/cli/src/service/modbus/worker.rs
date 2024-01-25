@@ -611,11 +611,8 @@ impl Task {
           Some(partial) => Some(partial.clone()),
           None => {
             if let Err(error) = connection.ensure_connected().await {
-              metrics
-                .reads
-                .entry(storage.destination)
-                .or_insert_with(Vec::new)
-                .push(ReadMetric {
+              metrics.reads.entry(storage.destination).or_default().push(
+                ReadMetric {
                   message: format!(
                     "Failed connecting span {:?} {:?}",
                     span, &error
@@ -623,7 +620,8 @@ impl Task {
                   error: true,
                   span,
                   time: None,
-                });
+                },
+              );
 
               None
             } else {
@@ -635,16 +633,14 @@ impl Task {
 
               match data {
                 Ok(data) => {
-                  metrics
-                    .reads
-                    .entry(storage.destination)
-                    .or_insert_with(Vec::new)
-                    .push(ReadMetric {
+                  metrics.reads.entry(storage.destination).or_default().push(
+                    ReadMetric {
                       message: format!("Successfully read span {:?}", span),
                       error: false,
                       span,
                       time: Some(end.signed_duration_since(start)),
-                    });
+                    },
+                  );
 
                   Some(SpanResponse {
                     span: data,
@@ -652,11 +648,8 @@ impl Task {
                   })
                 }
                 Err(error) => {
-                  metrics
-                    .reads
-                    .entry(storage.destination)
-                    .or_insert_with(Vec::new)
-                    .push(ReadMetric {
+                  metrics.reads.entry(storage.destination).or_default().push(
+                    ReadMetric {
                       message: format!(
                         "Failed reading span {:?} {:?}",
                         span, &error
@@ -664,7 +657,8 @@ impl Task {
                       error: true,
                       span,
                       time: Some(end.signed_duration_since(start)),
-                    });
+                    },
+                  );
 
                   if let ReadError::Read(io_error) = error {
                     if io_error.kind() == std::io::ErrorKind::InvalidData {
