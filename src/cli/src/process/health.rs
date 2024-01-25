@@ -49,7 +49,7 @@ impl process::Recurring for Process {
       }
       Err(error) => {
         tracing::error!("Failed updating pidgeon health {}", error);
-        (db::LogStatus::Failure, "connection error".to_string())
+        (db::LogStatus::Failure, error.to_string())
       }
     };
     let log = db::Log {

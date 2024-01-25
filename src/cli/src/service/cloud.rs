@@ -132,8 +132,9 @@ impl Service {
     if let Err(error) = &http_response {
       tracing::warn! {
         %error,
-        "Failed pushing {:?} measurements: connection error",
+        "Failed pushing {:?} measurements: {:?}",
         request.measurements.len(),
+        error.to_string(),
       }
     }
     let http_response = http_response?;
@@ -178,8 +179,9 @@ impl Service {
     if let Err(error) = &http_response {
       tracing::warn! {
         %error,
-        "Failed pushing {:?} health: connection error",
+        "Failed pushing {:?} health: {:?}",
         request.health.len(),
+        error.to_string(),
       }
     }
     let http_response = http_response?;

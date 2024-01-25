@@ -97,7 +97,7 @@ impl process::Recurring for Process {
           last_push_id,
           error
         );
-        (db::LogStatus::Failure, "connection error".to_string())
+        (db::LogStatus::Failure, error.to_string())
       }
     };
     let log = db::Log {
