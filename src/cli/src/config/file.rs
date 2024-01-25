@@ -99,6 +99,7 @@ pub(crate) struct Modbus {
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Cloud {
   pub(crate) timeout: Option<u32>,
+  pub(crate) message_limit: Option<i64>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]

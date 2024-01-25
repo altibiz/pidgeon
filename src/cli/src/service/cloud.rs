@@ -134,7 +134,7 @@ impl Service {
         %error,
         "Failed pushing {:?} measurements: {:?}",
         request.measurements.len(),
-        error.to_string(),
+        error,
       }
     }
     let http_response = http_response?;
@@ -181,7 +181,7 @@ impl Service {
         %error,
         "Failed pushing {:?} health: {:?}",
         request.health.len(),
-        error.to_string(),
+        error,
       }
     }
     let http_response = http_response?;

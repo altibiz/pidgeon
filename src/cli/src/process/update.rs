@@ -27,6 +27,8 @@ struct PidgeonHealth {
 #[async_trait::async_trait]
 impl process::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
+    let config = self.config.reload().await;
+
     let last_pushed_id =
       match self.services.db().get_last_successful_update_log().await? {
         Some(db::Log {
@@ -35,8 +37,11 @@ impl process::Recurring for Process {
         _ => 0,
       };
 
-    let mut health_to_update =
-      self.services.db().get_health(last_pushed_id, 1000).await?;
+    let mut health_to_update = self
+      .services
+      .db()
+      .get_health(last_pushed_id, config.cloud.message_limit)
+      .await?;
     let health_len = health_to_update.len();
 
     let last_push_id =

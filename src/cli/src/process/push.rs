@@ -23,6 +23,8 @@ impl super::Process for Process {}
 impl process::Recurring for Process {
   #[tracing::instrument(skip(self))]
   async fn execute(&self) -> anyhow::Result<()> {
+    let config = self.config.reload().await;
+
     let last_pushed_id =
       match self.services.db().get_last_successful_push_log().await? {
         Some(db::Log {
@@ -34,7 +36,7 @@ impl process::Recurring for Process {
     let mut measurements_to_push = self
       .services
       .db()
-      .get_measurements(last_pushed_id, 1000)
+      .get_measurements(last_pushed_id, config.cloud.message_limit)
       .await?;
     let measurements_len = measurements_to_push.len();
 

@@ -35,6 +35,7 @@ pub(crate) struct Hardware {
 #[derive(Debug, Clone)]
 pub(crate) struct Cloud {
   pub(crate) timeout: chrono::Duration,
+  pub(crate) message_limit: i64,
   pub(crate) ssl: bool,
   pub(crate) domain: String,
   pub(crate) api_key: Option<String>,
@@ -193,8 +194,9 @@ impl Manager {
       },
       cloud: Cloud {
         timeout: file::milliseconds_to_chrono(
-          config.from_file.cloud.timeout.unwrap_or(30000),
+          config.from_file.cloud.timeout.unwrap_or(60000),
         ),
+        message_limit: config.from_file.cloud.message_limit.unwrap_or(100),
         ssl: config.from_env.cloud.ssl,
         domain: config.from_env.cloud.domain,
         api_key: config.from_env.cloud.api_key,
