@@ -20,11 +20,11 @@ build:
   cd "{{root_path}}" && cargo build --release
 
 prepare:
-  cd "{{root_path}}" && poetry install
-  cd "{{probe_path}}" && poetry install
+  cd "{{root_path}}" && poetry install --no-root
+  cd "{{probe_path}}" && poetry install --no-root
   docker compose down -v
   docker compose up -d
-  sleep 3s
+  sleep 10s
   cd "{{cli_path}}" && sqlx migrate run
 
 run *args:
