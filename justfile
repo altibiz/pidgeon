@@ -20,8 +20,8 @@ build:
   cd "{{root_path}}" && cargo build --release
 
 prepare:
-  cd "{{root_path}}" && poetry install --no-root
-  cd "{{probe_path}}" && poetry install --no-root
+  cd "{{root_path}}" && poetry install
+  cd "{{probe_path}}" && poetry install
   docker compose down -v
   docker compose up -d
   sleep 10s
