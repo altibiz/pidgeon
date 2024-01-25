@@ -140,7 +140,7 @@
               name = "usql";
               runtimeInputs = [ pkgs.usql ];
               text = ''
-                usql pg://localhost/pidgeon?sslmode=disable "$@"
+                usql pg://localhost:5433/pidgeon?sslmode=disable "$@"
               '';
             };
           in
