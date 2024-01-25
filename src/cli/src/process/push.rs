@@ -62,7 +62,6 @@ impl process::Recurring for Process {
       )
       .await;
     let end = chrono::Utc::now();
-    let took = end - start;
 
     let (log_status, log_response) = match result {
       Ok(cloud::Response {
