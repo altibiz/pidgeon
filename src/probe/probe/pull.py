@@ -1,4 +1,5 @@
 import struct
+import asyncio
 from typing import Any, Callable, Coroutine, Optional, TypeVar, Union, List, cast
 from pymodbus.client import AsyncModbusTcpClient
 from pymodbus.pdu import ModbusResponse
@@ -44,24 +45,28 @@ class PullClient:
         try:
           await self.__modbus_client.connect()
           self.__modbus_connected = True
-        except Exception:
+        except Exception as exception:
+          print(exception)
           continue
 
       registers: Optional[List[int]] = None
       try:
         response = await cast(
           Coroutine[Any, Any, ModbusResponse],
-          self.__modbus_client.read_holding_registers(
+          asyncio.wait_for(self.__modbus_client.read_holding_registers(
             address=register,
             count=count,
             slave=self.__slave_id,
-          ))
+          ),
+                           timeout=1))
         if response.isError():
+          print(response)
           continue
 
         registers = response.registers
 
-      except Exception:
+      except Exception as exception:
+        print(exception)
         self.__reopen()
         continue
 
@@ -69,7 +74,8 @@ class PullClient:
         value = convert(*cast(list[int],
                               registers))  # pyright: ignore unknownMemberType
         return value
-      except Exception:
+      except Exception as exception:
+        print(exception)
         continue
 
   @staticmethod

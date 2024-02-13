@@ -57,19 +57,37 @@ async def main():
         Request(
           name="Reactive Import",
           register=0x500C,
-          count=4,
+          count=2,
           convert=PullClient.to_uint32,
         ),
         Request(
           name="Reactive Export",
           register=0x5010,
-          count=4,
-          convert=PullClient.to_sint32,
+          count=2,
+          convert=PullClient.to_uint32,
         ),
         Request(
           name="Reactive Net",
           register=0x5014,
-          count=4,
+          count=2,
+          convert=PullClient.to_sint32,
+        ),
+        Request(
+          name="Active Import",
+          register=0x5000,
+          count=2,
+          convert=PullClient.to_uint32,
+        ),
+        Request(
+          name="Active Export",
+          register=0x5004,
+          count=2,
+          convert=PullClient.to_uint32,
+        ),
+        Request(
+          name="Active Net",
+          register=0x5008,
+          count=2,
           convert=PullClient.to_sint32,
         ),
       ])
