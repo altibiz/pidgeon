@@ -54,6 +54,24 @@ async def main():
           count=2,
           convert=PullClient.to_raw_bytes,
         ),
+        Request(
+          name="Reactive Import",
+          register=0x500C,
+          count=4,
+          convert=PullClient.to_uint32,
+        ),
+        Request(
+          name="Reactive Export",
+          register=0x5010,
+          count=4,
+          convert=PullClient.to_sint32,
+        ),
+        Request(
+          name="Reactive Net",
+          register=0x5014,
+          count=4,
+          convert=PullClient.to_sint32,
+        ),
       ])
 
   if args.device_type() == DeviceType.schneider:
