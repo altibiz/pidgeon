@@ -14,6 +14,20 @@
         "process handle SIGPIPE -n true -p true -s false",
         "process handle SIGSTOP -n true -p true -s false"
       ]
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Trace CLI",
+      "cargo": {
+        "args": ["build", "--bin", "pidgeon-cli"]
+      },
+      "cwd": "${workspaceFolder}/src/cli",
+      "args": ["--config", "config.toml", "--trace"],
+      "postRunCommands": [
+        "process handle SIGPIPE -n true -p true -s false",
+        "process handle SIGSTOP -n true -p true -s false"
+      ]
     }
   ]
 }

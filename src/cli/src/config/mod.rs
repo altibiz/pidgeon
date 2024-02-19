@@ -8,7 +8,7 @@ use ipnet::IpAddrRange;
 use thiserror::Error;
 use tokio::sync::Mutex;
 
-use crate::service::modbus;
+use crate::service::modbus::{self, RegisterValueStorage};
 
 #[derive(Debug, Clone)]
 pub(crate) struct Db {
@@ -49,6 +49,9 @@ pub(crate) struct Device {
   pub(crate) detect: Vec<modbus::DetectRegister<modbus::RegisterKindStorage>>,
   pub(crate) measurement:
     Vec<modbus::MeasurementRegister<modbus::RegisterKindStorage>>,
+  pub(crate) configuration: Vec<modbus::ValueRegister<RegisterValueStorage>>,
+  pub(crate) daily: Vec<modbus::ValueRegister<RegisterValueStorage>>,
+  pub(crate) nightly: Vec<modbus::ValueRegister<RegisterValueStorage>>,
 }
 
 #[derive(Debug, Clone)]
@@ -65,19 +68,26 @@ pub(crate) struct Modbus {
 }
 
 #[derive(Debug, Clone)]
+pub(crate) struct Schedule {
+  pub(crate) discover: cron::Schedule,
+  pub(crate) ping: cron::Schedule,
+  pub(crate) measure: cron::Schedule,
+  pub(crate) push: cron::Schedule,
+  pub(crate) update: cron::Schedule,
+  pub(crate) health: cron::Schedule,
+  pub(crate) daily: cron::Schedule,
+  pub(crate) nightly: cron::Schedule,
+}
+
+#[derive(Debug, Clone)]
 pub(crate) struct Values {
   pub(crate) cloud: Cloud,
   pub(crate) db: Db,
   pub(crate) network: Network,
   pub(crate) modbus: Modbus,
   pub(crate) hardware: Hardware,
+  pub(crate) schedule: Schedule,
   pub(crate) log_level: tracing::level_filters::LevelFilter,
-  pub(crate) discover_interval: chrono::Duration,
-  pub(crate) ping_interval: chrono::Duration,
-  pub(crate) measure_interval: chrono::Duration,
-  pub(crate) push_interval: chrono::Duration,
-  pub(crate) update_interval: chrono::Duration,
-  pub(crate) health_interval: chrono::Duration,
 }
 
 #[derive(Debug, Clone)]
@@ -167,24 +177,40 @@ impl Manager {
           file::LogLevel::Error => tracing::level_filters::LevelFilter::ERROR,
         },
       ),
-      discover_interval: file::milliseconds_to_chrono(
-        config.from_file.discover_interval.unwrap_or(60000),
-      ),
-      ping_interval: file::milliseconds_to_chrono(
-        config.from_file.ping_interval.unwrap_or(60000),
-      ),
-      measure_interval: file::milliseconds_to_chrono(
-        config.from_file.ping_interval.unwrap_or(60000),
-      ),
-      push_interval: file::milliseconds_to_chrono(
-        config.from_file.push_interval.unwrap_or(60000),
-      ),
-      update_interval: file::milliseconds_to_chrono(
-        config.from_file.update_interval.unwrap_or(60000),
-      ),
-      health_interval: file::milliseconds_to_chrono(
-        config.from_file.health_interval.unwrap_or(60000),
-      ),
+      schedule: Schedule {
+        discover: file::string_to_cron(
+          &config.from_file.schedule.discover,
+          "0 */5 * * * * *", // NOTE: every 5 minutes
+        ),
+        ping: file::string_to_cron(
+          &config.from_file.schedule.ping,
+          "0 */5 * * * * *", // NOTE: every 5 minutes
+        ),
+        measure: file::string_to_cron(
+          &config.from_file.schedule.measure,
+          "0 * * * * * *", // NOTE: every minute
+        ),
+        push: file::string_to_cron(
+          &config.from_file.schedule.push,
+          "0 * * * * * *", // NOTE: every minute
+        ),
+        update: file::string_to_cron(
+          &config.from_file.schedule.update,
+          "0 * * * * * *", // NOTE: every minute
+        ),
+        health: file::string_to_cron(
+          &config.from_file.schedule.health,
+          "0 * * * * * *", // NOTE: every minute
+        ),
+        daily: file::string_to_cron(
+          &config.from_file.schedule.daily,
+          "0 0 7 * * * *", // NOTE: at 7:00
+        ),
+        nightly: file::string_to_cron(
+          &config.from_file.schedule.nightly,
+          "0 0 21 * * * *", // NOTE: at 21:00
+        ),
+      },
       hardware: Hardware {
         temperature_monitor: config
           .from_file
@@ -279,6 +305,21 @@ impl Manager {
                   .measurement
                   .into_iter()
                   .map(file::to_modbus_measurement_register)
+                  .collect(),
+                configuration: device
+                  .configuration
+                  .into_iter()
+                  .map(file::to_modbus_value_register)
+                  .collect(),
+                daily: device
+                  .daily
+                  .into_iter()
+                  .map(file::to_modbus_value_register)
+                  .collect(),
+                nightly: device
+                  .nightly
+                  .into_iter()
+                  .map(file::to_modbus_value_register)
                   .collect(),
               },
             )

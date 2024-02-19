@@ -24,7 +24,7 @@ use futures_time::future::FutureExt;
 #[tokio::main]
 #[tracing::instrument]
 async fn main() -> anyhow::Result<()> {
-  let manager = config::Manager::new().await?;
+  let manager = config::Manager::new().await?; // NITPICK: handle this more appropriately
   let config = manager.values().await;
 
   let services = service::Container::new(config.clone());
@@ -45,18 +45,17 @@ async fn main() -> anyhow::Result<()> {
   )?;
 
   services.db().migrate().await?; // NITPICK: handle this more appropriately
+  processes.startup().await?; // NITPICK: handle this more appropriately
 
-  processes.spawn().await;
   if let Err(error) = tokio::signal::ctrl_c().await {
     tracing::error!("Failed waiting for ctrlc signal {}", error);
   };
   if let Err(error) = processes
-    .cancel()
+    .shutdown()
     .timeout(futures_time::time::Duration::from_millis(10_000))
     .await
   {
-    tracing::error!("Timed out cancelling processes {}", error);
-    processes.abort().await;
+    tracing::error!("Timed out shutting down processes {}", error);
   }
 
   Ok(())

@@ -1,5 +1,7 @@
 pub(crate) mod batch;
 pub(crate) mod connection;
+pub(crate) mod encoding;
+pub(crate) mod record;
 pub(crate) mod register;
 pub(crate) mod service;
 pub(crate) mod span;

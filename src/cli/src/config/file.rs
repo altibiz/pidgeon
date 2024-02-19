@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-use crate::service::modbus;
+use crate::service::modbus::{self, RegisterValue};
 
 // NITPICK: optional values here with #[serde(default = ...)]
 
@@ -45,6 +45,11 @@ pub(crate) struct StringRegisterKind {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub(crate) struct RawRegisterKind {
+  pub(crate) length: u16,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub(crate) struct NumericRegisterKind {
   pub(crate) multiplier: Option<Decimal>,
 }
@@ -61,6 +66,7 @@ pub(crate) enum RegisterKindStorage {
   F32(NumericRegisterKind),
   F64(NumericRegisterKind),
   String(StringRegisterKind),
+  Raw(RawRegisterKind),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -76,11 +82,20 @@ pub(crate) struct IdRegister {
   pub(crate) kind: RegisterKindStorage,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct ValueRegister {
+  pub(crate) address: u16,
+  pub(crate) value: Vec<u16>,
+}
+
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Device {
   pub(crate) detect: Vec<DetectRegister>,
   pub(crate) id: Vec<IdRegister>,
   pub(crate) measurement: Vec<MeasurementRegister>,
+  pub(crate) configuration: Vec<ValueRegister>,
+  pub(crate) daily: Vec<ValueRegister>,
+  pub(crate) nightly: Vec<ValueRegister>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
@@ -103,14 +118,20 @@ pub(crate) struct Cloud {
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct Schedule {
+  pub(crate) discover: Option<String>,
+  pub(crate) ping: Option<String>,
+  pub(crate) measure: Option<String>,
+  pub(crate) push: Option<String>,
+  pub(crate) update: Option<String>,
+  pub(crate) health: Option<String>,
+  pub(crate) daily: Option<String>,
+  pub(crate) nightly: Option<String>,
+}
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Values {
   pub(crate) log_level: Option<LogLevel>,
-  pub(crate) discover_interval: Option<u32>,
-  pub(crate) ping_interval: Option<u32>,
-  pub(crate) measure_interval: Option<u32>,
-  pub(crate) push_interval: Option<u32>,
-  pub(crate) update_interval: Option<u32>,
-  pub(crate) health_interval: Option<u32>,
   #[serde(default)]
   pub(crate) hardware: Hardware,
   #[serde(default)]
@@ -119,7 +140,10 @@ pub(crate) struct Values {
   pub(crate) cloud: Cloud,
   #[serde(default)]
   pub(crate) db: Db,
+  #[serde(default)]
   pub(crate) modbus: Modbus,
+  #[serde(default)]
+  pub(crate) schedule: Schedule,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -203,6 +227,18 @@ pub(crate) fn to_modbus_id_register(
   }
 }
 
+pub(crate) fn to_modbus_value_register(
+  register: ValueRegister,
+) -> modbus::ValueRegister<modbus::RegisterValueStorage> {
+  modbus::ValueRegister::<modbus::RegisterValueStorage> {
+    address: register.address,
+    storage: modbus::RegisterValueStorage::Raw(RegisterValue::<_> {
+      value: register.value,
+      timestamp: chrono::Utc::now(),
+    }),
+  }
+}
+
 pub(crate) fn to_modbus_register_kind(
   register: RegisterKindStorage,
 ) -> modbus::RegisterKindStorage {
@@ -250,6 +286,9 @@ pub(crate) fn to_modbus_register_kind(
     RegisterKindStorage::String(StringRegisterKind { length }) => {
       modbus::RegisterKindStorage::String(modbus::StringRegisterKind { length })
     }
+    RegisterKindStorage::Raw(RawRegisterKind { length }) => {
+      modbus::RegisterKindStorage::Raw(modbus::RawRegisterKind { length })
+    }
   }
 }
 
@@ -268,4 +307,41 @@ pub(crate) fn make_ip_range(start: String, end: String) -> ipnet::IpAddrRange {
 
 pub(crate) fn milliseconds_to_chrono(milliseconds: u32) -> chrono::Duration {
   chrono::Duration::milliseconds(milliseconds as i64)
+}
+
+pub(crate) fn string_to_cron(
+  string: &Option<String>,
+  default: &str,
+) -> cron::Schedule {
+  let string = {
+    if let Some(string) = string {
+      string.as_str()
+    } else {
+      default
+    }
+  };
+
+  let result = cron::Schedule::from_str(string);
+  if let Ok(result) = result {
+    return result;
+  }
+
+  let result = cron::Schedule::from_str(default);
+  match result {
+    Ok(result) => return result,
+    Err(error) => {
+      tracing::warn! {
+        %error,
+        "Failed parsing default set schedule string"
+      }
+    }
+  }
+
+  #[allow(clippy::unwrap_used)] // NOTE: this is a valid cron expression
+  cron::Schedule::from_str(
+    // NOTE: every minute
+    // NOTE: sec | min | hour | day of month | month | day of week | year
+    "        0     *     *      *              *       *             *",
+  )
+  .unwrap()
 }

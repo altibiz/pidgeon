@@ -1,11 +1,14 @@
 use std::fmt::Debug;
 use std::fmt::Display;
+use std::iter::IntoIterator;
 
 use either::Either;
 use regex::Regex;
 use rust_decimal::Decimal;
 use tokio_modbus::{Address, Quantity};
 
+use super::encoding::*;
+use super::record::*;
 use super::span::*;
 
 pub(crate) trait RegisterStorage {
@@ -23,6 +26,11 @@ pub(crate) struct NumericRegisterKind {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) struct RawRegisterKind {
+  pub(crate) length: Quantity,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) enum RegisterKindStorage {
   U16(NumericRegisterKind),
   U32(NumericRegisterKind),
@@ -33,6 +41,7 @@ pub(crate) enum RegisterKindStorage {
   F32(NumericRegisterKind),
   F64(NumericRegisterKind),
   String(StringRegisterKind),
+  Raw(RawRegisterKind),
 }
 
 #[derive(Debug, Clone)]
@@ -52,6 +61,7 @@ pub(crate) enum RegisterValueStorage {
   F32(RegisterValue<Decimal>),
   F64(RegisterValue<Decimal>),
   String(RegisterValue<String>),
+  Raw(RegisterValue<Vec<u16>>),
 }
 
 impl RegisterValueStorage {
@@ -66,6 +76,7 @@ impl RegisterValueStorage {
       RegisterValueStorage::F32(storage) => storage.timestamp,
       RegisterValueStorage::F64(storage) => storage.timestamp,
       RegisterValueStorage::String(storage) => storage.timestamp,
+      RegisterValueStorage::Raw(storage) => storage.timestamp,
     }
   }
 
@@ -80,6 +91,13 @@ impl RegisterValueStorage {
       RegisterValueStorage::F32(storage) => serde_json::json!(storage.value),
       RegisterValueStorage::F64(storage) => serde_json::json!(storage.value),
       RegisterValueStorage::String(storage) => serde_json::json!(storage.value),
+      RegisterValueStorage::Raw(storage) => {
+        serde_json::json!(storage
+          .value
+          .iter()
+          .map(|&num| format!("0x{:04X}", num))
+          .collect::<Vec<_>>())
+      }
     }
   }
 }
@@ -100,6 +118,12 @@ pub(crate) struct DetectRegister<T: RegisterStorage> {
 
 #[derive(Debug, Clone)]
 pub(crate) struct IdRegister<T: RegisterStorage> {
+  pub(crate) address: Address,
+  pub(crate) storage: T,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct ValueRegister<T: RegisterStorage> {
   pub(crate) address: Address,
   pub(crate) storage: T,
 }
@@ -128,6 +152,7 @@ impl RegisterStorage for RegisterKindStorage {
       RegisterKindStorage::F32(_) => 2,
       RegisterKindStorage::F64(_) => 4,
       RegisterKindStorage::String(StringRegisterKind { length }) => *length,
+      RegisterKindStorage::Raw(RawRegisterKind { length }) => *length,
     }
   }
 }
@@ -144,6 +169,7 @@ impl RegisterStorage for RegisterValueStorage {
       RegisterValueStorage::F32(_) => 2,
       RegisterValueStorage::F64(_) => 4,
       RegisterValueStorage::String(storage) => storage.value.len() as Quantity,
+      RegisterValueStorage::Raw(storage) => storage.value.len() as Quantity,
     }
   }
 }
@@ -181,7 +207,18 @@ impl Display for RegisterValueStorage {
       RegisterValueStorage::String(storage) => {
         std::fmt::Debug::fmt(&storage.value, f)
       }
+      RegisterValueStorage::Raw(storage) => {
+        std::fmt::Debug::fmt(&storage.value.iter().map(|&num| Hex(num)), f)
+      }
     }
+  }
+}
+
+struct Hex(u16);
+
+impl std::fmt::Debug for Hex {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "0x{:04X}", self.0)
   }
 }
 
@@ -212,7 +249,25 @@ pub(crate) fn serialize_registers<
   )
 }
 
-macro_rules! impl_register {
+macro_rules! impl_display {
+  ($type: ident) => {
+    impl Display for $type<RegisterValueStorage> {
+      fn fmt(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+      ) -> Result<(), std::fmt::Error> {
+        std::fmt::Display::fmt(&self.storage, f)
+      }
+    }
+  };
+}
+
+impl_display!(MeasurementRegister);
+impl_display!(DetectRegister);
+impl_display!(IdRegister);
+impl_display!(ValueRegister);
+
+macro_rules! impl_span {
   ($type: ident) => {
     impl<T: RegisterStorage> Span for $type<T> {
       fn address(&self) -> Address {
@@ -233,25 +288,17 @@ macro_rules! impl_register {
         self.storage.quantity()
       }
     }
-
-    impl Display for $type<RegisterValueStorage> {
-      fn fmt(
-        &self,
-        f: &mut std::fmt::Formatter<'_>,
-      ) -> Result<(), std::fmt::Error> {
-        std::fmt::Display::fmt(&self.storage, f)
-      }
-    }
   };
 }
 
-impl_register!(MeasurementRegister);
-impl_register!(DetectRegister);
-impl_register!(IdRegister);
+impl_span!(MeasurementRegister);
+impl_span!(DetectRegister);
+impl_span!(IdRegister);
+impl_span!(ValueRegister);
 
 macro_rules! parse_integer_register {
   ($variant: ident, $type: ty, $data: ident, $multiplier: ident, $timestamp: expr) => {{
-    let bytes = parse_numeric_bytes($data);
+    let bytes = decode_numeric_bytes($data);
     let slice = bytes.as_slice().try_into()?;
     let value = Decimal::from(<$type>::from_ne_bytes(slice));
     RegisterValueStorage::$variant(RegisterValue::<Decimal> {
@@ -268,7 +315,7 @@ macro_rules! parse_integer_register {
 
 macro_rules! parse_floating_register {
   ($variant: ident, $type: ty, $data: ident, $multiplier: ident, $timestamp: expr) => {{
-    let bytes = parse_numeric_bytes($data);
+    let bytes = decode_numeric_bytes($data);
     let slice = bytes.as_slice().try_into()?;
     let value = Decimal::try_from(<$type>::from_ne_bytes(slice))?;
     RegisterValueStorage::$variant(RegisterValue::<Decimal> {
@@ -311,9 +358,15 @@ macro_rules! parse_register {
         parse_floating_register!(F64, f64, $data, multiplier, $timestamp)
       }
       RegisterKindStorage::String(_) => {
-        let bytes = parse_string_bytes($data);
+        let bytes = decode_string_bytes($data);
         RegisterValueStorage::String(RegisterValue::<String> {
           value: String::from_utf8(bytes)?,
+          timestamp: $timestamp,
+        })
+      }
+      RegisterKindStorage::Raw(_) => {
+        RegisterValueStorage::Raw(RegisterValue::<Vec<u16>> {
+          value: $data.into_iter().collect::<Vec<_>>(),
           timestamp: $timestamp,
         })
       }
@@ -392,6 +445,7 @@ impl_parse_register!(
     }
   }
 );
+
 impl_parse_register!(
   DetectRegister,
   |register: &DetectRegister::<RegisterKindStorage>, storage| {
@@ -402,6 +456,7 @@ impl_parse_register!(
     }
   }
 );
+
 impl_parse_register!(IdRegister, |register: &IdRegister::<
   RegisterKindStorage,
 >,
@@ -412,48 +467,78 @@ impl_parse_register!(IdRegister, |register: &IdRegister::<
   }
 });
 
-#[cfg(target_endian = "little")]
-fn parse_numeric_bytes<TIterator, TIntoIterator>(data: TIntoIterator) -> Vec<u8>
-where
-  TIterator: DoubleEndedIterator<Item = u16>,
-  TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
-{
-  data
-    .into_iter()
-    .rev()
-    .flat_map(|value| [(value & 0xFF) as u8, (value >> 8) as u8])
-    .collect()
+impl_parse_register!(
+  ValueRegister,
+  |register: &ValueRegister::<RegisterKindStorage>, storage| {
+    ValueRegister::<RegisterValueStorage> {
+      address: register.address,
+      storage,
+    }
+  }
+);
+
+macro_rules! serialize_numeric_register {
+  ($type: ty, $value: ident, $default: expr) => {{
+    let value = TryInto::<u16>::try_into(*$value).unwrap_or(0u16);
+    let bytes = value.to_ne_bytes();
+    encode_numeric_bytes(bytes).into_iter()
+  }};
 }
 
-#[cfg(target_endian = "big")]
-fn parse_numeric_bytes<TIntoIterator>(data: TIntoIterator) -> Vec<u8>
-where
-  TIntoIterator: IntoIterator<Item = u16>,
-{
-  data
-    .into_iter()
-    .flat_map(|value| [(value & 0xFF) as u8, (value >> 8) as u8])
-    .collect()
+macro_rules! serialize_register {
+  ($self: ident) => {{
+    match &$self.storage {
+      RegisterValueStorage::U16(RegisterValue::<Decimal> { value, .. }) => {
+        serialize_numeric_register!(u16, value, 0u16)
+      }
+      RegisterValueStorage::U32(RegisterValue::<Decimal> { value, .. }) => {
+        serialize_numeric_register!(u32, value, 0u32)
+      }
+      RegisterValueStorage::U64(RegisterValue::<Decimal> { value, .. }) => {
+        serialize_numeric_register!(u64, value, 0u64)
+      }
+      RegisterValueStorage::S16(RegisterValue::<Decimal> { value, .. }) => {
+        serialize_numeric_register!(i16, value, 0i16)
+      }
+      RegisterValueStorage::S32(RegisterValue::<Decimal> { value, .. }) => {
+        serialize_numeric_register!(i32, value, 0i32)
+      }
+      RegisterValueStorage::S64(RegisterValue::<Decimal> { value, .. }) => {
+        serialize_numeric_register!(i64, value, 0i64)
+      }
+      RegisterValueStorage::F32(RegisterValue::<Decimal> { value, .. }) => {
+        serialize_numeric_register!(f32, value, 0f32)
+      }
+      RegisterValueStorage::F64(RegisterValue::<Decimal> { value, .. }) => {
+        serialize_numeric_register!(f64, value, 0f64)
+      }
+      RegisterValueStorage::String(RegisterValue::<String> {
+        value, ..
+      }) => encode_string_bytes(value.as_str().bytes()).into_iter(),
+      RegisterValueStorage::Raw(RegisterValue::<Vec<u16>> {
+        value, ..
+      }) => value.clone().into_iter(),
+    }
+  }};
 }
 
-#[cfg(target_endian = "little")]
-fn parse_string_bytes<TIntoIterator>(data: TIntoIterator) -> Vec<u8>
-where
-  TIntoIterator: IntoIterator<Item = u16>,
-{
-  data
-    .into_iter()
-    .flat_map(|value| [(value >> 8) as u8, (value & 0xFF) as u8])
-    .collect()
+macro_rules! impl_record {
+  ($type: ident) => {
+    impl Record for $type<RegisterValueStorage> {
+      fn values(&self) -> impl Iterator<Item = u16> {
+        serialize_register!(self)
+      }
+    }
+
+    impl Record for &$type<RegisterValueStorage> {
+      fn values(&self) -> impl Iterator<Item = u16> {
+        serialize_register!(self)
+      }
+    }
+  };
 }
 
-#[cfg(target_endian = "big")]
-fn parse_string_bytes<TIntoIterator>(data: TIntoIterator) -> Vec<u8>
-where
-  TIntoIterator: IntoIterator<Item = u16>,
-{
-  data
-    .into_iter()
-    .flat_map(|value| [(value & 0xFF) as u8, (value >> 8) as u8])
-    .collect()
-}
+impl_record!(MeasurementRegister);
+impl_record!(DetectRegister);
+impl_record!(IdRegister);
+impl_record!(ValueRegister);

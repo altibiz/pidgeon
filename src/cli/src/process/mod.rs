@@ -1,13 +1,17 @@
+mod daily;
 mod discover;
 mod health;
 mod measure;
+mod nightly;
 mod ping;
 mod push;
 mod update;
 
 use std::sync::Arc;
 
+use thiserror::Error;
 use tokio::sync::Mutex;
+use tokio_cron_scheduler::{Job, JobScheduler, JobSchedulerError};
 
 use crate::{config, service};
 
@@ -27,7 +31,60 @@ pub(crate) trait Recurring: Process {
 pub(crate) struct Container {
   config: config::Manager,
   services: service::Container,
-  handles: Arc<Mutex<Option<Vec<Handle>>>>,
+  scheduler: Arc<Mutex<Option<JobScheduler>>>,
+}
+
+#[derive(Debug, Error)]
+pub(crate) enum ContainerError {
+  #[error("Job scheduler creation failed")]
+  JobSchedulerCreation(JobSchedulerError),
+
+  #[error("Job creation stratup failed")]
+  JobCreation(JobSchedulerError),
+
+  #[error("Job addition stratup failed")]
+  JobAddition(JobSchedulerError),
+
+  #[error("Job scheduler stratup failed")]
+  StartupFailed(JobSchedulerError),
+
+  #[error("Job scheduler shutdown failed")]
+  ShutdownFailed(JobSchedulerError),
+}
+
+macro_rules! add_job {
+  ($self: ident, $config: ident, $scheduler: ident, $name: ident) => {{
+    let config = $self.config.clone();
+    let services = $self.services.clone();
+    match Job::new_async($config.schedule.$name, move |uuid, mut lock| {
+      let config = config.clone();
+      let services = services.clone();
+      Box::pin(async move {
+        match lock.next_tick_for_job(uuid).await {
+          Ok(Some(_)) => {
+            let process = $name::Process::new(config, services);
+            if let Err(error) = process.execute().await {
+              tracing::error!(
+                "Process execution failed {} for {}",
+                error,
+                process.process_name()
+              );
+            }
+          }
+          _ => println!("Could not get next tick for 7s job"),
+        }
+      })
+    }) {
+      Ok(job) => {
+        if let Err(error) = $scheduler.add(job).await {
+          return Err(ContainerError::JobAddition(error));
+        }
+      }
+      Err(error) => {
+        return Err(ContainerError::JobCreation(error));
+      }
+    };
+  }};
 }
 
 impl Container {
@@ -38,113 +95,49 @@ impl Container {
     Self {
       config,
       services,
-      handles: Arc::new(Mutex::new(None)),
+      scheduler: Arc::new(Mutex::new(None)),
     }
   }
 
-  pub(crate) async fn abort(&self) {
-    {
-      let mut handles = self.handles.clone().lock_owned().await;
-      if let Some(handles) = &*handles {
-        for handle in handles {
-          handle.abort.abort();
-        }
-      }
-      *handles = None;
-    }
-  }
-
-  pub(crate) async fn cancel(&self) {
-    {
-      let mut handles = self.handles.clone().lock_owned().await;
-      if let Some(handles) = &mut *handles {
-        for handle in handles.iter() {
-          handle.token.cancel();
-        }
-
-        for handle in handles.drain(0..) {
-          if let Err(error) = handle.join.await {
-            tracing::error! {
-              %error,
-              "Joining process handle on cancel failed"
-            }
-          }
-        }
-      }
-      *handles = None;
-    }
-  }
-}
-
-macro_rules! make_recurring_spec {
-  ($self: ident, $type: ty, $interval: expr) => {
-    RecurringSpec {
-      process: Box::new(<$type>::new(
-        $self.config.clone(),
-        $self.services.clone(),
-      )),
-      interval: $interval,
-    }
-  };
-}
-
-impl Container {
-  pub(crate) async fn spawn(&self) {
+  pub(crate) async fn startup(&self) -> Result<(), ContainerError> {
     let config = self.config.values().await;
-    let specs = vec![
-      make_recurring_spec!(self, discover::Process, config.discover_interval),
-      make_recurring_spec!(self, ping::Process, config.ping_interval),
-      make_recurring_spec!(self, measure::Process, config.measure_interval),
-      make_recurring_spec!(self, push::Process, config.push_interval),
-      make_recurring_spec!(self, update::Process, config.update_interval),
-      make_recurring_spec!(self, health::Process, config.health_interval),
-    ];
+    let scheduler = match JobScheduler::new().await {
+      Ok(scheduler) => scheduler,
+      Err(error) => {
+        return Err(ContainerError::JobSchedulerCreation(error));
+      }
+    };
+
+    add_job!(self, config, scheduler, discover);
+    add_job!(self, config, scheduler, ping);
+    add_job!(self, config, scheduler, measure);
+    add_job!(self, config, scheduler, push);
+    add_job!(self, config, scheduler, update);
+    add_job!(self, config, scheduler, health);
+    add_job!(self, config, scheduler, daily);
+    add_job!(self, config, scheduler, nightly);
+
+    if let Err(error) = scheduler.start().await {
+      return Err(ContainerError::StartupFailed(error));
+    }
 
     {
-      let mut handles = self.handles.clone().lock_owned().await;
-      *handles = Some(specs.into_iter().map(Handle::recurring).collect());
+      let mut scheduler_mutex = self.scheduler.clone().lock_owned().await;
+      *scheduler_mutex = Some(scheduler);
     }
+
+    Ok(())
   }
-}
 
-struct Handle {
-  token: tokio_util::sync::CancellationToken,
-  abort: tokio::task::AbortHandle,
-  join: tokio::task::JoinHandle<()>,
-}
-
-struct RecurringSpec {
-  process: Box<dyn Recurring + Sync + Send>,
-  interval: chrono::Duration,
-}
-
-impl Handle {
-  fn recurring(spec: RecurringSpec) -> Self {
-    let token = tokio_util::sync::CancellationToken::new();
-    let child_token = token.child_token();
-    let join = tokio::spawn(async move {
-      let mut interval =
-        tokio::time::interval(std::time::Duration::from_millis(
-          spec.interval.num_milliseconds() as u64,
-        ));
-      loop {
-        tokio::select! {
-            _ = child_token.cancelled() => { return; },
-            _ = async {
-                if let Err(error) = spec.process.execute().await {
-                  tracing::error!(
-                    "Process execution failed {} for {}",
-                    error,
-                    spec.process.process_name()
-                  );
-                }
-
-                interval.tick().await;
-            } => { }
-        }
+  pub(crate) async fn shutdown(&self) -> Result<(), ContainerError> {
+    let mut scheduler = self.scheduler.clone().lock_owned().await;
+    if let Some(scheduler) = &mut *scheduler {
+      if let Err(error) = scheduler.shutdown().await {
+        return Err(ContainerError::ShutdownFailed(error));
       }
-    });
-    let abort = join.abort_handle();
-    Self { token, abort, join }
+    }
+    *scheduler = None;
+
+    Ok(())
   }
 }

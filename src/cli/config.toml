@@ -9,6 +9,18 @@ kind = { string = { length = 20 } }
 address = 0x0081
 kind = { u32 = { multiplier = 1 } }
 
+[[modbus.devices.schneider-iEM3xxx.configuration]]
+address = 0x2060
+value = [0x0000, 0x0001]
+
+[[modbus.devices.schneider-iEM3xxx.daily]]
+address = 0x2008
+value = [0x0000, 0x0001]
+
+[[modbus.devices.schneider-iEM3xxx.nightly]]
+address = 0x2008
+value = [0x0000, 0x0002]
+
 # schneider-iEM3xxx instantaneous
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
@@ -71,37 +83,37 @@ kind = { f32 = { multiplier = 1000 } }
 [[modbus.devices.schneider-iEM3xxx.measurement]]
 name = "activeEnergyImportL1_Wh"
 address = 0x0DBD
-kind = { s64 = { multiplier = 1 } }
+kind = { u64 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
 name = "activeEnergyImportL2_Wh"
 address = 0x0DC1
-kind = { s64 = { multiplier = 1 } }
+kind = { u64 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
 name = "activeEnergyImportL3_Wh"
 address = 0x0DC5
-kind = { s64 = { multiplier = 1 } }
+kind = { u64 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
 name = "activeEnergyImportTotal_Wh"
 address = 0x0C83
-kind = { s64 = { multiplier = 1 } }
+kind = { u64 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
 name = "activeEnergyExportTotal_Wh"
 address = 0x0C87
-kind = { s64 = { multiplier = 1 } }
+kind = { u64 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
 name = "reactiveEnergyImportTotal_VARh"
 address = 0x0C93
-kind = { s64 = { multiplier = 1 } }
+kind = { u64 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
 name = "reactiveEnergyExportTotal_VARh"
 address = 0x0C97
-kind = { s64 = { multiplier = 1 } }
+kind = { u64 = { multiplier = 1 } }
 
 # abb-B2x
 
@@ -113,6 +125,18 @@ kind = { string = { length = 6 } }
 [[modbus.devices.abb-B2x.id]]
 address = 0x8900
 kind = { u32 = { multiplier = 1 } }
+
+[[modbus.devices.abb-B2x.configuration]]
+address = 0x8C90
+value = [0x0001]
+
+[[modbus.devices.abb-B2x.daily]]
+address = 0x8A07
+value = [0x0001]
+
+[[modbus.devices.abb-B2x.nightly]]
+address = 0x8A07
+value = [0x0002]
 
 # abb-B2x instantaneous
 

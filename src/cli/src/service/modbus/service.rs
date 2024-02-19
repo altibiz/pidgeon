@@ -8,12 +8,14 @@ use crate::*;
 
 use super::batch::*;
 use super::connection::Destination;
+use super::record::Record;
 use super::span::*;
 use super::worker::*;
 
 // OPTIMIZE: remove cloning and clone constraints
 
-pub(crate) type Response<TSpan> = Vec<TSpan>;
+pub(crate) type ReadResponse<TSpan> = Vec<TSpan>;
+pub(crate) type WriteResponse = Vec<chrono::DateTime<chrono::Utc>>;
 
 #[derive(Clone, Debug)]
 pub(crate) struct Service {
@@ -39,6 +41,15 @@ pub(crate) enum ServerReadError {
 }
 
 #[derive(Debug, thiserror::Error)]
+pub(crate) enum ServerWriteError {
+  #[error("Connection failed")]
+  FailedToConnect(#[from] super::connection::ConnectError),
+
+  #[error("Server failure")]
+  ServerFailed(anyhow::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
 pub(crate) enum ServerStreamError {
   #[error("Server failure")]
   ServerFailed(anyhow::Error),
@@ -60,6 +71,15 @@ pub(crate) enum DeviceReadError {
 
   #[error("Failed reading from worker")]
   ServerRead(#[from] ServerReadError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum DeviceWriteError {
+  #[error("No device in registry for given id")]
+  DeviceNotFound(String),
+
+  #[error("Failed reading from worker")]
+  ServerWrite(#[from] ServerWriteError),
 }
 
 impl service::Service for Service {
@@ -217,13 +237,33 @@ impl Service {
     &self,
     destination: Destination,
     spans: TIntoIterator,
-  ) -> Result<Response<TSpan>, ServerReadError> {
+  ) -> Result<ReadResponse<TSpan>, ServerReadError> {
     let server = self.get_server(destination).await;
     let response = self
       .read_from_worker(server.worker, destination, spans)
       .await?;
 
     tracing::trace!("Read {:?} spans", response.len());
+
+    Ok(response)
+  }
+
+  #[tracing::instrument(skip(self, records))]
+  pub(crate) async fn write_to_destination<
+    TRecord: Record,
+    TIterator: Iterator<Item = TRecord>,
+    TIntoIterator: IntoIterator<Item = TRecord, IntoIter = TIterator>,
+  >(
+    &self,
+    destination: Destination,
+    records: TIntoIterator,
+  ) -> Result<WriteResponse, ServerWriteError> {
+    let server = self.get_server(destination).await;
+    let response = self
+      .write_to_worker(server.worker, destination, records)
+      .await?;
+
+    tracing::trace!("Wrote {:?} records", response.len());
 
     Ok(response)
   }
@@ -262,7 +302,7 @@ impl Service {
     &self,
     id: &str,
     spans: TIntoIterator,
-  ) -> Result<Response<TSpan>, DeviceReadError> {
+  ) -> Result<ReadResponse<TSpan>, DeviceReadError> {
     let device = match self.get_device(id).await {
       Some(device) => device,
       None => return Err(DeviceReadError::DeviceNotFound(id.to_string())),
@@ -272,6 +312,29 @@ impl Service {
       .await?;
 
     tracing::trace!("Read {:?} spans", response.len());
+
+    Ok(response)
+  }
+
+  #[tracing::instrument(skip(self, records))]
+  pub(crate) async fn write_to_id<
+    TRecord: Record,
+    TIterator: Iterator<Item = TRecord>,
+    TIntoIterator: IntoIterator<Item = TRecord, IntoIter = TIterator>,
+  >(
+    &self,
+    id: &str,
+    records: TIntoIterator,
+  ) -> Result<WriteResponse, DeviceWriteError> {
+    let device = match self.get_device(id).await {
+      Some(device) => device,
+      None => return Err(DeviceWriteError::DeviceNotFound(id.to_string())),
+    };
+    let response = self
+      .write_to_worker(device.worker, device.destination, records)
+      .await?;
+
+    tracing::trace!("Wrote {:?} records", response.len());
 
     Ok(response)
   }
@@ -313,12 +376,28 @@ impl Service {
     worker: Worker,
     destination: Destination,
     spans: TIntoIterator,
-  ) -> Result<Response<TSpan>, ServerReadError> {
+  ) -> Result<ReadResponse<TSpan>, ServerReadError> {
     let iter = spans.into_iter();
     let len = iter.len();
     let batches = batch_spans(iter, self.batch_threshold);
-    let result = worker.send(destination, batches.iter()).await;
-    let response = Self::parse_worker_result(result, batches, len)?;
+    let result = worker.read(destination, batches.iter()).await;
+    let response = Self::parse_worker_read_response(result, batches, len)?;
+    Ok(response)
+  }
+
+  async fn write_to_worker<
+    TRecord: Record,
+    TIterator: Iterator<Item = TRecord>,
+    TIntoIterator: IntoIterator<Item = TRecord, IntoIter = TIterator>,
+  >(
+    &self,
+    worker: Worker,
+    destination: Destination,
+    records: TIntoIterator,
+  ) -> Result<WriteResponse, ServerWriteError> {
+    let iter = records.into_iter();
+    let result = worker.write(destination, iter).await;
+    let response = Self::parse_worker_write_response(result)?;
     Ok(response)
   }
 
@@ -333,7 +412,7 @@ impl Service {
     destination: Destination,
     spans: TIntoIterator,
   ) -> Result<
-    impl Stream<Item = Result<Response<TSpan>, ServerReadError>>,
+    impl Stream<Item = Result<ReadResponse<TSpan>, ServerReadError>>,
     ServerStreamError,
   > {
     let iter = spans.into_iter();
@@ -347,20 +426,20 @@ impl Service {
       Err(error) => return Err(ServerStreamError::ServerFailed(error.into())),
     };
     let stream = stream.map(move |result| {
-      Self::parse_worker_result(result, batches.clone(), len)
+      Self::parse_worker_read_response(result, batches.clone(), len)
     });
     Ok(stream)
   }
 
-  fn parse_worker_result<
+  fn parse_worker_read_response<
     TSpan: Span,
     TSpanParser: Span + SpanParser<TSpan>,
     TIntoIterator: IntoIterator<Item = Batch<TSpanParser>>,
   >(
-    result: Result<super::worker::Response, super::worker::SendError>,
+    result: Result<super::worker::ReadResponse, super::worker::SendError>,
     batches: TIntoIterator,
     len: usize,
-  ) -> Result<Response<TSpan>, ServerReadError> {
+  ) -> Result<ReadResponse<TSpan>, ServerReadError> {
     let data = match result {
       Ok(response) => response,
       Err(error) => match error {
@@ -376,14 +455,32 @@ impl Service {
     let mut response = Vec::with_capacity(len);
     for (parser, data) in batches.into_iter().zip(data.into_iter()) {
       let mut parsed =
-        match parser.parse_with_timestamp(data.span, data.timestamp) {
+        match parser.parse_with_timestamp(data.inner, data.timestamp) {
           Ok(parsed) => parsed,
           Err(error) => return Err(ServerReadError::ParsingFailed(error)),
         };
-      response.append(&mut parsed.spans);
+      response.append(&mut parsed.inner);
     }
 
     Ok(response)
+  }
+
+  fn parse_worker_write_response(
+    result: Result<super::worker::WriteResponse, super::worker::SendError>,
+  ) -> Result<WriteResponse, ServerWriteError> {
+    let data = match result {
+      Ok(response) => response,
+      Err(error) => match error {
+        super::worker::SendError::FailedToConnect(error) => {
+          return Err(ServerWriteError::FailedToConnect(error))
+        }
+        super::worker::SendError::ChannelDisconnected(error) => {
+          return Err(ServerWriteError::ServerFailed(error))
+        }
+      },
+    };
+
+    Ok(data.iter().map(|entry| entry.timestamp).collect::<Vec<_>>())
   }
 
   async fn get_server(&self, destination: Destination) -> Server {
