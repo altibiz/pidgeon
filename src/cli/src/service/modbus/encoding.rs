@@ -8,14 +8,8 @@ where
   TIterator: DoubleEndedIterator<Item = u16>,
   TIntoIterator: IntoIterator<Item = u16, IntoIter = TIterator>,
 {
-  let data = data.into_iter().collect::<Vec<_>>();
-
-  if data.iter().all(|register| *register == u16::MAX) {
-    return data.iter().flat_map(|_| [u8::MIN, u8::MIN]).collect();
-  }
-
   data
-    .iter()
+    .into_iter()
     .rev()
     .flat_map(|value| [(value & 0xFF) as u8, (value >> 8) as u8])
     .collect()
@@ -28,14 +22,8 @@ pub(crate) fn decode_numeric_bytes<TIntoIterator>(
 where
   TIntoIterator: IntoIterator<Item = u16>,
 {
-  let data = data.into_iter().collect::<Vec<_>>();
-
-  if data.iter().all(|register| *register == u16::MAX) {
-    return data.iter().flat_map(|_| [u8::MIN, u8::MIN]).collect();
-  }
-
   data
-    .iter()
+    .into_iter()
     .flat_map(|value| [(value & 0xFF) as u8, (value >> 8) as u8])
     .collect()
 }

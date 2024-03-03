@@ -300,7 +300,12 @@ macro_rules! parse_integer_register {
   ($variant: ident, $type: ty, $data: ident, $multiplier: ident, $timestamp: expr) => {{
     let bytes = decode_numeric_bytes($data);
     let slice = bytes.as_slice().try_into()?;
-    let value = Decimal::from(<$type>::from_ne_bytes(slice));
+    let mut typed = <$type>::from_ne_bytes(slice);
+    if (typed == <$type>::MAX) {
+      typed = 0;
+    }
+
+    let value = Decimal::from(typed);
     RegisterValueStorage::$variant(RegisterValue::<Decimal> {
       value: match $multiplier {
         Some($multiplier) => value
