@@ -11,6 +11,8 @@ use super::encoding::*;
 use super::record::*;
 use super::span::*;
 
+// TODO: make the MAX checking a config option
+
 pub(crate) trait RegisterStorage {
   fn quantity(&self) -> Quantity;
 }
