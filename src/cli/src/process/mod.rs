@@ -59,8 +59,10 @@ macro_rules! add_job {
     match Job::new_async($config.schedule.$name, move |uuid, mut lock| {
       let config = config.clone();
       let services = services.clone();
+      let process = $name::Process::new(config, services);
+      tracing::debug!("Created process {}", process.process_name());
       Box::pin(async move {
-        let process = $name::Process::new(config, services);
+        tracing::debug!("Starting execution of {}", process.process_name());
         match lock.next_tick_for_job(uuid).await {
           Ok(Some(_)) => {
             if let Err(error) = process.execute().await {
