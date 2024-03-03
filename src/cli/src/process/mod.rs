@@ -60,9 +60,9 @@ macro_rules! add_job {
       let config = config.clone();
       let services = services.clone();
       Box::pin(async move {
+        let process = $name::Process::new(config, services);
         match lock.next_tick_for_job(uuid).await {
           Ok(Some(_)) => {
-            let process = $name::Process::new(config, services);
             if let Err(error) = process.execute().await {
               tracing::error!(
                 "Process execution failed {} for {}",
