@@ -56,12 +56,15 @@ macro_rules! add_job {
   ($self: ident, $config: ident, $scheduler: ident, $name: ident) => {{
     let config = $self.config.clone();
     let services = $self.services.clone();
-    match Job::new_async($config.schedule.$name, move |uuid, mut lock| {
-      let config = config.clone();
-      let services = services.clone();
-      let process = $name::Process::new(config, services);
+    let process = Arc::new(Mutex::new($name::Process::new(config, services)));
+    {
+      let process = process.clone().lock_owned().await;
       tracing::debug!("Created process {}", process.process_name());
+    }
+    match Job::new_async($config.schedule.$name, move |uuid, mut lock| {
+      let process = process.clone();
       Box::pin(async move {
+        let process = process.clone().lock_owned().await;
         tracing::debug!("Starting execution of {}", process.process_name());
         match lock.next_tick_for_job(uuid).await {
           Ok(Some(_)) => {
