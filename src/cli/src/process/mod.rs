@@ -53,15 +53,12 @@ pub(crate) enum ContainerError {
   ShutdownFailed(JobSchedulerError),
 }
 
-macro_rules! add_job {
-  ($self: ident, $config: ident, $scheduler: ident, $name: ident) => {{
+macro_rules! add_job_impl {
+  ($self: ident, $config: ident, $scheduler: ident, $name: ident, $startup: expr) => {{
     let config = $self.config.clone();
     let services = $self.services.clone();
     let process = Arc::new(Mutex::new($name::Process::new(config, services)));
-    {
-      let process = process.clone().lock_owned().await;
-      tracing::debug!("Created process {}", process.process_name());
-    }
+    $startup(process.clone()).await;
     match Job::new_async($config.schedule.$name, move |uuid, mut lock| {
       let process = process.clone();
       Box::pin(async move {
@@ -93,6 +90,39 @@ macro_rules! add_job {
   }};
 }
 
+macro_rules! add_job {
+  ($self: ident, $config: ident, $scheduler: ident, $name: ident) => {
+    add_job_impl!($self, $config, $scheduler, $name, |process: Arc<
+      Mutex<$name::Process>,
+    >| {
+      Box::pin(async move {
+        let process = process.lock_owned().await;
+        tracing::debug!("Created process {}", process.process_name());
+      })
+    })
+  };
+}
+
+macro_rules! run_add_job {
+  ($self: ident, $config: ident, $scheduler: ident, $name: ident) => {
+    add_job_impl!($self, $config, $scheduler, $name, |process: Arc<
+      Mutex<$name::Process>,
+    >| {
+      Box::pin(async move {
+        let process = process.lock_owned().await;
+        if let Err(error) = process.execute().await {
+          tracing::error!(
+            "Process execution failed {} for {}",
+            error,
+            process.process_name()
+          );
+        }
+        tracing::debug!("Created process {}", process.process_name());
+      })
+    })
+  };
+}
+
 impl Container {
   pub(crate) fn new(
     config: config::Manager,
@@ -114,8 +144,8 @@ impl Container {
       }
     };
 
-    add_job!(self, config, scheduler, discover);
-    add_job!(self, config, scheduler, ping);
+    run_add_job!(self, config, scheduler, discover);
+    run_add_job!(self, config, scheduler, ping);
     add_job!(self, config, scheduler, measure);
     add_job!(self, config, scheduler, push);
     add_job!(self, config, scheduler, update);
