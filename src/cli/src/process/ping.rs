@@ -3,6 +3,8 @@ use futures_time::future::FutureExt;
 
 use crate::{service::*, *};
 
+// TODO: use destination to send request because the device might not be discovered
+
 pub(crate) struct Process {
   #[allow(unused)]
   config: config::Manager,
