@@ -16,6 +16,7 @@ use tokio_cron_scheduler::{Job, JobScheduler, JobSchedulerError};
 use crate::{config, service};
 
 // OPTIMIZE: all processes by removing unnecessary cloning at least
+// TODO: on startup run discovery to populate modbus device registry
 
 pub(crate) trait Process {
   fn process_name(&self) -> &'static str {
