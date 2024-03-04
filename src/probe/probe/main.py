@@ -90,6 +90,18 @@ async def main():
           count=2,
           convert=PullClient.to_sint32,
         ),
+        Request(
+          name="Tariff configuration",
+          register=0x8C90,
+          count=1,
+          convert=PullClient.to_raw_bytes,
+        ),
+        Request(
+          name="Tariff",
+          register=0x8A07,
+          count=1,
+          convert=PullClient.to_raw_bytes,
+        ),
       ])
 
   if args.device_type() == DeviceType.schneider:
@@ -136,6 +148,18 @@ async def main():
           register=0x0DC5,
           count=4,
           convert=PullClient.to_sint64,
+        ),
+        Request(
+          name="Tariff configuration",
+          register=0x2060,
+          count=2,
+          convert=PullClient.to_raw_bytes,
+        ),
+        Request(
+          name="Tariff",
+          register=0x2008,
+          count=2,
+          convert=PullClient.to_raw_bytes,
         ),
       ])
 
