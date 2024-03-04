@@ -62,6 +62,7 @@ pub(crate) struct Modbus {
   pub(crate) congestion_backoff: chrono::Duration,
   pub(crate) partial_retries: u32,
   pub(crate) ping_timeout: chrono::Duration,
+  pub(crate) tariff_timeout: chrono::Duration,
   pub(crate) inactive_timeout: chrono::Duration,
   pub(crate) discovery_timeout: chrono::Duration,
   pub(crate) devices: HashMap<String, Device>,
@@ -270,6 +271,9 @@ impl Manager {
         partial_retries: config.from_file.modbus.partial_retries.unwrap_or(10),
         ping_timeout: file::milliseconds_to_chrono(
           config.from_file.modbus.ping_timeout.unwrap_or(30_000),
+        ),
+        tariff_timeout: file::milliseconds_to_chrono(
+          config.from_file.modbus.tariff_timeout.unwrap_or(30_000),
         ),
         inactive_timeout: file::milliseconds_to_chrono(
           config

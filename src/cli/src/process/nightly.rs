@@ -26,6 +26,7 @@ impl process::Recurring for Process {
   #[tracing::instrument(skip(self))]
   async fn execute(&self) -> anyhow::Result<()> {
     let config = self.config.reload().await;
+    let timeout = config.modbus.tariff_timeout;
 
     let db_devices = self.services.db().get_devices().await?;
 
@@ -45,7 +46,7 @@ impl process::Recurring for Process {
             })
         })
         .map(|device| async move {
-          match self.write_to_device(&device).await {
+          match self.write_to_device(&device, timeout).await {
             Err(error) => {
               tracing::error! {
                 %error,
@@ -68,22 +69,34 @@ impl process::Recurring for Process {
   }
 }
 
+#[derive(Debug, thiserror::Error)]
+enum TariffWriteError {
+  #[error("Failed writing to device")]
+  DeviceWrite(#[from] modbus::DeviceWriteError),
+
+  #[error("Writing to device timed out")]
+  Timeout(#[from] std::io::Error),
+}
+
 impl Process {
   async fn write_to_device(
     &self,
     device: &Device,
-  ) -> Result<(), modbus::DeviceWriteError> {
+    timeout: chrono::Duration,
+  ) -> Result<(), TariffWriteError> {
     self
       .services
       .modbus()
       .write_to_id(&device.id, &device.configuration)
-      .await?;
+      .timeout(timeout_from_chrono(timeout))
+      .await??;
 
     self
       .services
       .modbus()
       .write_to_id(&device.id, &device.nightly)
-      .await?;
+      .timeout(timeout_from_chrono(timeout))
+      .await??;
 
     Ok(())
   }
@@ -94,4 +107,10 @@ struct Device {
   id: String,
   configuration: Vec<modbus::ValueRegister<modbus::RegisterValueStorage>>,
   nightly: Vec<modbus::ValueRegister<modbus::RegisterValueStorage>>,
+}
+
+fn timeout_from_chrono(
+  timeout: chrono::Duration,
+) -> futures_time::time::Duration {
+  futures_time::time::Duration::from_millis(timeout.num_milliseconds() as u64)
 }

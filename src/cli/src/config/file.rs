@@ -106,6 +106,7 @@ pub(crate) struct Modbus {
   pub(crate) congestion_backoff: Option<u32>,
   pub(crate) partial_retries: Option<u32>,
   pub(crate) ping_timeout: Option<u32>,
+  pub(crate) tariff_timeout: Option<u32>,
   pub(crate) inactive_timeout: Option<u32>,
   pub(crate) discovery_timeout: Option<u32>,
   pub(crate) devices: HashMap<String, Device>,
