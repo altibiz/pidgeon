@@ -45,11 +45,19 @@ impl process::Recurring for Process {
             })
         })
         .map(|device| async move {
-          if let Err(error) = self.write_to_device(&device).await {
-            tracing::error! {
-              %error,
-              "Failed writing to device {}",
-              &device.id
+          match self.write_to_device(&device).await {
+            Err(error) => {
+              tracing::error! {
+                %error,
+                "Failed writing nightly to device {}",
+                &device.id
+              }
+            }
+            Ok(_) => {
+              tracing::error! {
+                "Wrote nightly to device {}",
+                &device.id
+              }
             }
           }
         }),
