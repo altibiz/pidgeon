@@ -54,7 +54,7 @@ impl process::Recurring for Process {
               }
             }
             Ok(_) => {
-              tracing::error! {
+              tracing::info! {
                 "Wrote daily to device {}",
                 &device.id
               }
