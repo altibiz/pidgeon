@@ -9,6 +9,8 @@ use thiserror::Error;
 
 use crate::*;
 
+// TODO: check if lists are empty before sending requests
+
 #[derive(Debug, Clone)]
 pub(crate) struct Service {
   pool: Pool<Postgres>,

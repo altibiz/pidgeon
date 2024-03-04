@@ -10,6 +10,8 @@ use thiserror::Error;
 
 use crate::*;
 
+// TODO: check if lists are empty before sending requests
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Measurement {
