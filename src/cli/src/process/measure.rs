@@ -131,7 +131,7 @@ impl Process {
     let streams_len_after = streams.len();
 
     tracing::info!(
-      "Got {:?} new measurements from {:?} streams of which {:?} were removed",
+      "Got {:?} new measurements from {:?} streams of which {:?} were retained",
       measurements_len,
       streams_len_before,
       streams_len_after
