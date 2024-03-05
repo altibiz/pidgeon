@@ -29,197 +29,203 @@ async def main():
 
   if args.device_type() == DeviceType.abb:
     while True:
-      await execute(client, DeviceType.abb, [
-        ReadRequest(
-          name="Type designation",
-          register=0x8960,
-          size=6,
-          convert=Client.to_ascii,
-        ),
-        ReadRequest(
-          name="Serial number",
-          register=0x8900,
-          size=2,
-          convert=Client.to_uint32,
-        ),
-        ReadRequest(
-          name="Active power",
-          register=0x5B14,
-          size=2,
-          convert=Client.to_sint32,
-        ),
-        ReadRequest(
-          name="Active power export L1",
-          register=0x546C,
-          size=4,
-          convert=Client.to_hex,
-        ),
-        ReadRequest(
-          name="Reactive Power",
-          register=0x5B1C,
-          size=2,
-          convert=Client.to_hex,
-        ),
-        ReadRequest(
-          name="Reactive Import",
-          register=0x500C,
-          size=2,
-          convert=Client.to_uint32,
-        ),
-        ReadRequest(
-          name="Reactive Export",
-          register=0x5010,
-          size=2,
-          convert=Client.to_uint32,
-        ),
-        ReadRequest(
-          name="Reactive Net",
-          register=0x5014,
-          size=2,
-          convert=Client.to_sint32,
-        ),
-        ReadRequest(
-          name="Active Import",
-          register=0x5000,
-          size=2,
-          convert=Client.to_uint32,
-        ),
-        ReadRequest(
-          name="Active Export",
-          register=0x5004,
-          size=2,
-          convert=Client.to_uint32,
-        ),
-        ReadRequest(
-          name="Active Net",
-          register=0x5008,
-          size=2,
-          convert=Client.to_sint32,
-        ),
-        WriteRequest(
-          name="Tariff configuration", register=0x8C90, values=[0x0001]),
-        WriteRequest(name="Tariff daily", register=0x8A07, values=[0x0001]),
-        ReadRequest(
-          name="Tariff configuration",
-          register=0x8C90,
-          size=1,
-          convert=Client.to_hex,
-        ),
-        ReadRequest(
-          name="Tariff",
-          register=0x8A07,
-          size=1,
-          convert=Client.to_hex,
-        ),
-        WriteRequest(
-          name="Tariff configuration", register=0x8C90, values=[0x0001]),
-        WriteRequest(name="Tariff nightly", register=0x8A07, values=[0x0002]),
-        ReadRequest(
-          name="Tariff configuration",
-          register=0x8C90,
-          size=1,
-          convert=Client.to_hex,
-        ),
-        ReadRequest(
-          name="Tariff",
-          register=0x8A07,
-          size=1,
-          convert=Client.to_hex,
-        ),
-      ])
+      await execute(
+        client,
+        DeviceType.abb,
+        [
+          ReadRequest(
+            name="Type designation",
+            register=0x8960,
+            size=6,
+            convert=Client.to_ascii,
+          ),
+          ReadRequest(
+            name="Serial number",
+            register=0x8900,
+            size=2,
+            convert=Client.to_uint32,
+          ),
+          ReadRequest(
+            name="Active power",
+            register=0x5B14,
+            size=2,
+            convert=Client.to_sint32,
+          ),
+          ReadRequest(
+            name="Active power export L1",
+            register=0x546C,
+            size=4,
+            convert=Client.to_hex,
+          ),
+          ReadRequest(
+            name="Reactive Power",
+            register=0x5B1C,
+            size=2,
+            convert=Client.to_hex,
+          ),
+          ReadRequest(
+            name="Reactive Import",
+            register=0x500C,
+            size=2,
+            convert=Client.to_uint32,
+          ),
+          ReadRequest(
+            name="Reactive Export",
+            register=0x5010,
+            size=2,
+            convert=Client.to_uint32,
+          ),
+          ReadRequest(
+            name="Reactive Net",
+            register=0x5014,
+            size=2,
+            convert=Client.to_sint32,
+          ),
+          ReadRequest(
+            name="Active Import",
+            register=0x5000,
+            size=2,
+            convert=Client.to_uint32,
+          ),
+          ReadRequest(
+            name="Active Export",
+            register=0x5004,
+            size=2,
+            convert=Client.to_uint32,
+          ),
+          ReadRequest(
+            name="Active Net",
+            register=0x5008,
+            size=2,
+            convert=Client.to_sint32,
+          ),
+          # WriteRequest(
+          #   name="Tariff configuration", register=0x8C90, values=[0x0001]),
+          # WriteRequest(name="Tariff daily", register=0x8A07, values=[0x0001]),
+          # ReadRequest(
+          #   name="Tariff configuration",
+          #   register=0x8C90,
+          #   size=1,
+          #   convert=Client.to_hex,
+          # ),
+          # ReadRequest(
+          #   name="Tariff",
+          #   register=0x8A07,
+          #   size=1,
+          #   convert=Client.to_hex,
+          # ),
+          # WriteRequest(
+          #   name="Tariff configuration", register=0x8C90, values=[0x0001]),
+          # WriteRequest(name="Tariff nightly", register=0x8A07, values=[0x0002]),
+          ReadRequest(
+            name="Tariff configuration",
+            register=0x8C90,
+            size=1,
+            convert=Client.to_hex,
+          ),
+          ReadRequest(
+            name="Tariff",
+            register=0x8A07,
+            size=1,
+            convert=Client.to_hex,
+          ),
+        ])
 
   if args.device_type() == DeviceType.schneider:
     while True:
-      await execute(client, DeviceType.schneider, [
-        ReadRequest(
-          name="Model",
-          register=0x0031,
-          size=20,
-          convert=Client.to_utf8,
-        ),
-        ReadRequest(
-          name="Serial number",
-          register=0x0081,
-          size=2,
-          convert=Client.to_uint32,
-        ),
-        ReadRequest(
-          name="Active Power",
-          register=0x0BF3,
-          size=2,
-          convert=Client.to_float32,
-        ),
-        ReadRequest(
-          name="Active energy import total",
-          register=0x0C83,
-          size=4,
-          convert=Client.to_sint64,
-        ),
-        ReadRequest(
-          name="Active energy import L1",
-          register=0x0DBD,
-          size=4,
-          convert=Client.to_sint64,
-        ),
-        ReadRequest(
-          name="Active energy import L2",
-          register=0x0DC1,
-          size=4,
-          convert=Client.to_sint64,
-        ),
-        ReadRequest(
-          name="Active energy import L3",
-          register=0x0DC5,
-          size=4,
-          convert=Client.to_sint64,
-        ),
-        WriteRequest(name="Tariff configuration",
-                     register=5249,
-                     values=[2060, 0x0000, 0x0001]),
-        ReadRequest(
-          name="Tariff configuration write result",
-          register=5374,
-          size=2,
-          convert=Client.to_registers,
-        ),
-        WriteRequest(
-          name="Tariff daily", register=5249, values=[2008, 0x0000, 0x0001]),
-        ReadRequest(
-          name="Tariff write result",
-          register=5374,
-          size=2,
-          convert=Client.to_registers,
-        ),
-        ReadRequest(
-          name="Tariff",
-          register=0x105E,
-          size=1,
-          convert=Client.to_hex,
-        ),
-        WriteRequest(name="Tariff configuration",
-                     register=5249,
-                     values=[2060, 0x0000, 0x0001]),
-        ReadRequest(
-          name="Tariff configuration write result",
-          register=5374,
-          size=2,
-          convert=Client.to_registers,
-        ),
-        WriteRequest(
-          name="Tariff nightly", register=5249, values=[2008, 0x0000, 0x0002]),
-        ReadRequest(
-          name="Tariff write result",
-          register=5374,
-          size=2,
-          convert=Client.to_registers,
-        ),
-        ReadRequest(
-          name="Tariff",
-          register=0x105E,
-          size=1,
-          convert=Client.to_hex,
-        ),
-      ])
+      await execute(
+        client,
+        DeviceType.schneider,
+        [
+          ReadRequest(
+            name="Model",
+            register=0x0031,
+            size=20,
+            convert=Client.to_utf8,
+          ),
+          ReadRequest(
+            name="Serial number",
+            register=0x0081,
+            size=2,
+            convert=Client.to_uint32,
+          ),
+          ReadRequest(
+            name="Active Power",
+            register=0x0BF3,
+            size=2,
+            convert=Client.to_float32,
+          ),
+          ReadRequest(
+            name="Active energy import total",
+            register=0x0C83,
+            size=4,
+            convert=Client.to_sint64,
+          ),
+          ReadRequest(
+            name="Active energy import L1",
+            register=0x0DBD,
+            size=4,
+            convert=Client.to_sint64,
+          ),
+          ReadRequest(
+            name="Active energy import L2",
+            register=0x0DC1,
+            size=4,
+            convert=Client.to_sint64,
+          ),
+          ReadRequest(
+            name="Active energy import L3",
+            register=0x0DC5,
+            size=4,
+            convert=Client.to_sint64,
+          ),
+          # WriteRequest(name="Tariff configuration",
+          #              register=5249,
+          #              values=[2060, 0x0000, 0x0001]),
+          # ReadRequest(
+          #   name="Tariff configuration write result",
+          #   register=5374,
+          #   size=2,
+          #   convert=Client.to_registers,
+          # ),
+          # WriteRequest(
+          #   name="Tariff daily", register=5249, values=[2008, 0x0000, 0x0001]),
+          # ReadRequest(
+          #   name="Tariff write result",
+          #   register=5374,
+          #   size=2,
+          #   convert=Client.to_registers,
+          # ),
+          # ReadRequest(
+          #   name="Tariff",
+          #   register=0x105E,
+          #   size=1,
+          #   convert=Client.to_hex,
+          # ),
+          # WriteRequest(name="Tariff configuration",
+          #              register=5249,
+          #              values=[2060, 0x0000, 0x0001]),
+          # ReadRequest(
+          #   name="Tariff configuration write result",
+          #   register=5374,
+          #   size=2,
+          #   convert=Client.to_registers,
+          # ),
+          # WriteRequest(
+          #   name="Tariff nightly", register=5249, values=[2008, 0x0000, 0x0002]),
+          # ReadRequest(
+          #   name="Tariff write result",
+          #   register=5374,
+          #   size=2,
+          #   convert=Client.to_registers,
+          # ),
+          ReadRequest(
+            name="Tariff",
+            register=0x105E,
+            size=1,
+            convert=Client.to_hex,
+          ),
+        ])
 
 
 async def execute(client: Client, device_type: DeviceType,
