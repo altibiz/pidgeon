@@ -107,7 +107,7 @@ class Client:
         if response.isError():
           print(response)
           await asyncio.sleep(1)
-          continue
+          break
 
       except Exception as exception:
         print(exception)
@@ -174,6 +174,14 @@ class Client:
   @staticmethod
   def to_bytes(*registers: int) -> bytes:
     return bytes(Client.to_raw_bytes(*registers))
+
+  @staticmethod
+  def to_hex(*registers: int) -> list[str]:
+    return [f"{register:04x}" for register in registers]
+
+  @staticmethod
+  def to_registers(*registers: int) -> list[int]:
+    return [register for register in registers]
 
   @staticmethod
   def to_ascii(*registers: int) -> str:

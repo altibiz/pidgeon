@@ -52,13 +52,13 @@ async def main():
           name="Active power export L1",
           register=0x546C,
           size=4,
-          convert=Client.to_raw_bytes,
+          convert=Client.to_hex,
         ),
         ReadRequest(
           name="Reactive Power",
           register=0x5B1C,
           size=2,
-          convert=Client.to_raw_bytes,
+          convert=Client.to_hex,
         ),
         ReadRequest(
           name="Reactive Import",
@@ -103,13 +103,13 @@ async def main():
           name="Tariff configuration",
           register=0x8C90,
           size=1,
-          convert=Client.to_raw_bytes,
+          convert=Client.to_hex,
         ),
         ReadRequest(
           name="Tariff",
           register=0x8A07,
           size=1,
-          convert=Client.to_raw_bytes,
+          convert=Client.to_hex,
         ),
         WriteRequest(
           name="Tariff configuration", register=0x8C90, values=[0x0001]),
@@ -118,13 +118,13 @@ async def main():
           name="Tariff configuration",
           register=0x8C90,
           size=1,
-          convert=Client.to_raw_bytes,
+          convert=Client.to_hex,
         ),
         ReadRequest(
           name="Tariff",
           register=0x8A07,
           size=1,
-          convert=Client.to_raw_bytes,
+          convert=Client.to_hex,
         ),
       ])
 
@@ -174,24 +174,50 @@ async def main():
           convert=Client.to_sint64,
         ),
         WriteRequest(name="Tariff configuration",
-                     register=0x2060,
-                     values=[0x0000, 0x0001]),
-        WriteRequest(name="Tariff daily", register=0x105E, values=[0x0001]),
+                     register=5250,
+                     values=[2060, 0x0000, 0x0001]),
+        ReadRequest(
+          name="Tariff configuration result",
+          register=5374,
+          size=2,
+          convert=Client.to_registers,
+        ),
+        WriteRequest(
+          name="Tariff daily", register=5250, values=[2008, 0x0000, 0x0001]),
+        ReadRequest(
+          name="Tariff result",
+          register=5374,
+          size=2,
+          convert=Client.to_registers,
+        ),
         ReadRequest(
           name="Tariff",
           register=0x105E,
           size=1,
-          convert=Client.to_raw_bytes,
+          convert=Client.to_hex,
         ),
         WriteRequest(name="Tariff configuration",
-                     register=0x2060,
-                     values=[0x0000, 0x0001]),
-        WriteRequest(name="Tariff nightly", register=0x105E, values=[0x0002]),
+                     register=5250,
+                     values=[2060, 0x0000, 0x0001]),
+        ReadRequest(
+          name="Tariff configuration result",
+          register=5374,
+          size=2,
+          convert=Client.to_registers,
+        ),
+        WriteRequest(
+          name="Tariff nightly", register=5250, values=[2008, 0x0000, 0x0002]),
+        ReadRequest(
+          name="Tariff result",
+          register=5374,
+          size=2,
+          convert=Client.to_registers,
+        ),
         ReadRequest(
           name="Tariff",
           register=0x105E,
           size=1,
-          convert=Client.to_raw_bytes,
+          convert=Client.to_hex,
         ),
       ])
 
@@ -216,4 +242,19 @@ async def execute(client: Client, device_type: DeviceType,
 
 
 if __name__ == "__main__":
-  asyncio.run(main())
+  from signal import SIGINT, SIGTERM
+
+  async def wrapper():
+    try:
+      await main()
+    except asyncio.CancelledError:
+      pass
+
+  loop = asyncio.get_event_loop()
+  main_task = asyncio.ensure_future(wrapper())
+  for signal in [SIGINT, SIGTERM]:
+    loop.add_signal_handler(signal, main_task.cancel)
+  try:
+    loop.run_until_complete(main_task)
+  finally:
+    loop.close()
