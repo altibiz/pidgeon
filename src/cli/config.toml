@@ -10,16 +10,16 @@ address = 0x0081
 kind = { u32 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.configuration]]
-address = 0x2060
-value = [0x0000, 0x0001]
+address = 5249
+value = [2060, 0x0000, 0x0001]
 
 [[modbus.devices.schneider-iEM3xxx.daily]]
-address = 0x2008
-value = [0x0000, 0x0001]
+address = 5249
+value = [2008, 0x0000, 0x0001]
 
 [[modbus.devices.schneider-iEM3xxx.nightly]]
-address = 0x2008
-value = [0x0000, 0x0002]
+address = 5249
+value = [2008, 0x0000, 0x0002]
 
 # schneider-iEM3xxx instantaneous
 
