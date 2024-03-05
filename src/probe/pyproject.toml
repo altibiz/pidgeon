@@ -3,6 +3,7 @@ name = "pidgeon-probe"
 version = "0.1.0"
 description = "Pidgeon probe"
 authors = ["Hrvoje Jurić <hrvoje@altibiz.com>"]
+license = "MIT"
 readme = "README.md"
 
 [build-system]
