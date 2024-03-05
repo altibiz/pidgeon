@@ -7,7 +7,7 @@ from pymodbus.pdu import ModbusResponse
 TRead = TypeVar("TRead")
 
 
-class PullClient:
+class Client:
 
   def __init__(
     self,
@@ -167,12 +167,12 @@ class PullClient:
 
   @staticmethod
   def to_bytes(*registers: int) -> bytes:
-    return bytes(PullClient.to_raw_bytes(*registers))
+    return bytes(Client.to_raw_bytes(*registers))
 
   @staticmethod
   def to_ascii(*registers: int) -> str:
-    return PullClient.to_bytes(*registers).decode("ascii")
+    return Client.to_bytes(*registers).decode("ascii")
 
   @staticmethod
   def to_utf8(*registers: int) -> str:
-    return PullClient.to_bytes(*registers).decode("utf8")
+    return Client.to_bytes(*registers).decode("utf8")

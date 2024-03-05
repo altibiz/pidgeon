@@ -1,174 +1,192 @@
 import asyncio
 import time
-from typing import Any, List, NamedTuple, Callable
-from pull import PullClient
+from typing import Any, List, NamedTuple, Callable, Union
+from client import Client
 from args import Args
 from device import DeviceType
 
 
-class Request(NamedTuple):
+class ReadRequest(NamedTuple):
   name: str
   register: int
-  count: int
+  size: int
   convert: Callable[..., Any]
+
+
+class WriteRequest(NamedTuple):
+  name: str
+  register: int
+  values: list[int]
 
 
 async def main():
   args = Args()
 
-  client = PullClient(
+  client = Client(
     ip_address=args.ip_address(),
     slave_id=args.slave_id(),
   )
 
   if args.device_type() == DeviceType.abb:
     while True:
-      await measure(client, DeviceType.abb, [
-        Request(
+      await execute(client, DeviceType.abb, [
+        ReadRequest(
           name="Type designation",
           register=0x8960,
-          count=6,
-          convert=PullClient.to_ascii,
+          size=6,
+          convert=Client.to_ascii,
         ),
-        Request(
+        ReadRequest(
           name="Serial number",
           register=0x8900,
-          count=2,
-          convert=PullClient.to_uint32,
+          size=2,
+          convert=Client.to_uint32,
         ),
-        Request(
+        ReadRequest(
           name="Active power",
           register=0x5B14,
-          count=2,
-          convert=PullClient.to_sint32,
+          size=2,
+          convert=Client.to_sint32,
         ),
-        Request(
+        ReadRequest(
           name="Active power export L1",
           register=0x546C,
-          count=4,
-          convert=PullClient.to_raw_bytes,
+          size=4,
+          convert=Client.to_raw_bytes,
         ),
-        Request(
+        ReadRequest(
           name="Reactive Power",
           register=0x5B1C,
-          count=2,
-          convert=PullClient.to_raw_bytes,
+          size=2,
+          convert=Client.to_raw_bytes,
         ),
-        Request(
+        ReadRequest(
           name="Reactive Import",
           register=0x500C,
-          count=2,
-          convert=PullClient.to_uint32,
+          size=2,
+          convert=Client.to_uint32,
         ),
-        Request(
+        ReadRequest(
           name="Reactive Export",
           register=0x5010,
-          count=2,
-          convert=PullClient.to_uint32,
+          size=2,
+          convert=Client.to_uint32,
         ),
-        Request(
+        ReadRequest(
           name="Reactive Net",
           register=0x5014,
-          count=2,
-          convert=PullClient.to_sint32,
+          size=2,
+          convert=Client.to_sint32,
         ),
-        Request(
+        ReadRequest(
           name="Active Import",
           register=0x5000,
-          count=2,
-          convert=PullClient.to_uint32,
+          size=2,
+          convert=Client.to_uint32,
         ),
-        Request(
+        ReadRequest(
           name="Active Export",
           register=0x5004,
-          count=2,
-          convert=PullClient.to_uint32,
+          size=2,
+          convert=Client.to_uint32,
         ),
-        Request(
+        ReadRequest(
           name="Active Net",
           register=0x5008,
-          count=2,
-          convert=PullClient.to_sint32,
+          size=2,
+          convert=Client.to_sint32,
         ),
-        Request(
+        ReadRequest(
           name="Tariff configuration",
           register=0x8C90,
-          count=1,
-          convert=PullClient.to_raw_bytes,
+          size=1,
+          convert=Client.to_raw_bytes,
         ),
-        Request(
+        ReadRequest(
           name="Tariff",
           register=0x8A07,
-          count=1,
-          convert=PullClient.to_raw_bytes,
+          size=1,
+          convert=Client.to_raw_bytes,
         ),
       ])
 
   if args.device_type() == DeviceType.schneider:
     while True:
-      await measure(client, DeviceType.schneider, [
-        Request(
+      await execute(client, DeviceType.schneider, [
+        ReadRequest(
           name="Model",
           register=0x0031,
-          count=20,
-          convert=PullClient.to_utf8,
+          size=20,
+          convert=Client.to_utf8,
         ),
-        Request(
+        ReadRequest(
           name="Serial number",
           register=0x0081,
-          count=2,
-          convert=PullClient.to_uint32,
+          size=2,
+          convert=Client.to_uint32,
         ),
-        Request(
+        ReadRequest(
           name="Active Power",
           register=0x0BF3,
-          count=2,
-          convert=PullClient.to_float32,
+          size=2,
+          convert=Client.to_float32,
         ),
-        Request(
+        ReadRequest(
           name="Active energy import total",
           register=0x0C83,
-          count=4,
-          convert=PullClient.to_sint64,
+          size=4,
+          convert=Client.to_sint64,
         ),
-        Request(
+        ReadRequest(
           name="Active energy import L1",
           register=0x0DBD,
-          count=4,
-          convert=PullClient.to_sint64,
+          size=4,
+          convert=Client.to_sint64,
         ),
-        Request(
+        ReadRequest(
           name="Active energy import L2",
           register=0x0DC1,
-          count=4,
-          convert=PullClient.to_sint64,
+          size=4,
+          convert=Client.to_sint64,
         ),
-        Request(
+        ReadRequest(
           name="Active energy import L3",
           register=0x0DC5,
-          count=4,
-          convert=PullClient.to_sint64,
+          size=4,
+          convert=Client.to_sint64,
         ),
-        Request(
+        WriteRequest(name="Tariff daily", register=0x105E, values=[0x0001]),
+        ReadRequest(
           name="Tariff",
           register=0x105E,
-          count=1,
-          convert=PullClient.to_raw_bytes,
+          size=1,
+          convert=Client.to_raw_bytes,
+        ),
+        WriteRequest(name="Tariff nightly", register=0x105E, values=[0x0002]),
+        ReadRequest(
+          name="Tariff",
+          register=0x105E,
+          size=1,
+          convert=Client.to_raw_bytes,
         ),
       ])
 
 
-async def measure(client: PullClient, device_type: DeviceType,
-                  requests: List[Request]):
+async def execute(client: Client, device_type: DeviceType,
+                  requests: List[Union[ReadRequest, WriteRequest]]):
   print("Reading", device_type)
   start = time.time()
   for request in requests:
-    value = await client.read(
-      register=request.register,
-      count=request.count,
-      convert=request.convert,
-    )
-    print(request.name, value)
+    if isinstance(request, ReadRequest):
+      value = await client.read(
+        register=request.register,
+        count=request.size,
+        convert=request.convert,
+      )
+      print("Read", request.name, value)
+    else:
+      await client.write(register=request.register, values=request.values)
+      print("Wrote", request.name)
   end = time.time()
   print("took", end - start, "\n")
 
