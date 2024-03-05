@@ -174,7 +174,7 @@ async def main():
           convert=Client.to_sint64,
         ),
         WriteRequest(name="Tariff configuration",
-                     register=5250,
+                     register=5249,
                      values=[2060, 0x0000, 0x0001]),
         ReadRequest(
           name="Tariff configuration write result",
@@ -183,7 +183,7 @@ async def main():
           convert=Client.to_registers,
         ),
         WriteRequest(
-          name="Tariff daily", register=5250, values=[2008, 0x0000, 0x0001]),
+          name="Tariff daily", register=5249, values=[2008, 0x0000, 0x0001]),
         ReadRequest(
           name="Tariff write result",
           register=5374,
@@ -197,7 +197,7 @@ async def main():
           convert=Client.to_hex,
         ),
         WriteRequest(name="Tariff configuration",
-                     register=5250,
+                     register=5249,
                      values=[2060, 0x0000, 0x0001]),
         ReadRequest(
           name="Tariff configuration write result",
@@ -206,7 +206,7 @@ async def main():
           convert=Client.to_registers,
         ),
         WriteRequest(
-          name="Tariff nightly", register=5250, values=[2008, 0x0000, 0x0002]),
+          name="Tariff nightly", register=5249, values=[2008, 0x0000, 0x0002]),
         ReadRequest(
           name="Tariff write result",
           register=5374,
@@ -224,7 +224,7 @@ async def main():
 
 async def execute(client: Client, device_type: DeviceType,
                   requests: List[Union[ReadRequest, WriteRequest]]):
-  print("Reading", device_type)
+  print("Executing requests for", device_type)
   start = time.time()
   for request in requests:
     if isinstance(request, ReadRequest):
