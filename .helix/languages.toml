@@ -1,10 +1,14 @@
 [language-server]
 nil = { command = "nil" }
-pyright-langserver = { command = "pyright-langserver", args = ["--stdio"] }
 bash-language-server = { command = "bash-language-server", args = ["start"] }
 taplo = { command = "taplo", args = ["lsp", "stdio"] }
 yaml-language-server = { command = "yaml-language-server", args = ["--stdio"] }
 marksman = { command = "marksman", args = ["server"] }
+
+[language-server.pyright-langserver]
+command = "pyright-langserver"
+args = ["--stdio"] 
+config = {}
 
 [language-server.vscode-json-language-server]
 command = "vscode-json-language-server"
