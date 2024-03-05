@@ -63,7 +63,7 @@ class PullClient:
           print(response)
           continue
 
-        registers = response.registers
+        registers = response.registers  # pyright: ignore unknownMemberType
 
       except Exception as exception:
         print(exception)
@@ -71,8 +71,7 @@ class PullClient:
         continue
 
       try:
-        value = convert(*cast(list[int],
-                              registers))  # pyright: ignore unknownMemberType
+        value = convert(registers)
         return value
       except Exception as exception:
         print(exception)
