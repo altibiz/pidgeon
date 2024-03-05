@@ -177,7 +177,7 @@ async def main():
                      register=5250,
                      values=[2060, 0x0000, 0x0001]),
         ReadRequest(
-          name="Tariff configuration result",
+          name="Tariff configuration write result",
           register=5374,
           size=2,
           convert=Client.to_registers,
@@ -185,7 +185,7 @@ async def main():
         WriteRequest(
           name="Tariff daily", register=5250, values=[2008, 0x0000, 0x0001]),
         ReadRequest(
-          name="Tariff result",
+          name="Tariff write result",
           register=5374,
           size=2,
           convert=Client.to_registers,
@@ -200,7 +200,7 @@ async def main():
                      register=5250,
                      values=[2060, 0x0000, 0x0001]),
         ReadRequest(
-          name="Tariff configuration result",
+          name="Tariff configuration write result",
           register=5374,
           size=2,
           convert=Client.to_registers,
@@ -208,7 +208,7 @@ async def main():
         WriteRequest(
           name="Tariff nightly", register=5250, values=[2008, 0x0000, 0x0002]),
         ReadRequest(
-          name="Tariff result",
+          name="Tariff write result",
           register=5374,
           size=2,
           convert=Client.to_registers,
