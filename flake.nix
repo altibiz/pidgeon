@@ -12,25 +12,45 @@
     config = { allowUnfree = true; };
     shell = { pkgs }: pkgs.mkShell {
       packages = with pkgs; let
-        # NITPICK: these two dont work as id like to ...
-        # pyright = pkgs.writeShellApplication {
-        #   name = "pyright-langserver";
-        #   runtimeInputs = [ pkgs.poetry pkgs.nodejs ];
-        #   text = ''
-        #     # shellcheck disable=SC1091
-        #     source "$(poetry env info --path)/bin/activate"
-        #     pyright-langserver "$@"
-        #   '';
-        # };
-        # yapf = pkgs.writeShellApplication {
-        #   name = "yapf";
-        #   runtimeInputs = [ pkgs.poetry ];
-        #   text = ''
-        #     # shellcheck disable=SC1091
-        #     source "$(poetry env info --path)/bin/activate"
-        #     yapf "$@"
-        #   '';
-        # };
+        python = pkgs.writeShellApplication {
+          name = "python";
+          runtimeInputs = [ pkgs.poetry ];
+          text = ''
+            # shellcheck disable=SC1091
+            source "$(poetry env info --path)/bin/activate"
+            python "$@"
+          '';
+        };
+
+        pyright = pkgs.writeShellApplication {
+          name = "pyright";
+          runtimeInputs = [ pkgs.poetry pkgs.nodejs ];
+          text = ''
+            # shellcheck disable=SC1091
+            source "$(poetry env info --path)/bin/activate"
+            pyright "$@"
+          '';
+        };
+
+        pyright-langserver = pkgs.writeShellApplication {
+          name = "pyright-langserver";
+          runtimeInputs = [ pkgs.poetry pkgs.nodejs ];
+          text = ''
+            # shellcheck disable=SC1091
+            source "$(poetry env info --path)/bin/activate"
+            pyright-langserver "$@"
+          '';
+        };
+
+        yapf = pkgs.writeShellApplication {
+          name = "yapf";
+          runtimeInputs = [ pkgs.poetry ];
+          text = ''
+            # shellcheck disable=SC1091
+            source "$(poetry env info --path)/bin/activate"
+            yapf "$@"
+          '';
+        };
 
         # NITPICK: https://github.com/astral-sh/ruff/issues/1699
         # ruff = pkgs.writeShellApplication {
@@ -42,16 +62,6 @@
         #     ruff "$@"
         #   '';
         # };
-
-        python = pkgs.writeShellApplication {
-          name = "python";
-          runtimeInputs = [ pkgs.poetry ];
-          text = ''
-            # shellcheck disable=SC1091
-            source "$(poetry env info --path)/bin/activate"
-            python "$@"
-          '';
-        };
 
         usql = pkgs.writeShellApplication {
           name = "usql";
@@ -68,8 +78,9 @@
 
         # Python
         poetry
-        pyright
         python
+        pyright
+        pyright-langserver
         yapf
         ruff
 
