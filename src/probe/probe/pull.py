@@ -77,6 +77,40 @@ class PullClient:
         print(exception)
         continue
 
+  async def write(
+    self,
+    register: int,
+    values: list[int],
+  ) -> None:
+    while True:
+      if not self.__modbus_connected:
+        try:
+          await self.__modbus_client.connect()
+          self.__modbus_connected = True
+        except Exception as exception:
+          print(exception)
+          continue
+
+      try:
+        response = await cast(
+          Coroutine[Any, Any, ModbusResponse],
+          asyncio.wait_for(self.__modbus_client.write_registers(
+            address=register,
+            values=values,
+            slave=self.__slave_id,
+          ),
+                           timeout=1))
+        if response.isError():
+          print(response)
+          continue
+
+      except Exception as exception:
+        print(exception)
+        self.__reopen()
+        continue
+
+      break
+
   @staticmethod
   def multiplied_by(converter: Callable[..., Union[int, float]],
                     multiplier: float) -> Callable[..., float]:
