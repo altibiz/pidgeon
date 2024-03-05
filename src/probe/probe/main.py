@@ -150,15 +150,9 @@ async def main():
           convert=PullClient.to_sint64,
         ),
         Request(
-          name="Tariff configuration",
-          register=0x2060,
-          count=2,
-          convert=PullClient.to_raw_bytes,
-        ),
-        Request(
           name="Tariff",
-          register=0x2008,
-          count=2,
+          register=0x105E,
+          count=1,
           convert=PullClient.to_raw_bytes,
         ),
       ])
