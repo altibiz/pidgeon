@@ -58,7 +58,10 @@ macro_rules! add_job_impl {
     let config = $self.config.clone();
     let services = $self.services.clone();
     let process = Arc::new(Mutex::new($name::Process::new(config, services)));
-    $startup(process.clone()).await;
+    #[allow(clippy::redundant_closure_call)] // NOTE: it gets optimized
+    {
+      $startup(process.clone()).await;
+    }
     match Job::new_async($config.schedule.$name, move |uuid, mut lock| {
       let process = process.clone();
       Box::pin(async move {
