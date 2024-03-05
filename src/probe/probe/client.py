@@ -47,6 +47,7 @@ class Client:
           self.__modbus_connected = True
         except Exception as exception:
           print(exception)
+          await asyncio.sleep(1)
           continue
 
       registers: Optional[List[int]] = None
@@ -67,14 +68,16 @@ class Client:
 
       except Exception as exception:
         print(exception)
+        await asyncio.sleep(1)
         self.__reopen()
         continue
 
       try:
-        value = convert(registers)
+        value = convert(*registers)
         return value
       except Exception as exception:
         print(exception)
+        await asyncio.sleep(1)
         continue
 
   async def write(
@@ -89,6 +92,7 @@ class Client:
           self.__modbus_connected = True
         except Exception as exception:
           print(exception)
+          await asyncio.sleep(1)
           continue
 
       try:
@@ -102,10 +106,12 @@ class Client:
                            timeout=1))
         if response.isError():
           print(response)
+          await asyncio.sleep(1)
           continue
 
       except Exception as exception:
         print(exception)
+        await asyncio.sleep(1)
         self.__reopen()
         continue
 

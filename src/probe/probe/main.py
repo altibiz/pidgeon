@@ -96,6 +96,24 @@ async def main():
           size=2,
           convert=Client.to_sint32,
         ),
+        WriteRequest(
+          name="Tariff configuration", register=0x8C90, values=[0x0001]),
+        WriteRequest(name="Tariff daily", register=0x8A07, values=[0x0001]),
+        ReadRequest(
+          name="Tariff configuration",
+          register=0x8C90,
+          size=1,
+          convert=Client.to_raw_bytes,
+        ),
+        ReadRequest(
+          name="Tariff",
+          register=0x8A07,
+          size=1,
+          convert=Client.to_raw_bytes,
+        ),
+        WriteRequest(
+          name="Tariff configuration", register=0x8C90, values=[0x0001]),
+        WriteRequest(name="Tariff nightly", register=0x8A07, values=[0x0002]),
         ReadRequest(
           name="Tariff configuration",
           register=0x8C90,
@@ -155,6 +173,9 @@ async def main():
           size=4,
           convert=Client.to_sint64,
         ),
+        WriteRequest(name="Tariff configuration",
+                     register=0x2060,
+                     values=[0x0000, 0x0001]),
         WriteRequest(name="Tariff daily", register=0x105E, values=[0x0001]),
         ReadRequest(
           name="Tariff",
@@ -162,6 +183,9 @@ async def main():
           size=1,
           convert=Client.to_raw_bytes,
         ),
+        WriteRequest(name="Tariff configuration",
+                     register=0x2060,
+                     values=[0x0000, 0x0001]),
         WriteRequest(name="Tariff nightly", register=0x105E, values=[0x0002]),
         ReadRequest(
           name="Tariff",
