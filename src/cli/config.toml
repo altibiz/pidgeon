@@ -115,6 +115,16 @@ name = "reactiveEnergyExportTotal_VARh"
 address = 0x0C97
 kind = { u64 = { multiplier = 1 } }
 
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "activeEnergyExportTotalT1_Wh"
+address = 0x1063
+kind = { u64 = { multiplier = 1 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "activeEnergyExportTotalT2_Wh"
+address = 0x1067
+kind = { u64 = { multiplier = 1 } }
+
 # abb-B2x
 
 [[modbus.devices.abb-B2x.detect]]
