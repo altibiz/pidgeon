@@ -128,6 +128,7 @@ pub(crate) struct Schedule {
   pub(crate) health: Option<String>,
   pub(crate) daily: Option<String>,
   pub(crate) nightly: Option<String>,
+  pub(crate) timezone: Option<chrono_tz::Tz>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]

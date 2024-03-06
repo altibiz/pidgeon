@@ -78,6 +78,7 @@ pub(crate) struct Schedule {
   pub(crate) health: cron::Schedule,
   pub(crate) daily: cron::Schedule,
   pub(crate) nightly: cron::Schedule,
+  pub(crate) timezone: chrono_tz::Tz,
 }
 
 #[derive(Debug, Clone)]
@@ -211,6 +212,7 @@ impl Manager {
           &config.from_file.schedule.nightly,
           "0 0 21 * * * *", // NOTE: at 21:00
         ),
+        timezone: config.from_file.schedule.timezone.unwrap_or(chrono_tz::UTC),
       },
       hardware: Hardware {
         temperature_monitor: config

@@ -62,25 +62,29 @@ macro_rules! add_job_impl {
     {
       $startup(process.clone()).await;
     }
-    match Job::new_async($config.schedule.$name, move |uuid, mut lock| {
-      let process = process.clone();
-      Box::pin(async move {
-        let process = process.clone().lock_owned().await;
-        tracing::debug!("Starting execution of {}", process.process_name());
-        match lock.next_tick_for_job(uuid).await {
-          Ok(Some(_)) => {
-            if let Err(error) = process.execute().await {
-              tracing::error!(
-                "Process execution failed {} for {}",
-                error,
-                process.process_name()
-              );
+    match Job::new_async_tz(
+      $config.schedule.$name,
+      $config.schedule.timezone,
+      move |uuid, mut lock| {
+        let process = process.clone();
+        Box::pin(async move {
+          let process = process.clone().lock_owned().await;
+          tracing::debug!("Starting execution of {}", process.process_name());
+          match lock.next_tick_for_job(uuid).await {
+            Ok(Some(_)) => {
+              if let Err(error) = process.execute().await {
+                tracing::error!(
+                  "Process execution failed {} for {}",
+                  error,
+                  process.process_name()
+                );
+              }
             }
+            _ => println!("Could not get next tick for 7s job"),
           }
-          _ => println!("Could not get next tick for 7s job"),
-        }
-      })
-    }) {
+        })
+      },
+    ) {
       Ok(job) => {
         if let Err(error) = $scheduler.add(job).await {
           return Err(ContainerError::JobAddition(error));

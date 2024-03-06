@@ -1,3 +1,6 @@
+[schedule]
+timezone = "Europe/Zagreb"
+
 # schneider-iEM3xxx
 
 [[modbus.devices.schneider-iEM3xxx.detect]]
