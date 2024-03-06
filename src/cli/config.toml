@@ -293,3 +293,13 @@ kind = { u64 = { multiplier = 10 } }
 name = "reactiveEnergyExportTotal_VARh"
 address = 0x5010
 kind = { u64 = { multiplier = 10 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "activeEnergyImportTotalT1_Wh"
+address = 0x5170
+kind = { u64 = { multiplier = 10 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "activeEnergyImportTotalT2_Wh"
+address = 0x5174
+kind = { u64 = { multiplier = 10 } }
