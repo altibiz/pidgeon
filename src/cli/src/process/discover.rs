@@ -28,7 +28,7 @@ impl super::Process for Process {}
 impl super::Recurring for Process {
   #[tracing::instrument(skip(self))]
   async fn execute(&self) -> anyhow::Result<()> {
-    let config = self.config.reload().await;
+    let config = self.config.values().await;
 
     let addresses = self.services.network().scan_modbus().await;
     let addresses_len = addresses.len();

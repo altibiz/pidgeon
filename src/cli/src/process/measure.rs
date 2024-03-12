@@ -39,7 +39,7 @@ impl super::Process for Process {}
 impl process::Recurring for Process {
   #[tracing::instrument(skip(self))]
   async fn execute(&self) -> anyhow::Result<()> {
-    let config = self.config.reload().await;
+    let config = self.config.values().await;
     let measurements = self.get_unprocessed_measurements().await;
     self.consolidate(measurements).await;
 

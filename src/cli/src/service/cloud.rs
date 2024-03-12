@@ -39,6 +39,7 @@ pub(crate) struct Response {
 pub(crate) struct Service {
   push_endpoint: String,
   update_endpoint: String,
+  poll_endpoint: String,
   http: HttpClient,
 }
 
@@ -55,7 +56,7 @@ pub(crate) enum ConstructionError {
 }
 
 #[derive(Debug, Error)]
-pub(crate) enum PushError {
+pub(crate) enum RequestError {
   #[error("HTTP Post error")]
   HttpError(#[from] HttpError),
 }
@@ -80,6 +81,7 @@ impl service::Service for Service {
 
     let push_endpoint = format!("{protocol}://{domain}/push/{id}");
     let update_endpoint = format!("{protocol}://{domain}/update/{id}");
+    let poll_endpoint = format!("{protocol}://{domain}/poll/{id}");
 
     let mut headers = HeaderMap::new();
     match config.cloud.api_key {
@@ -109,6 +111,7 @@ impl service::Service for Service {
     Self {
       push_endpoint,
       update_endpoint,
+      poll_endpoint,
       http,
     }
   }
@@ -119,7 +122,7 @@ impl Service {
   pub(crate) async fn push(
     &self,
     measurements: Vec<Measurement>,
-  ) -> Result<Response, PushError> {
+  ) -> Result<Response, RequestError> {
     let request = PushRequest {
       timestamp: chrono::offset::Utc::now(),
       measurements,
@@ -165,7 +168,7 @@ impl Service {
     &self,
     pidgeon: serde_json::Value,
     health: Vec<Health>,
-  ) -> Result<Response, PushError> {
+  ) -> Result<Response, RequestError> {
     let request = UpdateRequest {
       timestamp: chrono::offset::Utc::now(),
       pidgeon,
@@ -197,6 +200,33 @@ impl Service {
       request.health.len(),
       status_code
     );
+
+    let response = Response {
+      success,
+      text,
+      code: status_code.as_u16(),
+    };
+
+    Ok(response)
+  }
+
+  #[tracing::instrument(skip_all)]
+  pub(crate) async fn poll(&self) -> Result<Response, RequestError> {
+    let http_response = self.http.get(self.poll_endpoint.clone()).send().await;
+    if let Err(error) = &http_response {
+      tracing::warn! {
+        %error,
+        "Failed polling config: {:?}",
+        error,
+      }
+    }
+    let http_response = http_response?;
+
+    let status_code = http_response.status();
+    let success = status_code.is_success();
+    let text = http_response.text().await?;
+
+    tracing::trace!("Polled config {:?}", status_code);
 
     let response = Response {
       success,

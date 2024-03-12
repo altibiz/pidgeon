@@ -128,6 +128,7 @@ pub(crate) struct Schedule {
   pub(crate) health: Option<String>,
   pub(crate) daily: Option<String>,
   pub(crate) nightly: Option<String>,
+  pub(crate) poll: Option<String>,
   pub(crate) timezone: Option<chrono_tz::Tz>,
 }
 
@@ -162,17 +163,17 @@ pub(crate) enum ParseError {
   #[error("Config file has invalid extension")]
   InvalidExtension,
 
-  #[error("Failed deserializing config from yaml file")]
+  #[error("Failed deserializing config from yaml")]
   DeserializetionYaml(#[from] serde_yaml::Error),
 
-  #[error("Failed deserializing config from toml file")]
+  #[error("Failed deserializing config from toml")]
   DeserializetionToml(#[from] toml::de::Error),
 
-  #[error("Failed deserializing config from json file")]
+  #[error("Failed deserializing config from json")]
   DeserializetionJson(#[from] serde_json::Error),
 }
 
-pub(crate) async fn parse_async(
+pub(crate) async fn parse_file(
   location: Option<&str>,
 ) -> Result<Values, ParseError> {
   let location = match location {
@@ -195,6 +196,12 @@ pub(crate) async fn parse_async(
   };
 
   Ok(values)
+}
+
+pub(crate) async fn parse_json(json: &str) -> Result<Values, ParseError> {
+  let parsed = serde_json::from_str::<Values>(json)?;
+
+  Ok(parsed)
 }
 
 pub(crate) fn to_modbus_measurement_register(

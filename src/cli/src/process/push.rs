@@ -25,7 +25,7 @@ impl super::Process for Process {}
 impl process::Recurring for Process {
   #[tracing::instrument(skip(self))]
   async fn execute(&self) -> anyhow::Result<()> {
-    let config = self.config.reload().await;
+    let config = self.config.values().await;
 
     let last_pushed_id =
       match self.services.db().get_last_successful_push_log().await? {

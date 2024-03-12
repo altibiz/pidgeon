@@ -78,6 +78,7 @@ pub(crate) struct Schedule {
   pub(crate) health: cron::Schedule,
   pub(crate) daily: cron::Schedule,
   pub(crate) nightly: cron::Schedule,
+  pub(crate) poll: cron::Schedule,
   pub(crate) timezone: chrono_tz::Tz,
 }
 
@@ -121,7 +122,7 @@ pub(crate) enum ReloadError {
 
 impl Manager {
   pub(crate) async fn new() -> Result<Self, ReadError> {
-    let config = Self::read_async().await?;
+    let config = Self::read().await?;
 
     let config_manager = Self {
       lock: Arc::new(Mutex::new(config)),
@@ -141,11 +142,28 @@ impl Manager {
     let config = {
       let mut values = self.lock.lock().await;
       let from_file =
-        file::parse_async(values.from_args.config.as_deref()).await;
+        file::parse_file(values.from_args.config.as_deref()).await;
       match from_file {
         Ok(from_file) => values.from_file = from_file,
         Err(error) => {
           tracing::error!("Failed parsing config file {}", error)
+        }
+      }
+      values.clone()
+    };
+
+    Self::parse(config)
+  }
+
+  #[tracing::instrument(skip(self))]
+  pub(crate) async fn reload_json(&self, json: &str) -> Values {
+    let config = {
+      let mut values = self.lock.lock().await;
+      let from_file = file::parse_json(json).await;
+      match from_file {
+        Ok(from_file) => values.from_file = from_file,
+        Err(error) => {
+          tracing::error!("Failed parsing config json {}", error)
         }
       }
       values.clone()
@@ -211,6 +229,10 @@ impl Manager {
         nightly: file::string_to_cron(
           &config.from_file.schedule.nightly,
           "0 0 21 * * * *", // NOTE: at 21:00
+        ),
+        poll: file::string_to_cron(
+          &config.from_file.schedule.poll,
+          "0 * * * * * *", // NOTE: every minute
         ),
         timezone: config.from_file.schedule.timezone.unwrap_or(chrono_tz::UTC),
       },
@@ -335,10 +357,10 @@ impl Manager {
     }
   }
 
-  async fn read_async() -> Result<Unparsed, ReadError> {
+  async fn read() -> Result<Unparsed, ReadError> {
     let from_args = args::parse();
     let from_env = env::parse()?;
-    let from_file = file::parse_async(from_args.config.as_deref()).await?;
+    let from_file = file::parse_file(from_args.config.as_deref()).await?;
 
     Ok(Unparsed {
       from_args,
