@@ -11,7 +11,7 @@ format:
   shfmt --write "{{root_path}}"
 
 lint:
-  cd "{{root_path}}" && cargo clippy -D warnings
+  cd "{{root_path}}" && cargo clippy -- -D warnings
   ruff check "{{root_path}}"
   cd "{{probe_path}}" && pyright .
   shellcheck "{{scripts_path}}"/*
