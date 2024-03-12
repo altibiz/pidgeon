@@ -1,3 +1,4 @@
+#[allow(unused_imports)]
 use crate::{service::*, *};
 
 // TODO: store push time in log

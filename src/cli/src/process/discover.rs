@@ -3,6 +3,7 @@ use std::net::SocketAddr;
 use futures::future::{join_all, select_all};
 use futures_time::future::FutureExt;
 
+#[allow(unused_imports)]
 use crate::{service::*, *};
 
 pub(crate) struct Process {

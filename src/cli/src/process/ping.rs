@@ -1,6 +1,7 @@
 use futures::future::join_all;
 use futures_time::future::FutureExt;
 
+#[allow(unused_imports)]
 use crate::{service::*, *};
 
 // TODO: use destination to send request because the device might not be discovered
