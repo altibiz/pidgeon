@@ -4,7 +4,11 @@
   "describe": {
     "columns": [],
     "parameters": {
-      "Left": ["Text", "Timestamptz", "Jsonb"]
+      "Left": [
+        "Text",
+        "Timestamptz",
+        "Jsonb"
+      ]
     },
     "nullable": []
   },

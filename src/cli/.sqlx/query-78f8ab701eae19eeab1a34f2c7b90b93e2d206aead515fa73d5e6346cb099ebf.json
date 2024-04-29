@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        select id, source, timestamp, status as \"status: DeviceStatus\", data\n        from health\n        where health.id > $1 \n        limit $2\n      ",
+  "query": "\n        select id, source, timestamp, status as \"status: DeviceStatus\", data\n        from health\n        where health.id > $1\n        limit $2\n      ",
   "describe": {
     "columns": [
       {
@@ -25,7 +25,11 @@
           "Custom": {
             "name": "device_status",
             "kind": {
-              "Enum": ["healthy", "unreachable", "inactive"]
+              "Enum": [
+                "healthy",
+                "unreachable",
+                "inactive"
+              ]
             }
           }
         }
@@ -37,9 +41,18 @@
       }
     ],
     "parameters": {
-      "Left": ["Int8", "Int8"]
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
     },
-    "nullable": [false, false, false, false, false]
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
   },
-  "hash": "84d863595b982d5b8e18047d3ac1734ea8b9d5119dc30d3a58b02257d5fe51e6"
+  "hash": "78f8ab701eae19eeab1a34f2c7b90b93e2d206aead515fa73d5e6346cb099ebf"
 }

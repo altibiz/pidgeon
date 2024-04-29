@@ -25,7 +25,10 @@
           "Custom": {
             "name": "log_kind",
             "kind": {
-              "Enum": ["push", "update"]
+              "Enum": [
+                "push",
+                "update"
+              ]
             }
           }
         }
@@ -37,7 +40,10 @@
           "Custom": {
             "name": "log_status",
             "kind": {
-              "Enum": ["success", "failure"]
+              "Enum": [
+                "success",
+                "failure"
+              ]
             }
           }
         }
@@ -51,7 +57,14 @@
     "parameters": {
       "Left": []
     },
-    "nullable": [false, false, true, false, false, false]
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
   },
   "hash": "9f8c1fee206c7178367a484a8a68dfa186445b83f8b5889b329406ecfa59de5d"
 }
