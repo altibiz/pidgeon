@@ -88,6 +88,7 @@
             nixpkgs-fmt
 
             # Python
+            poetry
             pyright
             yapf
             ruff
