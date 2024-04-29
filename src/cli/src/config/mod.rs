@@ -2,7 +2,7 @@ mod args;
 mod env;
 mod file;
 
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, fs, sync::Arc};
 
 use ipnet::IpAddrRange;
 use thiserror::Error;
@@ -39,7 +39,7 @@ pub(crate) struct Cloud {
   pub(crate) ssl: bool,
   pub(crate) domain: String,
   pub(crate) api_key: Option<String>,
-  pub(crate) id: Option<String>,
+  pub(crate) id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -251,7 +251,17 @@ impl Manager {
         ssl: config.from_env.cloud.ssl,
         domain: config.from_env.cloud.domain,
         api_key: config.from_env.cloud.api_key,
-        id: config.from_env.cloud.id,
+        id: config.from_env.cloud.id.unwrap_or_else(|| {
+          #[allow(clippy::unwrap_used)] // NOTE: it is for sure there on rpi4
+          {
+            "pidgeon-".to_string()
+              + fs::read_to_string(
+                "/sys/firmware/devicetree/base/serial-number",
+              )
+              .unwrap()
+              .as_str()
+          }
+        }),
       },
       db: Db {
         timeout: file::milliseconds_to_chrono(
