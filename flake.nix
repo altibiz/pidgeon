@@ -94,6 +94,7 @@
             ruff
 
             # Rust
+            rustc
             cargo
             clippy
             rustfmt
