@@ -17,6 +17,10 @@ prepare:
   sleep 3sec
   cd "{{cli_path}}"; sqlx migrate run
 
+ci:
+  cd "{{root_path}}"; poetry install --no-root
+  cd "{{probe_path}}"; poetry install --no-root
+
 format:
   cd "{{root_path}}"; cargo fmt --all
   yapf --recursive --in-place --parallel "{{root_path}}"
