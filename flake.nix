@@ -3,15 +3,23 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    utils.url = "github:numtide/flake-utils";
+    flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, utils }: utils.lib.simpleFlake {
-    inherit self nixpkgs;
-    name = "pidgeon";
-    config = { allowUnfree = true; };
-    shell = { pkgs }: pkgs.mkShell {
-      packages = with pkgs; let
+  outputs = { self, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = import nixpkgs {
+          inherit system;
+          config = { allowUnfree = true; };
+          overlays = [
+            (final: prev: {
+              nodejs = prev.nodejs_20;
+              dotnet-sdk = prev.dotnet-sdk_8;
+            })
+          ];
+        };
+
         python = pkgs.writeShellApplication {
           name = "python";
           runtimeInputs = [ pkgs.poetry ];
@@ -71,68 +79,104 @@
           '';
         };
       in
-      [
-        # Nix
-        nil
-        nixpkgs-fmt
+      {
+        devShells.check = pkgs.mkShell {
+          RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
 
-        # Python
-        poetry
-        python
-        pyright
-        pyright-langserver
-        yapf
-        ruff
+          packages = with pkgs; [
+            # Nix
+            nixpkgs-fmt
 
-        # Rust
-        lldb
-        rustc
-        cargo
-        clippy
-        rustfmt
-        rust-analyzer
-        cargo-edit
+            # Python
+            poetry
+            pyright
+            yapf
+            ruff
 
-        # Shell
-        bashInteractiveFHS
-        nodePackages.bash-language-server
-        shfmt
-        shellcheck
+            # Rust
+            rustc
+            cargo
+            clippy
+            rustfmt
+            pkg-config
+            openssl
 
-        # Misc
-        usql
-        just
-        nodePackages.prettier
-        nodePackages.yaml-language-server
-        marksman
-        taplo
+            # Shell
+            shfmt
+            shellcheck
 
-        # Tools
-        openssh
-        age
-        pkg-config
-        openssl
-        sqlx-cli
-        jq
-        sops
-      ];
+            # Misc
+            nodePackages.prettier
 
-      DATABASE_URL = "postgres://pidgeon:pidgeon@localhost:5433/pidgeon?sslmode=disable";
-      RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
+            # Tools
+            nushell
+            just
+          ];
+        };
+        devShells.default = pkgs.mkShell {
+          DATABASE_URL = "postgres://pidgeon:pidgeon@localhost:5433/pidgeon?sslmode=disable";
+          RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
 
-      # PIDGEON_CLOUD_SSL = "1";
-      # PIDGEON_CLOUD_DOMAIN = "localhost:5001";
-      # PIDGEON_CLOUD_API_KEY = "pidgeon";
-      # PIDGEON_CLOUD_ID = "pidgeon";
+          # PIDGEON_CLOUD_SSL = "1";
+          # PIDGEON_CLOUD_DOMAIN = "localhost:5001";
+          # PIDGEON_CLOUD_API_KEY = "pidgeon";
+          # PIDGEON_CLOUD_ID = "pidgeon";
 
-      PIDGEON_DB_DOMAIN = "localhost";
-      PIDGEON_DB_PORT = "5433";
-      PIDGEON_DB_USER = "pidgeon";
-      PIDGEON_DB_PASSWORD = "pidgeon";
-      PIDGEON_DB_NAME = "pidgeon";
+          PIDGEON_DB_DOMAIN = "localhost";
+          PIDGEON_DB_PORT = "5433";
+          PIDGEON_DB_USER = "pidgeon";
+          PIDGEON_DB_PASSWORD = "pidgeon";
+          PIDGEON_DB_NAME = "pidgeon";
 
-      # PIDGEON_NETWORK_IP_RANGE_START = "192.168.1.0";
-      # PIDGEON_NETWORK_IP_RANGE_END = "192.168.1.255";
-    };
-  };
+          # PIDGEON_NETWORK_IP_RANGE_START = "192.168.1.0";
+          # PIDGEON_NETWORK_IP_RANGE_END = "192.168.1.255";
+
+          packages = with pkgs; [
+            # Nix
+            nil
+            nixpkgs-fmt
+
+            # Python
+            poetry
+            python
+            pyright
+            pyright-langserver
+            yapf
+            ruff
+
+            # Rust
+            lldb
+            rustc
+            cargo
+            clippy
+            rustfmt
+            rust-analyzer
+            cargo-edit
+
+            # Shell
+            bashInteractiveFHS
+            nodePackages.bash-language-server
+            shfmt
+            shellcheck
+
+            # Misc
+            nodePackages.prettier
+            nodePackages.yaml-language-server
+            marksman
+            taplo
+
+            # Tools
+            nushell
+            usql
+            just
+            openssh
+            age
+            pkg-config
+            openssl
+            sqlx-cli
+            jq
+            sops
+          ];
+        };
+      });
 }
