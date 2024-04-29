@@ -20,11 +20,7 @@
           "Custom": {
             "name": "device_status",
             "kind": {
-              "Enum": [
-                "healthy",
-                "unreachable",
-                "inactive"
-              ]
+              "Enum": ["healthy", "unreachable", "inactive"]
             }
           }
         }
@@ -51,19 +47,9 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Text"
-      ]
+      "Left": ["Text"]
     },
-    "nullable": [
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      true
-    ]
+    "nullable": [false, false, false, false, false, false, true]
   },
   "hash": "b2fd06cdcb43b046d6bfa5924cd46390926f596cbf6109be18ba4ba14a87d7f7"
 }

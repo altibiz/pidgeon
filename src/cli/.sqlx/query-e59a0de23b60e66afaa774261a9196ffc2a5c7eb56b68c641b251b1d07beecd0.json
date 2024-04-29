@@ -4,13 +4,7 @@
   "describe": {
     "columns": [],
     "parameters": {
-      "Left": [
-        "Text",
-        "Inet",
-        "Int4",
-        "Timestamptz",
-        "Timestamptz"
-      ]
+      "Left": ["Text", "Inet", "Int4", "Timestamptz", "Timestamptz"]
     },
     "nullable": []
   },
