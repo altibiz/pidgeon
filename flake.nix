@@ -118,6 +118,7 @@
       ];
 
       DATABASE_URL = "postgres://pidgeon:pidgeon@localhost:5433/pidgeon?sslmode=disable";
+      RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
 
       # PIDGEON_CLOUD_SSL = "1";
       # PIDGEON_CLOUD_DOMAIN = "localhost:5001";
