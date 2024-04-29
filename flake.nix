@@ -97,6 +97,8 @@
             cargo
             clippy
             rustfmt
+            pkg-config
+            openssl
 
             # Shell
             shfmt
