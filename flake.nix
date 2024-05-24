@@ -67,10 +67,9 @@
           };
 
           devShells = (outputs.devShells or { }) // {
-            ${system} = {
-              check = (import ./src/flake/check.nix) devShellInputs;
-              default = (import ./src/flake/dev.nix) devShellInputs;
-            };
+            ${system} = builtins.mapAttrs
+              (name: value: value devShellInputs)
+              (import ./src/flake/shells/default.nix);
           };
 
           nixosConfigurations = builtins.foldl'

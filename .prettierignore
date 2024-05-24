@@ -1,1 +1,2 @@
+*.lock
 secrets.sops.enc.yaml

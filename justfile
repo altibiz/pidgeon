@@ -28,11 +28,12 @@ format:
   shfmt --write "{{root_path}}"
 
 lint:
-  cd "{{root_path}}"; cargo clippy -- -D warnings
-  ruff check "{{root_path}}"
-  cd "{{probe_path}}"; pyright .
-  glob '/home/haras/src/pidgeon/scripts/*' | each { |i| shellcheck $i } | str join "\n"
   prettier --check "{{root_path}}"
+  cspell lint "{{root_path}}"
+  glob '/home/haras/src/pidgeon/scripts/*' | each { |i| shellcheck $i } | str join "\n"
+  ruff check "{{root_path}}"
+  cd "{{root_path}}"; cargo clippy -- -D warnings
+  cd "{{probe_path}}"; pyright .
 
 test:
   cd "{{root_path}}"; cargo test
@@ -45,3 +46,6 @@ run *args:
 
 probe *args:
   cd "{{probe_path}}"; python ./probe/main.py {{args}}
+
+docs:
+  cd '{{root_path}}'; cargo doc --no-deps

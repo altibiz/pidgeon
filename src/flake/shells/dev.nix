@@ -32,6 +32,7 @@ pkgs.mkShell {
     ruff
 
     # Rust
+    llvmPackages.clangNoLibcxx
     lldb
     rustc
     cargo
@@ -45,6 +46,12 @@ pkgs.mkShell {
     nodePackages.bash-language-server
     shfmt
     shellcheck
+
+    # Spelling
+    nodePackages.cspell
+
+    # Documentation
+    simple-http-server
 
     # Misc
     nodePackages.prettier

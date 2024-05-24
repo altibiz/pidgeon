@@ -41,13 +41,13 @@ pub(crate) enum ContainerError {
   #[error("Job scheduler creation failed")]
   JobSchedulerCreation(JobSchedulerError),
 
-  #[error("Job creation stratup failed")]
+  #[error("Job creation startup failed")]
   JobCreation(JobSchedulerError),
 
-  #[error("Job addition stratup failed")]
+  #[error("Job addition startup failed")]
   JobAddition(JobSchedulerError),
 
-  #[error("Job scheduler stratup failed")]
+  #[error("Job scheduler startup failed")]
   StartupFailed(JobSchedulerError),
 
   #[error("Job scheduler shutdown failed")]

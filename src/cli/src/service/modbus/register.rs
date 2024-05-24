@@ -312,7 +312,7 @@ macro_rules! parse_integer_register {
       value: match $multiplier {
         Some($multiplier) => value
           .checked_mul($multiplier)
-          .ok_or_else(|| anyhow::anyhow!("Failed multiplyting register"))?,
+          .ok_or_else(|| anyhow::anyhow!("Failed multiplying register"))?,
         None => value,
       },
       timestamp: $timestamp,
