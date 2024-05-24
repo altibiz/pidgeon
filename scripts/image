@@ -8,4 +8,4 @@ ROOT="$(cd "$(dirname "$SCRIPTS")" && pwd)"
 nix build \
   --extra-experimental-features nix-command \
   --extra-experimental-features flakes \
-  "path:${ROOT}/src/system#nixosConfigurations.pidgeon.config.system.build.sdImage"
+  "path:${ROOT}#nixosConfigurations.pidgeon.config.system.build.sdImage"

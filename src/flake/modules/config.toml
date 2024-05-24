@@ -27,104 +27,104 @@ value = [2008, 0x0000, 0x0002]
 # schneider-iEM3xxx instantaneous
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "voltageL1_V"
+name = "voltageL1AnyT0_V"
 address = 0x0BD3
 kind = { f32 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "voltageL2_V"
+name = "voltageL2AnyT0_V"
 address = 0x0BD5
 kind = { f32 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "voltageL3_V"
+name = "voltageL3AnyT0_V"
 address = 0x0BD7
 kind = { f32 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "currentL1_A"
+name = "currentL1AnyT0_A"
 address = 0x0BB7
 kind = { f32 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "currentL2_A"
+name = "currentL2AnyT0_A"
 address = 0x0BB9
 kind = { f32 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "currentL3_A"
+name = "currentL3AnyT0_A"
 address = 0x0BBB
 kind = { f32 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "activePowerL1_W"
+name = "activePowerL1NetT0_W"
 address = 0x0BED
 kind = { f32 = { multiplier = 1000 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "activePowerL2_W"
+name = "activePowerL2NetT0_W"
 address = 0x0BEF
 kind = { f32 = { multiplier = 1000 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "activePowerL3_W"
+name = "activePowerL3NetT0_W"
 address = 0x0BF1
 kind = { f32 = { multiplier = 1000 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "reactivePowerTotal_VAR"
+name = "reactivePowerTotalNetT0_VAR"
 address = 0x0BFB
 kind = { f32 = { multiplier = 1000 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "apparentPowerTotal_VA"
+name = "apparentPowerTotalNetT0_VA"
 address = 0x0C03
 kind = { f32 = { multiplier = 1000 } }
 
 # schneider-iEM3xxx cumulative
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "activeEnergyImportL1_Wh"
+name = "activeEnergyL1ImportT0_Wh"
 address = 0x0DBD
 kind = { u64 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "activeEnergyImportL2_Wh"
+name = "activeEnergyL2ImportT0_Wh"
 address = 0x0DC1
 kind = { u64 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "activeEnergyImportL3_Wh"
+name = "activeEnergyL3ImportT0_Wh"
 address = 0x0DC5
 kind = { u64 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "activeEnergyImportTotal_Wh"
+name = "activeEnergyTotalImportT0_Wh"
 address = 0x0C83
 kind = { u64 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "activeEnergyExportTotal_Wh"
+name = "activeEnergyTotalExportT0_Wh"
 address = 0x0C87
 kind = { u64 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "reactiveEnergyImportTotal_VARh"
+name = "reactiveEnergyTotalImportT0_VARh"
 address = 0x0C93
 kind = { u64 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "reactiveEnergyExportTotal_VARh"
+name = "reactiveEnergyTotalExportT0_VARh"
 address = 0x0C97
 kind = { u64 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "activeEnergyImportTotalT1_Wh"
+name = "activeEnergyTotalImportT1_Wh"
 address = 0x1063
 kind = { u64 = { multiplier = 1 } }
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]
-name = "activeEnergyImportTotalT2_Wh"
+name = "activeEnergyTotalImportT2_Wh"
 address = 0x1067
 kind = { u64 = { multiplier = 1 } }
 
@@ -154,155 +154,153 @@ value = [0x0002]
 # abb-B2x instantaneous
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "voltageL1_V"
+name = "voltageL1AnyT0_V"
 address = 0x5B00
 kind = { u32 = { multiplier = 0.1 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "voltageL2_V"
+name = "voltageL2AnyT0_V"
 address = 0x5B02
 kind = { u32 = { multiplier = 0.1 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "voltageL3_V"
+name = "voltageL3AnyT0_V"
 address = 0x5B04
 kind = { u32 = { multiplier = 0.1 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "currentL1_A"
+name = "currentL1AnyT0_A"
 address = 0x5B0C
 kind = { u32 = { multiplier = 0.01 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "currentL2_A"
+name = "currentL2AnyT0_A"
 address = 0x5B0E
 kind = { u32 = { multiplier = 0.01 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "currentL3_A"
+name = "currentL3AnyT0_A"
 address = 0x5B10
 kind = { u32 = { multiplier = 0.01 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "activePowerL1_W"
+name = "activePowerL1NetT0_W"
 address = 0x5B16
 kind = { s32 = { multiplier = 0.01 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "activePowerL2_W"
+name = "activePowerL2NetT0_W"
 address = 0x5B18
 kind = { s32 = { multiplier = 0.01 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "activePowerL3_W"
+name = "activePowerL3NetT0_W"
 address = 0x5B1A
 kind = { s32 = { multiplier = 0.01 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "reactivePowerL1_VAR"
+name = "reactivePowerL1NetT0_VAR"
 address = 0x5B1E
 kind = { s32 = { multiplier = 0.01 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "reactivePowerL2_VAR"
+name = "reactivePowerL2NetT0_VAR"
 address = 0x5B20
 kind = { s32 = { multiplier = 0.01 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "reactivePowerL3_VAR"
+name = "reactivePowerL3NetT0_VAR"
 address = 0x5B22
 kind = { s32 = { multiplier = 0.01 } }
 
 # abb-B2x cumulative
 
-# TODO: rename all Power to Energy here
-
 [[modbus.devices.abb-B2x.measurement]]
-name = "activePowerImportL1_Wh"
+name = "activeEnergyL1ImportT0_Wh"
 address = 0x5460
 kind = { u64 = { multiplier = 10 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "activePowerImportL2_Wh"
+name = "activeEnergyL2ImportT0_Wh"
 address = 0x5464
 kind = { u64 = { multiplier = 10 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "activePowerImportL3_Wh"
+name = "activeEnergyL3ImportT0_Wh"
 address = 0x5468
 kind = { u64 = { multiplier = 10 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "activePowerExportL1_Wh"
+name = "activeEnergyL1ExportT0_Wh"
 address = 0x546C
 kind = { u64 = { multiplier = 10 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "activePowerExportL2_Wh"
+name = "activeEnergyL2ExportT0_Wh"
 address = 0x5470
 kind = { u64 = { multiplier = 10 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "activePowerExportL3_Wh"
+name = "activeEnergyL3ExportT0_Wh"
 address = 0x5474
 kind = { u64 = { multiplier = 10 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "reactivePowerImportL1_VARh"
+name = "reactiveEnergyL1ImportT0_VARh"
 address = 0x5484
 kind = { u64 = { multiplier = 10 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "reactivePowerImportL2_VARh"
+name = "reactiveEnergyL2ImportT0_VARh"
 address = 0x5488
 kind = { u64 = { multiplier = 10 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "reactivePowerImportL3_VARh"
+name = "reactiveEnergyL3ImportT0_VARh"
 address = 0x548C
 kind = { u64 = { multiplier = 10 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "reactivePowerExportL1_VARh"
+name = "reactiveEnergyL1ExportT0_VARh"
 address = 0x5490
 kind = { u64 = { multiplier = 10 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "reactivePowerExportL2_VARh"
+name = "reactiveEnergyL2ExportT0_VARh"
 address = 0x5494
 kind = { u64 = { multiplier = 10 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "reactivePowerExportL3_VARh"
+name = "reactiveEnergyL3ExportT0_VARh"
 address = 0x5498
 kind = { u64 = { multiplier = 10 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "activeEnergyImportTotal_Wh"
+name = "activeEnergyTotalImportT0_Wh"
 address = 0x5000
 kind = { u64 = { multiplier = 10 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "activeEnergyExportTotal_Wh"
+name = "activeEnergyTotalExportT0_Wh"
 address = 0x5004
 kind = { u64 = { multiplier = 10 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "reactiveEnergyImportTotal_VARh"
+name = "reactiveEnergyTotalImportT0_VARh"
 address = 0x500C
 kind = { u64 = { multiplier = 10 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "reactiveEnergyExportTotal_VARh"
+name = "reactiveEnergyTotalExportT0_VARh"
 address = 0x5010
 kind = { u64 = { multiplier = 10 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "activeEnergyImportTotalT1_Wh"
+name = "activeEnergyTotalImportT1_Wh"
 address = 0x5170
 kind = { u64 = { multiplier = 10 } }
 
 [[modbus.devices.abb-B2x.measurement]]
-name = "activeEnergyImportTotalT2_Wh"
+name = "activeEnergyTotalImportT2_Wh"
 address = 0x5174
 kind = { u64 = { multiplier = 10 } }

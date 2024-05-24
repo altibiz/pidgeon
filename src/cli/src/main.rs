@@ -21,11 +21,16 @@ mod service;
 
 use futures_time::future::FutureExt;
 
+// TODO: configurable timeouts
+
 #[tokio::main]
 #[tracing::instrument]
 async fn main() -> anyhow::Result<()> {
   let manager = config::Manager::new().await?; // NITPICK: handle this more appropriately
   let config = manager.values().await;
+  let id = config.cloud.id.clone();
+
+  println!("Started: {id}");
 
   let services = service::Container::new(config.clone());
   let processes = process::Container::new(manager.clone(), services.clone());
@@ -36,7 +41,7 @@ async fn main() -> anyhow::Result<()> {
       .with_env_filter(
         tracing_subscriber::EnvFilter::builder()
           .with_default_directive(
-            tracing::level_filters::LevelFilter::INFO.into(),
+            tracing::level_filters::LevelFilter::WARN.into(),
           )
           .from_env()?
           .add_directive(format!("pidgeon={log_level}").parse()?),
@@ -44,8 +49,13 @@ async fn main() -> anyhow::Result<()> {
       .finish(),
   )?;
 
-  services.db().migrate().await?; // NITPICK: handle this more appropriately
-  processes.startup().await?; // NITPICK: handle this more appropriately
+  services
+    .db()
+    .migrate()
+    .timeout(futures_time::time::Duration::from_millis(10_000))
+    .await??;
+
+  processes.startup().await?;
 
   if let Err(error) = tokio::signal::ctrl_c().await {
     tracing::error!("Failed waiting for ctrlc signal {}", error);

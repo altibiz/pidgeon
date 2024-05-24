@@ -1,0 +1,10 @@
+{
+  hardware = import ./hardware.nix;
+  postgresql = import ./postgresql.nix;
+  secrets = import ./secrets.nix;
+  system = import ./system.nix;
+  user = import ./user.nix;
+  # FIXME: brighs the whole system down
+  # visualization = import ./visualization.nix;
+  pidgeon = import ./pidgeon.nix;
+}

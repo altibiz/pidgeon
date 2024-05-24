@@ -1,4 +1,4 @@
-use std::{fs, time::Duration};
+use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 use reqwest::{
@@ -15,7 +15,7 @@ use crate::*;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Measurement {
-  pub(crate) device_id: String,
+  pub(crate) meter_id: String,
   pub(crate) timestamp: DateTime<Utc>,
   pub(crate) data: serde_json::Value,
 }
@@ -65,23 +65,15 @@ pub(crate) enum RequestError {
 impl service::Service for Service {
   fn new(config: config::Values) -> Self {
     #[allow(clippy::unwrap_used)] // NOTE: this file is always available on rpi4
-    let id = match config.cloud.id {
-      Some(id) => id,
-      None => {
-        "pidgeon-".to_string()
-          + fs::read_to_string("/sys/firmware/devicetree/base/serial-number")
-            .unwrap()
-            .as_str()
-      }
-    };
+    let id = config.cloud.id;
 
     let protocol = if config.cloud.ssl { "https" } else { "http" };
 
     let domain = config.cloud.domain;
 
-    let push_endpoint = format!("{protocol}://{domain}/push/{id}");
-    let update_endpoint = format!("{protocol}://{domain}/update/{id}");
-    let poll_endpoint = format!("{protocol}://{domain}/poll/{id}");
+    let push_endpoint = format!("{protocol}://{domain}/iot/push/{id}");
+    let update_endpoint = format!("{protocol}://{domain}/iot/update/{id}");
+    let poll_endpoint = format!("{protocol}://{domain}/iot/poll/{id}");
 
     let mut headers = HeaderMap::new();
     match config.cloud.api_key {

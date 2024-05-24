@@ -1,11 +1,11 @@
 set windows-shell := ["nu.exe", "-c"]
 set shell := ["nu", "-c"]
 
-root_path := justfile_directory()
-scripts_path := join(root_path, 'scripts')
-cli_path := join(root_path, 'src/cli')
-probe_path := join(root_path, 'src/probe')
-cli_config_path := join(cli_path, 'config.toml')
+root_path := absolute_path('')
+scripts_path := absolute_path('scripts')
+cli_path := absolute_path('src/cli')
+probe_path := absolute_path('src/probe')
+cli_config_path := absolute_path('src/flake/modules/config.toml')
 
 default: prepare
 
