@@ -15,6 +15,6 @@ its own page. Here's an overview of the process:
    the image using a script in the repository. The secret key is used to decrypt
    the secrets generated in step 1 during boot.
 
-4. **Assemble the Device**: The ISO image is flashed onto a 1TB SSD using `dd`.
-   The SSD is then plugged into a USB port of the Raspberry Pi, and the power
-   USB-C cable is plugged in.
+4. **Assemble the Device**: The ISO image is flashed onto a 1TB SSD. The SSD is
+   then plugged into a USB port of the Raspberry Pi, and the power USB-C cable
+   is plugged in.

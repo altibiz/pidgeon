@@ -1,6 +1,6 @@
 # Assembly
 
-This document describes the final steps of the installation process, which
+This chapter describes the final steps of the installation process, which
 involve flashing the ISO image onto a 1TB SSD, and assembling the Raspberry Pi
 device.
 

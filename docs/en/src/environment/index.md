@@ -22,8 +22,7 @@ development:
 
 - **Python**: Python is used for the `probe` script. You need to have Python
   installed to run this script.
-- **Poetry**: Poetry is used for managing Python dependencies in the `root` and
-  `probe` directories.
+- **Poetry**: Poetry is used for managing Python dependencies.
 
 ### Formatting
 
@@ -34,18 +33,15 @@ development:
 
 ### Linting
 
-- **ShellCheck**: ShellCheck is used for linting shell scripts in the `scripts`
-  directory.
+- **ShellCheck**: ShellCheck is used for linting shell scripts.
 - **cspell**: cspell is used for spell checking in the project.
 - **Ruff**: Ruff is used for checking Rust code in the project.
 - **Clippy**: Clippy is a Rust linter that's used in the project.
-- **Pyright**: Pyright is used for type checking Python code in the `probe`
-  directory.
+- **Pyright**: Pyright is used for type checking Python code.
 
 ### Documentation
 
-- **mdbook**: mdbook is used for building the documentation in the `docs`
-  directory.
+- **mdbook**: mdbook is used for building the documentation.
 
 ## Development Workflow
 
@@ -56,7 +52,7 @@ for building, testing, running, and managing the project.
 Here are the steps to set up the development environment and use `just`:
 
 1. **Install Dependencies**: Install all the required tools listed in this
-   document.
+   chapter.
 
 2. **Prepare the Environment**: Run `just prepare` to install Python
    dependencies, start Docker services, and run database migrations.

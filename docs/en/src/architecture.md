@@ -4,8 +4,8 @@ The architecture of Pidgeon is designed to efficiently collect and manage
 electrical billing data. The diagram below provides a visual representation of
 the system's architecture.
 
-In the context of a location, there are various meters, such as the Abb B2x
-meter and the Schneider iEM3xxx meter, which are connected via RS-485. The
+In the context of a location, there are various types of meters, such as the Abb
+B2x meter and the Schneider iEM3xxx meter, which are connected via RS-485. The
 Gateway, accessible via port 502, serves as an intermediary for data
 communication.
 

@@ -1,3 +1,0 @@
-# Pidgeon
-
-Raspberry Pi pošiljatelj.
