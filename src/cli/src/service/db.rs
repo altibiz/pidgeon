@@ -314,7 +314,7 @@ impl Service {
       .execute(&self.pool)
       .await?;
 
-    tracing::trace!("Inserted measurementd");
+    tracing::trace!("Inserted measurements");
 
     Ok(())
   }

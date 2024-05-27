@@ -1,0 +1,31 @@
+useGitignore: true
+version: "0.2"
+language: en
+ignorePaths:
+  - "target/**/*"
+  - pyproject.toml
+  - "src/flake/**/*"
+  - justfile
+  - Cargo.toml
+  - "./scripts/*"
+  - flake.nix
+  - docker-compose.yml
+  - cspell.yaml
+words:
+  - pidgeon
+  - modbus
+  - pymodbus
+  - chrono
+  - thiserror
+  - itertools
+  - ipnet
+  - sqlx
+  - ipnetwork
+  - reqwest
+  - devicetree
+  - hwmon
+  - altibiz
+  - deserializetion
+  - dotenv
+  - timescaledb
+  - hypertable

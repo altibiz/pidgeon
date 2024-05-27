@@ -25,6 +25,9 @@ pkgs.mkShell {
     shfmt
     shellcheck
 
+    # Spelling
+    nodePackages.cspell
+
     # Misc
     nodePackages.prettier
 

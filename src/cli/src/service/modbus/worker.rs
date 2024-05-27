@@ -508,7 +508,7 @@ impl Task {
         }
         Either::Right(response) => {
           if let Err(error) = write.sender.try_send(Ok(response)) {
-            // NOTE: error -> trace because this should fail when we alwritey cancelled the future from caller
+            // NOTE: error -> trace because this should fail when we already cancelled the future from caller
             tracing::trace!(
               "Failed sending write response to {:?} {}",
               write.destination,
