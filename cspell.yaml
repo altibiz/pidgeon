@@ -7,10 +7,15 @@ ignorePaths:
   - "src/flake/**/*"
   - justfile
   - Cargo.toml
-  - "./scripts/*"
+  - "scripts/*"
   - flake.nix
   - docker-compose.yml
   - cspell.yaml
+  - "docs/**/book.toml"
+  - "docs/**/book"
+  # TODO: hr language
+  - "docs/hr/**/*"
+  - "docs/index.html"
 words:
   - pidgeon
   - modbus
@@ -29,3 +34,17 @@ words:
   - dotenv
   - timescaledb
   - hypertable
+  - plantuml
+  - startuml
+  - enduml
+  - portin
+  - portout
+  - mksecrets
+  - mkpasswd
+  - conv
+  - yapf
+  - shfmt
+  - clippy
+  - pyright
+  - mdbook
+  - justfile
