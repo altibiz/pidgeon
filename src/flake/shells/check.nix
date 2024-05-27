@@ -18,8 +18,6 @@ pkgs.mkShell {
     cargo
     clippy
     rustfmt
-    pkg-config
-    openssl
 
     # Shell
     shfmt
@@ -34,5 +32,7 @@ pkgs.mkShell {
     # Tools
     nushell
     just
+    pkg-config
+    openssl
   ];
 }

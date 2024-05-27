@@ -256,8 +256,15 @@ if __name__ == "__main__":
     except asyncio.CancelledError:
       pass
 
+  def exception_handler(
+    __loop__: asyncio.AbstractEventLoop,
+    __ctx__: dict[str, Any],
+  ):
+    pass
+
   loop = asyncio.get_event_loop()
   main_task = asyncio.ensure_future(wrapper())
+  loop.set_exception_handler(exception_handler)
   for signal in [SIGINT, SIGTERM]:
     loop.add_signal_handler(signal, main_task.cancel)
   try:

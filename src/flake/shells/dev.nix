@@ -1,8 +1,9 @@
 { pkgs, ... }:
 
 pkgs.mkShell {
-  DATABASE_URL = "postgres://pidgeon:pidgeon@localhost:5433/pidgeon?sslmode=disable";
   RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
+
+  DATABASE_URL = "postgres://pidgeon:pidgeon@localhost:5433/pidgeon?sslmode=disable";
 
   # PIDGEON_CLOUD_SSL = "1";
   # PIDGEON_CLOUD_DOMAIN = "localhost:5001";
@@ -52,6 +53,12 @@ pkgs.mkShell {
 
     # Documentation
     simple-http-server
+    mdbook
+    mdbook-plantuml
+    plantuml
+    openjdk
+    pandoc
+    pandoc-plantuml-filter
 
     # Misc
     nodePackages.prettier
