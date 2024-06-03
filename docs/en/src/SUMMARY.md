@@ -29,3 +29,5 @@
     - [Health](./structure/processes/health.md)
     - [Daily](./structure/processes/daily.md)
     - [Nightly](./structure/processes/nightly.md)
+- [Testing](./testing/index.md)
+  - [Push](./testing/push.md)
