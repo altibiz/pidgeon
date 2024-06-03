@@ -29,3 +29,5 @@
     - [Zdravlje](./structure/processes/health.md)
     - [Dnevni](./structure/processes/daily.md)
     - [Noćni](./structure/processes/nightly.md)
+- [Testiranje](./testing/index.md)
+  - [Push](./testing/push.md)
