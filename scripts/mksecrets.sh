@@ -254,3 +254,6 @@ mktmp "secrets.enc.yaml"
 
 mkdir -p "$ROOT/src/flake/enc"
 cp "$ID_SECRETS/secrets.enc.yaml" "$ROOT/src/flake/enc/$ID"
+
+mkdir -p "$ROOT/src/flake/pass"
+cp "$ID_SECRETS/altibiz.pass.pub" "$ROOT/src/flake/pass/$ID"

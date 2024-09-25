@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ self, id, pkgs, ... }:
 
 {
   users.defaultUserShell = "${pkgs.bashInteractive}/bin/bash";
@@ -6,7 +6,7 @@
   users.users.altibiz = {
     isNormalUser = true;
     createHome = true;
-    hashedPasswordFile = "/home/altibiz/pass.pub";
+    hashedPasswordFile = "${self}/src/flake/pass/${id}";
     extraGroups = [ "wheel" ];
     useDefaultShell = true;
   };

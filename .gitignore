@@ -190,7 +190,7 @@ cython_debug/
 # User
 
 .env
-secrets/
+secrets
 nohup.out
 .direnv
 artifacts

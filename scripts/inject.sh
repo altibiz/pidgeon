@@ -16,13 +16,16 @@ fi
 temp="$(mktemp -d)"
 loop="$(losetup -f)"
 
-losetup "$loop" "$iso"
+losetup -P "$loop" "$iso"
 mount "${loop}p2" "$temp"
 
-mkdir "$temp/root/.sops"
+mkdir -p "$temp/root"
+chown root:root "$temp/root"
+chmod 700 "$temp/root/"
+mkdir -p "$temp/root/.sops"
 chown root:root "$temp/root/.sops"
 chmod 700 "$temp/root/.sops"
-cp "$key" "$temp/root/.sops/secrets.age"
+cp -f "$key" "$temp/root/.sops/secrets.age"
 chown root:root "$temp/root/.sops/secrets.age"
 chmod 600 "$temp/root/.sops/secrets.age"
 

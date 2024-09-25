@@ -5,7 +5,7 @@ let
     pname = "pidgeon-cli";
     version = "0.1.0";
     src = self;
-    cargoHash = "sha256-boUe+RMZyUzDdtdFAYt5v34ESATxDLghzNgFk/jDIEE=";
+    cargoHash = "sha256-WdejDVHAvhtDbfvaYvCHLB5X9rUHB+xn2mMgaP38gtw=";
     nativeBuildInputs = [
       pkgs.pkg-config
     ];
