@@ -18,6 +18,7 @@ ignorePaths:
   - "docs/index.html"
   - "test/stress"
   - "assets/**/*"
+  - "Cargo.nix"
 words:
   - pidgeon
   - modbus
@@ -52,3 +53,7 @@ words:
   - justfile
   - timespec
   - levelname
+  - endianness
+  - struct
+  - structs
+  - oneoff

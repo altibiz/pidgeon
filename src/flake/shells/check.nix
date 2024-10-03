@@ -1,4 +1,4 @@
-{ pkgs, poetry2nix, pidgeonLib, ... }:
+{ pkgs, poetry2nix, pidgeonLib, cargo2nix, ... }:
 
 let
   env = poetry2nix.mkPoetryEnv pidgeonLib.poetry.common;
@@ -21,6 +21,7 @@ pkgs.mkShell {
     cargo
     clippy
     rustfmt
+    cargo2nix.packages.${system}.default
 
     # Shell
     shfmt

@@ -1,4 +1,4 @@
-{ pkgs, poetry2nix, pidgeonLib, ... }:
+{ pkgs, poetry2nix, pidgeonLib, cargo2nix, ... }:
 
 let
   env = poetry2nix.mkPoetryEnv pidgeonLib.poetry.common;
@@ -45,6 +45,7 @@ pkgs.mkShell {
     rustfmt
     rust-analyzer
     cargo-edit
+    cargo2nix.packages.${system}.default
 
     # Shell
     bashInteractive
@@ -86,5 +87,6 @@ pkgs.mkShell {
     sops
     zip
     unzip
+    zstd
   ];
 }

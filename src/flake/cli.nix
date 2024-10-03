@@ -1,25 +1,10 @@
-{ self, pkgs, ... }:
+{ pkgs, rustPkgs, ... }:
 
 let
-  unwrapped = pkgs.rustPlatform.buildRustPackage {
-    pname = "pidgeon-cli";
-    version = "0.1.0";
-    src = self;
-    cargoHash = "sha256-WdejDVHAvhtDbfvaYvCHLB5X9rUHB+xn2mMgaP38gtw=";
-    nativeBuildInputs = [
-      pkgs.pkg-config
-    ];
-    buildInputs = [
-      pkgs.openssl
-    ];
-    meta = {
-      description = "Raspberry Pi message broker";
-      homepage = "https://github.com/altibiz/pidgeon";
-      license = pkgs.lib.licenses.mit;
-    };
-  };
+  unwrapped = (rustPkgs.workspace.pidgeon-cli { });
 in
-pkgs.writeShellApplication {
+pkgs.writeShellApplication
+{
   name = "pidgeon";
   runtimeInputs = [ unwrapped ];
   text = ''

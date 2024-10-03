@@ -17,7 +17,7 @@
     hostssl   all         all         10.255.255.0/24 scram-sha-256
   '';
   services.postgresql.enableTCPIP = true;
-  services.postgresql.port = 5433;
+  services.postgresql.settings.port = 5433;
   networking.firewall.allowedTCPPorts = [ 5433 ];
 
   # NITPICK: cert renewal

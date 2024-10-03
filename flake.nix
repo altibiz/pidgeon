@@ -14,9 +14,13 @@
     sops-nix.inputs.nixpkgs-stable.follows = "nixpkgs-stable";
 
     poetry2nix.url = "github:nix-community/poetry2nix";
+
+    cargo2nix.url = "github:cargo2nix/cargo2nix/release-0.11.0";
+    cargo2nix.inputs.nixpkgs.follows = "nixpkgs";
+    cargo2nix.inputs.flake-utils.follows = "flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils, ... } @ rawInputs:
+  outputs = { self, nixpkgs, cargo2nix, flake-utils, ... } @ rawInputs:
     let
       overlay = (import ./src/flake/overlay.nix) rawInputs;
 
@@ -46,7 +50,12 @@
           pkgs = import nixpkgs {
             inherit system;
             config = { allowUnfree = true; };
-            overlays = [ overlay ];
+            overlays = [ overlay cargo2nix.overlays.default ];
+          };
+
+          rustPkgs = pkgs.rustBuilder.makePackageSet {
+            rustVersion = "1.75.0";
+            packageFun = import ./Cargo.nix;
           };
 
           poetry2nix = rawInputs.poetry2nix.lib.mkPoetry2Nix { inherit pkgs; };
@@ -56,6 +65,7 @@
               libInputs = rawInputs // {
                 inherit pkgs;
                 inherit poetry2nix;
+                inherit rustPkgs;
               };
             in
             libInputs // {
