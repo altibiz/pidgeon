@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, id, ... }:
 
 {
   nix.package = pkgs.nixFlakes;
@@ -30,6 +30,8 @@
     hwinfo # NOTE: overall hardware info
     htop # NOTE: CPU process manager
   ];
+
+  environment.etc."id".text = id;
 
   environment.sessionVariables = {
     PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";

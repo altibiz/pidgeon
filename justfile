@@ -70,3 +70,6 @@ docs:
     mv '{{ docs }}/en/book' '{{ artifacts }}/en'
     mv '{{ docs }}/hr/book' '{{ artifacts }}/hr'
     cp '{{ docs }}/index.html' '{{ artifacts }}'
+
+rebuild:
+    nixos-rebuild switch --flake $"{{ root }}#pidgeon-(open --raw /etc/id)-aarch64-linux"
