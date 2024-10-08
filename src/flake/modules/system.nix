@@ -18,6 +18,8 @@
     kitty
     git
     helix
+    yazi
+    lazygit
 
     # diag
     lm_sensors # NOTE: get sensor information
@@ -29,6 +31,8 @@
     inxi # NOTE: overall hardware info
     hwinfo # NOTE: overall hardware info
     htop # NOTE: CPU process manager
+    mbpoll # NOTE: debug modbus
+    i2c-tools # NOTE: debug i2c
   ];
 
   environment.etc."id".text = id;
