@@ -31,7 +31,7 @@ lfs:
     dvc push
 
 cargo2nix:
-    cd '{{ root }}'; cargo2nix
+    cd '{{ root }}'; yes yes | cargo2nix
 
 run *args:
     cd '{{ cli }}'; cargo run -- --config '{{ config }}' {{ args }}
@@ -59,6 +59,11 @@ lint:
 
 test:
     cd '{{ root }}'; cargo test
+
+upgrade:
+    nix flake update
+    cargo upgrade
+    cd '{{ root }}'; yes yes | cargo2nix
 
 docs:
     rm -rf '{{ artifacts }}'
