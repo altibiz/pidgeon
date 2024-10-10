@@ -12,12 +12,12 @@ class Client:
     self,
     device: str,
     port: int,
-    baudrate: int,
+    baud_rate: int,
     slave_id: int,
   ):
     self.__device = device
     self.__port = port
-    self.__baudrate = baudrate
+    self.__baud_rate = baud_rate
     self.__slave_id = slave_id
     self.__modbus_connected = False
     self.__modbus_client = self.__create_client()
@@ -34,7 +34,7 @@ class Client:
     if self.__device.startswith("/"):
       return AsyncModbusSerialClient(
         port=self.__device,
-        baudrate=self.__baudrate,
+        baud_rate=self.__baud_rate,
         retries=0,
         timeout=0.1,
       )

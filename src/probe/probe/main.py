@@ -59,7 +59,7 @@ async def async_main(args: Args):
   if args.is_client():
     client = Client(
       device=args.device(),
-      baudrate=args.baudrate(),
+      baud_rate=args.baud_rate(),
       slave_id=args.slave_id(),
       port=args.port(),
     )

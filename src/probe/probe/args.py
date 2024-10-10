@@ -30,7 +30,7 @@ class Args:
     )
     self.__client_parser.add_argument(
       "-b",
-      "--baudrate",
+      "--baud-rate",
       required=False,
       default=57600,
       type=int,
@@ -135,8 +135,8 @@ class Args:
   def port(self) -> int:
     return self.__args.port
 
-  def baudrate(self) -> int:
-    return self.__args.baudrate
+  def baud_rate(self) -> int:
+    return self.__args.baud_rate
 
   def slave_id(self) -> int:
     return self.__args.slave_id

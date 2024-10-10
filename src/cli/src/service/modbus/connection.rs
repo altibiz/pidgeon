@@ -1,4 +1,4 @@
-use std::net::SocketAddr;
+use std::{net::SocketAddr, path::PathBuf};
 
 use futures_time::future::FutureExt;
 use thiserror::Error;
@@ -41,15 +41,20 @@ impl Destination {
 pub(crate) type ReadResponse = Vec<u16>;
 pub(crate) type WriteResponse = ();
 
+pub(crate) enum Device {
+  Tcp(SocketAddr),
+  Rtu { path: PathBuf, baud_rate: u32 },
+}
+
 #[derive(Debug)]
 pub(crate) struct Connection {
-  address: SocketAddr,
+  device: Device,
   ctx: Option<Context>,
 }
 
 impl Connection {
-  pub(crate) fn new(address: SocketAddr) -> Self {
-    Self { address, ctx: None }
+  pub(crate) fn new(device: Device) -> Self {
+    Self { device, ctx: None }
   }
 
   pub(crate) async fn ensure_connected(&mut self) -> Result<(), ConnectError> {
@@ -72,8 +77,9 @@ pub(crate) enum ConnectError {
 
 impl Connection {
   async fn reconnect(&mut self) -> Result<&mut Context, ConnectError> {
-    let stream = TcpStream::connect(self.address).await?;
+    let stream = TcpStream::connect(self.device).await?;
     let ctx = tokio_modbus::prelude::tcp::attach(stream);
+    let ctx = tokio_modbus::prelude::rtu::attach(stream);
 
     tracing::trace!("Connected");
 
@@ -109,7 +115,7 @@ pub(crate) enum WriteError {
 }
 
 impl Connection {
-  #[tracing::instrument(skip(self), fields(address = ?self.address))]
+  #[tracing::instrument(skip(self), fields(address = ?self.device))]
   pub(crate) async fn read(
     &mut self,
     slave: Option<u8>,
@@ -125,7 +131,7 @@ impl Connection {
     Ok(response)
   }
 
-  #[tracing::instrument(skip(self), fields(address = ?self.address))]
+  #[tracing::instrument(skip(self), fields(address = ?self.device))]
   pub(crate) async fn write(
     &mut self,
     slave: Option<u8>,
