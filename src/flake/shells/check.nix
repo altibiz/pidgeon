@@ -13,6 +13,20 @@ pkgs.mkShell {
     (pidgeonLib.poetry.mkEnvWrapper env "pyright-langserver")
     env
 
+    # scripts
+    nushell
+    just
+
+    # spelling
+    nodePackages.cspell
+
+    # misc
+    nodePackages.prettier
+
+    # shell
+    shfmt
+    shellcheck
+
     # Nix
     nixpkgs-fmt
 
@@ -23,21 +37,12 @@ pkgs.mkShell {
     rustfmt
     cargo2nix.packages.${system}.default
 
-    # Shell
-    shfmt
-    shellcheck
-
-    # Spelling
-    nodePackages.cspell
-
-    # Misc
-    nodePackages.prettier
-
-    # Tools
-    nushell
-    just
+    # build inputs
     pkg-config
     openssl
+    systemd
+
+    # tools
     zip
     unzip
   ];

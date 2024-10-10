@@ -22,21 +22,49 @@ pkgs.mkShell {
   # PIDGEON_NETWORK_IP_RANGE_END = "192.168.1.255";
 
   packages = with pkgs; [
-    # Python - first because DVC python gets first in path
+    # python - first because dvc python gets first in path
     poetry
     (pidgeonLib.poetry.mkEnvWrapper env "pyright")
     (pidgeonLib.poetry.mkEnvWrapper env "pyright-langserver")
     env
 
-    # Version Control
+    # version control
     git
     dvc-with-remotes
 
-    # Nix
+    # scripts
+    nushell
+    just
+
+    # misc
+    nodePackages.prettier
+    nodePackages.yaml-language-server
+    marksman
+    taplo
+
+    # spelling
+    nodePackages.cspell
+
+    # documentation
+    simple-http-server
+    mdbook
+    mdbook-plantuml
+    plantuml
+    openjdk
+    pandoc
+    pandoc-plantuml-filter
+
+    # shell
+    bashInteractive
+    nodePackages.bash-language-server
+    shfmt
+    shellcheck
+
+    # nix
     nil
     nixpkgs-fmt
 
-    # Rust
+    # rust
     llvmPackages.clangNoLibcxx
     lldb
     rustc
@@ -47,41 +75,16 @@ pkgs.mkShell {
     cargo-edit
     cargo2nix.packages.${system}.default
 
-    # Shell
-    bashInteractive
-    nodePackages.bash-language-server
-    shfmt
-    shellcheck
+    # build inputs
+    pkg-config
+    openssl
+    systemd
 
-    # Spelling
-    nodePackages.cspell
-
-    # Documentation
-    simple-http-server
-    mdbook
-    mdbook-plantuml
-    plantuml
-    openjdk
-    pandoc
-    pandoc-plantuml-filter
-
-    # Misc
-    nodePackages.prettier
-    nodePackages.yaml-language-server
-    marksman
-    taplo
-
-    # Scripts
-    nushell
-    just
-
-    # Tools
+    # tools
     usql
     postgresql_14
     openssh
     age
-    pkg-config
-    openssl
     sqlx-cli
     jq
     sops

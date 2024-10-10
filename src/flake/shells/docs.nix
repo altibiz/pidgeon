@@ -4,20 +4,23 @@ pkgs.mkShell {
   RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
 
   packages = with pkgs; [
-    # Rust
-    rustc
-    cargo
+    # scripts
+    nushell
+    just
 
-    # Documentation
+    # documentation
     mdbook
     mdbook-plantuml
     plantuml
     openjdk
 
-    # Tools
-    nushell
-    just
+    # rust
+    rustc
+    cargo
+
+    # build inputs
     pkg-config
     openssl
+    systemd
   ];
 }
