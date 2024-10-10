@@ -1,6 +1,5 @@
-use std::{net::SocketAddr, path::PathBuf};
+use std::net::SocketAddr;
 
-use either::IntoEither;
 use futures_time::future::FutureExt;
 use thiserror::Error;
 use tokio::net::TcpStream;
@@ -10,17 +9,17 @@ use tokio_modbus::{
   slave::SlaveContext,
   Slave,
 };
-use tokio_serial::{SerialPortBuilderExt, SerialStream};
+use tokio_serial::SerialPortBuilderExt;
 
 use super::{record::SimpleRecord, span::SimpleSpan};
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
 pub(crate) enum Device {
   Tcp(SocketAddr),
   Rtu { path: String, baud_rate: u32 },
 }
 
-#[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
 pub(crate) struct Destination {
   pub(crate) device: Device,
   pub(crate) slave: Option<u8>,
@@ -30,7 +29,9 @@ impl Destination {
   pub(crate) fn slaves_for(
     device: Device,
   ) -> impl Iterator<Item = Destination> {
+    let device = device.clone();
     (Slave::min_device().0..Slave::max_device().0).map(move |slave| {
+      let device = device.clone();
       Destination {
         device,
         slave: Some(slave),
