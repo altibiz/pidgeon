@@ -1,5 +1,6 @@
 use std::{net::SocketAddr, path::PathBuf};
 
+use either::IntoEither;
 use futures_time::future::FutureExt;
 use thiserror::Error;
 use tokio::net::TcpStream;
@@ -9,30 +10,37 @@ use tokio_modbus::{
   slave::SlaveContext,
   Slave,
 };
+use tokio_serial::{SerialPortBuilderExt, SerialStream};
 
 use super::{record::SimpleRecord, span::SimpleSpan};
 
+#[derive(Debug)]
+pub(crate) enum Device {
+  Tcp(SocketAddr),
+  Rtu { path: String, baud_rate: u32 },
+}
+
 #[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
 pub(crate) struct Destination {
-  pub(crate) address: SocketAddr,
+  pub(crate) device: Device,
   pub(crate) slave: Option<u8>,
 }
 
 impl Destination {
   pub(crate) fn slaves_for(
-    address: SocketAddr,
+    device: Device,
   ) -> impl Iterator<Item = Destination> {
     (Slave::min_device().0..Slave::max_device().0).map(move |slave| {
       Destination {
-        address,
+        device,
         slave: Some(slave),
       }
     })
   }
 
-  pub(crate) fn standalone_for(address: SocketAddr) -> Destination {
+  pub(crate) fn standalone_for(device: Device) -> Destination {
     Destination {
-      address,
+      device,
       slave: None,
     }
   }
@@ -40,11 +48,6 @@ impl Destination {
 
 pub(crate) type ReadResponse = Vec<u16>;
 pub(crate) type WriteResponse = ();
-
-pub(crate) enum Device {
-  Tcp(SocketAddr),
-  Rtu { path: PathBuf, baud_rate: u32 },
-}
 
 #[derive(Debug)]
 pub(crate) struct Connection {
@@ -68,8 +71,11 @@ impl Connection {
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum ConnectError {
-  #[error("Failed to connect")]
-  Connect(#[from] std::io::Error),
+  #[error("Failed to connect TCP")]
+  TcpConnect(#[from] std::io::Error),
+
+  #[error("Failed to connect RTU")]
+  RtuConnect(#[from] serialport::Error),
 
   #[error("Wrong slave number")]
   Slave,
@@ -77,9 +83,16 @@ pub(crate) enum ConnectError {
 
 impl Connection {
   async fn reconnect(&mut self) -> Result<&mut Context, ConnectError> {
-    let stream = TcpStream::connect(self.device).await?;
-    let ctx = tokio_modbus::prelude::tcp::attach(stream);
-    let ctx = tokio_modbus::prelude::rtu::attach(stream);
+    let ctx = match self.device {
+      Device::Tcp(socket) => {
+        let stream = TcpStream::connect(socket).await?;
+        tokio_modbus::prelude::tcp::attach(stream)
+      }
+      Device::Rtu { path, baud_rate } => {
+        let stream = tokio_serial::new(path, baud_rate).open_native_async()?;
+        tokio_modbus::prelude::rtu::attach(stream)
+      }
+    };
 
     tracing::trace!("Connected");
 
