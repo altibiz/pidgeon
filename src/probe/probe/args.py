@@ -19,12 +19,22 @@ class Args:
       help='Client mode',
     )
     self.__client_parser.add_argument(
-      "-a",
-      "--address",
+      "-d",
+      "--device",
       required=False,
       default="127.0.0.1",
-      type=Args.__regex(r"^((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\.?\b){4}$"),
-      help="IP address of the modbus gateway",
+      type=Args.__regex(
+        r"^(((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\.?\b){4}|(/[^/ ]*)+)$"),
+      help="Device is either an IP address if Modbus TCP is used or" +
+      " a path to a serial console if Modbus RTU is used",
+    )
+    self.__client_parser.add_argument(
+      "-b",
+      "--baudrate",
+      required=False,
+      default=57600,
+      type=int,
+      help="Baudrate for Modbus RTU connection",
     )
     self.__client_parser.add_argument(
       "-p",
@@ -32,7 +42,7 @@ class Args:
       required=False,
       default=502,
       type=int,
-      help="Port of the modbus gateway",
+      help="Port of the Modbus TCP device",
     )
     self.__client_parser.add_argument(
       "-s",
@@ -43,7 +53,7 @@ class Args:
       help="Slave ID of the modbus device",
     )
     self.__client_parser.add_argument(
-      "-d",
+      "-t",
       "--device-type",
       required=True,
       type=DeviceType.from_string,
@@ -63,7 +73,7 @@ class Args:
       help='Server mode',
     )
     self.__server_parser.add_argument(
-      "-a",
+      "-d",
       "--address",
       required=False,
       default="0.0.0.0",
@@ -79,7 +89,7 @@ class Args:
       help="Port of the modbus server to bind to",
     )
     self.__server_parser.add_argument(
-      "-d",
+      "-t",
       "--device-type",
       required=True,
       type=DeviceType.from_string,
@@ -119,8 +129,14 @@ class Args:
   def address(self) -> str:
     return self.__args.address
 
+  def device(self) -> str:
+    return self.__args.device
+
   def port(self) -> int:
     return self.__args.port
+
+  def baudrate(self) -> int:
+    return self.__args.baudrate
 
   def slave_id(self) -> int:
     return self.__args.slave_id

@@ -5,6 +5,7 @@ let
     projectDir = "${self}/src/probe";
     preferWheels = true;
     checkGroups = [ ];
+    python = pkgs.python311;
     overrides = poetry2nix.defaultPoetryOverrides.extend (final: prev: {
       numpy = prev.numpy.overridePythonAttrs (old: {
         buildInputs = (old.buildInputs or [ ]) ++ (with pkgs; [

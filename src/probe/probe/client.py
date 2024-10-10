@@ -1,7 +1,7 @@
 import struct
 import asyncio
 from typing import Callable, Optional, TypeVar, Union, List
-from pymodbus.client import AsyncModbusTcpClient
+from pymodbus.client import AsyncModbusSerialClient, AsyncModbusTcpClient
 
 TRead = TypeVar("TRead")
 
@@ -10,13 +10,15 @@ class Client:
 
   def __init__(
     self,
-    ip_address: str,
-    slave_id: int,
+    device: str,
     port: int,
+    baudrate: int,
+    slave_id: int,
   ):
-    self.__ip_address = ip_address
-    self.__slave_id = slave_id
+    self.__device = device
     self.__port = port
+    self.__baudrate = baudrate
+    self.__slave_id = slave_id
     self.__modbus_connected = False
     self.__modbus_client = self.__create_client()
 
@@ -29,13 +31,20 @@ class Client:
     self.__modbus_client = self.__create_client()
 
   def __create_client(self):
-    return AsyncModbusTcpClient(
-      host=self.__ip_address,
-      port=self.__port,
-      retries=0,
-      timeout=0.1,
-      retry_on_empty=False,
-    )
+    if self.__device.startswith("/"):
+      return AsyncModbusSerialClient(
+        port=self.__device,
+        baudrate=self.__baudrate,
+        retries=0,
+        timeout=0.1,
+      )
+    else:
+      return AsyncModbusTcpClient(
+        host=self.__device,
+        port=self.__port,
+        retries=0,
+        timeout=0.1,
+      )
 
   async def read(
     self,
