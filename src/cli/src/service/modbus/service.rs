@@ -1,4 +1,4 @@
-use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use futures::StreamExt;
 use futures_core::Stream;
@@ -8,6 +8,7 @@ use crate::*;
 
 use super::batch::*;
 use super::connection::Destination;
+use super::connection::Device;
 use super::record::Record;
 use super::span::*;
 use super::worker::*;
@@ -19,8 +20,8 @@ pub(crate) type WriteResponse = Vec<chrono::DateTime<chrono::Utc>>;
 
 #[derive(Clone, Debug)]
 pub(crate) struct Service {
-  devices: Arc<Mutex<HashMap<String, Device>>>,
-  servers: Arc<Mutex<HashMap<SocketAddr, Server>>>,
+  devices: Arc<Mutex<HashMap<String, Designation>>>,
+  servers: Arc<Mutex<HashMap<Device, Server>>>,
   read_timeout: chrono::Duration,
   batch_threshold: u16,
   termination_timeout: chrono::Duration,
@@ -99,12 +100,12 @@ impl service::Service for Service {
 impl Service {
   #[tracing::instrument(skip(self))]
   pub(crate) async fn bind(&self, id: String, destination: Destination) {
-    let server = self.get_server(destination).await;
+    let server = self.get_server(destination.clone()).await;
     {
       let mut devices = self.devices.clone().lock_owned().await;
       devices.insert(
         id,
-        Device {
+        Designation {
           worker: server.worker,
           destination,
         },
@@ -123,11 +124,11 @@ impl Service {
       let device = devices.remove(id);
       if let Some(removed) = device {
         let should_remove_server = !devices.values().any(|device| {
-          device.destination.address == removed.destination.address
+          device.destination.device == removed.destination.device
         });
 
         if should_remove_server {
-          server_to_remove = Some(removed.destination.address);
+          server_to_remove = Some(removed.destination.device);
         }
       }
 
@@ -160,12 +161,12 @@ impl Service {
         .iter()
         .filter_map(|id| {
           devices.remove(id).and_then(|removed| {
-            let should_remove_server = !devices.values().any(|device| {
-              device.destination.address == removed.destination.address
+            let should_remove_server = !devices.values().any(|designation| {
+              designation.destination.device == removed.destination.device
             });
 
             if should_remove_server {
-              Some(removed.destination.address)
+              Some(removed.destination.device)
             } else {
               None
             }
@@ -205,16 +206,16 @@ impl Service {
   }
 
   #[tracing::instrument(skip(self))]
-  pub(crate) async fn stop_from_address(&self, address: SocketAddr) {
+  pub(crate) async fn stop_from_address(&self, device: Device) {
     {
       let mut devices = self.devices.clone().lock_owned().await;
-      devices.retain(|_, device| device.destination.address != address);
+      devices.retain(|_, designation| designation.destination.device != device);
       tracing::trace!("Retained devices {:?}", devices.keys());
     }
 
     let server = {
       let mut servers = self.servers.clone().lock_owned().await;
-      servers.remove(&address)
+      servers.remove(&device)
     };
 
     if let Some(server) = server {
@@ -238,7 +239,7 @@ impl Service {
     destination: Destination,
     spans: TIntoIterator,
   ) -> Result<ReadResponse<TSpan>, ServerReadError> {
-    let server = self.get_server(destination).await;
+    let server = self.get_server(destination.clone()).await;
     let response = self
       .read_from_worker(server.worker, destination, spans)
       .await?;
@@ -258,7 +259,7 @@ impl Service {
     destination: Destination,
     records: TIntoIterator,
   ) -> Result<WriteResponse, ServerWriteError> {
-    let server = self.get_server(destination).await;
+    let server = self.get_server(destination.clone()).await;
     let response = self
       .write_to_worker(server.worker, destination, records)
       .await?;
@@ -282,7 +283,7 @@ impl Service {
     impl Stream<Item = Result<Vec<TSpan>, ServerReadError>>,
     ServerStreamError,
   > {
-    let server = self.get_server(destination).await;
+    let server = self.get_server(destination.clone()).await;
     let stream = self
       .stream_from_worker(server.worker, destination, spans)
       .await?;
@@ -486,7 +487,7 @@ impl Service {
   async fn get_server(&self, destination: Destination) -> Server {
     let mut workers = self.servers.clone().lock_owned().await;
     let worker = workers
-      .entry(destination.address)
+      .entry(destination.device)
       .or_insert_with(|| Server {
         worker: Worker::new(
           self.read_timeout,
@@ -499,7 +500,7 @@ impl Service {
     worker
   }
 
-  async fn get_device(&self, id: &str) -> Option<Device> {
+  async fn get_device(&self, id: &str) -> Option<Designation> {
     let devices = self.devices.clone().lock_owned().await;
     let device = devices.get(id).cloned();
     device
@@ -512,7 +513,7 @@ struct Server {
 }
 
 #[derive(Clone, Debug)]
-struct Device {
+struct Designation {
   worker: Worker,
   destination: Destination,
 }

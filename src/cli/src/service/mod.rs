@@ -1,8 +1,9 @@
 pub mod cloud;
 pub mod db;
-pub mod hardware;
+pub mod i2c;
 pub mod modbus;
-pub mod network;
+pub mod net;
+pub mod serial;
 
 use std::sync::Arc;
 
@@ -17,8 +18,9 @@ struct Values {
   db: db::Service,
   cloud: cloud::Service,
   modbus: modbus::Service,
-  network: network::Service,
-  hardware: hardware::Service,
+  net: net::Service,
+  i2c: i2c::Service,
+  serial: serial::Service,
 }
 
 #[derive(Debug, Clone)]
@@ -33,8 +35,9 @@ impl Container {
         db: db::Service::new(config.clone()),
         cloud: cloud::Service::new(config.clone()),
         modbus: modbus::Service::new(config.clone()),
-        network: network::Service::new(config.clone()),
-        hardware: hardware::Service::new(config.clone()),
+        net: net::Service::new(config.clone()),
+        i2c: i2c::Service::new(config.clone()),
+        serial: serial::Service::new(config.clone()),
       }),
     }
   }
@@ -55,12 +58,17 @@ impl Container {
   }
 
   #[inline]
-  pub(crate) fn network(&self) -> &network::Service {
-    &self.values.network
+  pub(crate) fn net(&self) -> &net::Service {
+    &self.values.net
   }
 
   #[inline]
-  pub(crate) fn hardware(&self) -> &hardware::Service {
-    &self.values.hardware
+  pub(crate) fn i2c(&self) -> &i2c::Service {
+    &self.values.i2c
+  }
+
+  #[inline]
+  pub(crate) fn serial(&self) -> &serial::Service {
+    &self.values.serial
   }
 }

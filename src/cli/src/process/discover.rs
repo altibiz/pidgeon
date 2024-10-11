@@ -31,7 +31,7 @@ impl super::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
     let config = self.config.values().await;
 
-    let addresses = self.services.network().scan_modbus().await;
+    let addresses = self.services.net().scan_modbus().await;
     let addresses_len = addresses.len();
 
     let device_matches = join_all(

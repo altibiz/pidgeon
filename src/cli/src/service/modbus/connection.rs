@@ -84,13 +84,13 @@ pub(crate) enum ConnectError {
 
 impl Connection {
   async fn reconnect(&mut self) -> Result<&mut Context, ConnectError> {
-    let ctx = match self.device {
+    let ctx = match &self.device {
       Device::Tcp(socket) => {
         let stream = TcpStream::connect(socket).await?;
         tokio_modbus::prelude::tcp::attach(stream)
       }
       Device::Rtu { path, baud_rate } => {
-        let stream = tokio_serial::new(path, baud_rate).open_native_async()?;
+        let stream = tokio_serial::new(path, *baud_rate).open_native_async()?;
         tokio_modbus::prelude::rtu::attach(stream)
       }
     };
