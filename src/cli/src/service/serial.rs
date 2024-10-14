@@ -17,7 +17,19 @@ pub struct SerialPort {
 
 impl Service {
   #[tracing::instrument(skip(self))]
-  pub(crate) async fn scan_modbus(&self) -> Vec<SerialPort> {
-    vec![]
+  pub(crate) async fn scan_serial(&self) -> Vec<SerialPort> {
+    let available = match serialport::available_ports() {
+      Ok(available) => available,
+      Err(_) => return Vec::new(),
+    };
+
+    available
+      .into_iter()
+      .filter(|port| port.port_type == serialport::SerialPortType::Unknown)
+      .map(|port| SerialPort {
+        path: port.port_name,
+        baud_rate: 57600,
+      })
+      .collect::<Vec<_>>()
   }
 }

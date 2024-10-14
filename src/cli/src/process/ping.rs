@@ -186,7 +186,7 @@ impl Process {
           modbus::Destination {
             address: self
               .services
-              .network()
+              .net()
               .to_socket(db::to_address(device.address)),
             slave: db::to_slave(device.slave),
           },

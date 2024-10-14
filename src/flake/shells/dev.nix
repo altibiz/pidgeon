@@ -74,6 +74,7 @@ pkgs.mkShell {
     rust-analyzer
     cargo-edit
     cargo2nix.packages.${system}.default
+    evcxr
 
     # build inputs
     pkg-config

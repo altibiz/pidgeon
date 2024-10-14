@@ -1,6 +1,6 @@
 use std::net::{IpAddr, SocketAddr};
 
-use ipnet::IpAddrRange;
+use ipnet::{IpAddrRange, IpNet};
 use tokio::net::TcpStream;
 use tokio::task::JoinHandle;
 
@@ -28,10 +28,24 @@ impl service::Service for Service {
 impl Service {
   #[tracing::instrument(skip(self))]
   pub(crate) async fn scan_modbus(&self) -> Vec<SocketAddr> {
+    let default_interface_ranges =
+      match netdev::interface::get_default_interface() {
+        Ok(interface) => interface
+          .ipv4
+          .iter()
+          .map(|addr| IpNet::V4(*addr).hosts())
+          .chain(interface.ipv6.iter().map(|addr| IpNet::V6(*addr).hosts()))
+          .collect::<Vec<_>>(),
+        Err(_) => Vec::new(),
+      };
+
     let timeout = self.timeout;
     let mut matched_ips = Vec::new();
     let ip_scans = self
       .ip_range
+      .clone()
+      .into_iter()
+      .chain(default_interface_ranges.into_iter().flatten())
       .map(|ip| {
         let socket_address = self.to_socket(ip);
         (
