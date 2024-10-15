@@ -269,7 +269,9 @@ impl Service {
   pub(crate) async fn update_device_destination(
     &self,
     id: &str,
-    address: IpNetwork,
+    address: Option<IpNetwork>,
+    path: Option<String>,
+    baud_rate: Option<i32>,
     slave: Option<i32>,
     seen: DateTime<Utc>,
     pinged: DateTime<Utc>,
@@ -278,11 +280,13 @@ impl Service {
     sqlx::query!(
       r#"
         update devices
-        set address = $2, slave = $3, seen = $4, pinged = $5
+        set address = $2, path = $3, baud_rate = $4, slave = $5, seen = $6, pinged = $7
         where id = $1
       "#,
       id,
       address,
+      path,
+      baud_rate,
       slave,
       seen,
       pinged

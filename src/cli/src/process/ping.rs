@@ -184,10 +184,24 @@ impl Process {
         .bind(
           device.id.clone(),
           modbus::Destination {
-            address: self
-              .services
-              .net()
-              .to_socket(db::to_address(device.address)),
+            device: match &device.address {
+              Some(address) => modbus::connection::Device::Tcp(
+                self.services.net().to_socket(db::to_address(*address)),
+              ),
+              None => match (&device.path, &device.baud_rate) {
+                (Some(path), Some(baud_rate)) => {
+                  modbus::connection::Device::Rtu {
+                    path: path.clone(),
+                    baud_rate: (*baud_rate as u32),
+                  }
+                }
+                _ => {
+                  return Err(anyhow::anyhow!(format!(
+                    "Device {device:?} missing appropriate seerver details"
+                  )))
+                }
+              },
+            },
             slave: db::to_slave(device.slave),
           },
         )

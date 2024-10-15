@@ -173,7 +173,18 @@ impl Process {
           .db()
           .update_device_destination(
             &device_match.id,
-            db::to_db_address(device_match.destination.address.ip()),
+            match &device_match.destination.device {
+              Device::Tcp(address) => Some(db::to_db_address(address.ip())),
+              Device::Rtu { .. } => None,
+            },
+            match &device_match.destination.device {
+              Device::Tcp(_) => None,
+              Device::Rtu { path, .. } => Some(path.clone()),
+            },
+            match &device_match.destination.device {
+              Device::Tcp(_) => None,
+              Device::Rtu { baud_rate, .. } => Some(*baud_rate as i32),
+            },
             db::to_db_slave(device_match.destination.slave),
             now,
             now,
@@ -196,7 +207,18 @@ impl Process {
             status: db::DeviceStatus::Healthy,
             seen: now,
             pinged: now,
-            address: db::to_db_address(device_match.destination.address.ip()),
+            address: match &device_match.destination.device {
+              Device::Tcp(address) => Some(db::to_db_address(address.ip())),
+              Device::Rtu { .. } => None,
+            },
+            path: match &device_match.destination.device {
+              Device::Tcp(_) => None,
+              Device::Rtu { path, .. } => Some(path.clone()),
+            },
+            baud_rate: match &device_match.destination.device {
+              Device::Tcp(_) => None,
+              Device::Rtu { baud_rate, .. } => Some(*baud_rate as i32),
+            },
             slave: db::to_db_slave(device_match.destination.slave),
           })
           .await
@@ -211,7 +233,7 @@ impl Process {
     self
       .services
       .modbus()
-      .bind(device_match.id.clone(), device_match.destination)
+      .bind(device_match.id.clone(), device_match.destination.clone())
       .await;
 
     tracing::debug!("Matched device");

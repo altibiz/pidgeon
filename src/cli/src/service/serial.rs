@@ -4,7 +4,7 @@ use crate::*;
 pub(crate) struct Service {}
 
 impl service::Service for Service {
-  fn new(config: config::Values) -> Self {
+  fn new(_config: config::Values) -> Self {
     Self {}
   }
 }
