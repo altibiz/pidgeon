@@ -36,6 +36,9 @@ impl Service {
 }
 
 lazy_static::lazy_static! {
-  static ref FILE_PATH_REGEX: regex::Regex =
-    regex::Regex::new("^/[^/]+(/[^/]+)+$").unwrap();
+  static ref FILE_PATH_REGEX: regex::Regex = {
+    #[allow(clippy::unwrap_used)] // NOTE: valid static file path regex
+    let regex = regex::Regex::new("^/[^/]+(/[^/]+)+$").unwrap();
+    regex
+  };
 }

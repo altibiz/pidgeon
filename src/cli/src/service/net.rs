@@ -43,7 +43,6 @@ impl Service {
     let mut matched_ips = Vec::new();
     let ip_scans = self
       .ip_range
-      .clone()
       .into_iter()
       .chain(default_interface_ranges.into_iter().flatten())
       .map(|ip| {

@@ -197,7 +197,7 @@ impl Process {
                 }
                 _ => {
                   return Err(anyhow::anyhow!(format!(
-                    "Device {device:?} missing appropriate seerver details"
+                    "Device {device:?} missing appropriate server details"
                   )))
                 }
               },

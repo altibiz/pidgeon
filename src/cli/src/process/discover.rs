@@ -67,7 +67,7 @@ impl super::Recurring for Process {
 
     tracing::info!(
       "Scanned {:?} modbus servers with {:?} devices of which {:?} were consolidated",
-      addresses_len + ports_len,
+      addresses_len.saturating_add(ports_len),
       device_matches_len,
       consolidated_matches_len
     );

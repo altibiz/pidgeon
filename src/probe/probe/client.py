@@ -102,12 +102,14 @@ class Client:
           continue
 
       try:
-        response = await asyncio.wait_for(self.__modbus_client.write_registers(
-          address=register,
-          values=values,
-          slave=self.__slave_id,
-        ),
-                                          timeout=1)
+        response = await asyncio.wait_for(
+          self.__modbus_client.write_registers(
+            address=register,
+            values=[bytes([value]) for value in values],
+            slave=self.__slave_id,
+          ),
+          timeout=1,
+        )
         if response.isError():
           await asyncio.sleep(1)
           break

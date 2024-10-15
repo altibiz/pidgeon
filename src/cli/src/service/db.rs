@@ -265,6 +265,7 @@ impl Service {
     Ok(())
   }
 
+  #[allow(clippy::too_many_arguments)] // NOTE: what else do i do here?
   #[tracing::instrument(skip(self))]
   pub(crate) async fn update_device_destination(
     &self,
