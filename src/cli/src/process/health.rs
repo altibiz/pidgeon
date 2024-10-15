@@ -23,7 +23,7 @@ impl super::Process for Process {}
 #[async_trait::async_trait]
 impl process::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
-    let temperature = self.services.hardware().read_temperature().await?;
+    let temperature = self.services.i2c().read_temperature().await?;
 
     let result = self
       .services

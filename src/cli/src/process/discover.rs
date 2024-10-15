@@ -1,10 +1,10 @@
-use std::net::SocketAddr;
-
 use futures::future::join_all;
 use futures_time::future::FutureExt;
 
 #[allow(unused_imports)]
 use crate::{service::*, *};
+
+use self::modbus::connection::Device;
 
 pub(crate) struct Process {
   #[allow(unused)]
@@ -34,10 +34,22 @@ impl super::Recurring for Process {
     let addresses = self.services.net().scan_modbus().await;
     let addresses_len = addresses.len();
 
+    let ports = self.services.serial().scan_serial().await;
+    let ports_len = ports.len();
+
     let device_matches = join_all(
       addresses
         .into_iter()
-        .map(|address| self.match_address(&config, address)),
+        .map(|address| self.match_modbus_device(&config, Device::Tcp(address)))
+        .chain(ports.into_iter().map(|port| {
+          self.match_modbus_device(
+            &config,
+            Device::Rtu {
+              path: port.path.clone(),
+              baud_rate: port.baud_rate,
+            },
+          )
+        })),
     )
     .await
     .into_iter()
@@ -55,7 +67,7 @@ impl super::Recurring for Process {
 
     tracing::info!(
       "Scanned {:?} modbus servers with {:?} devices of which {:?} were consolidated",
-      addresses_len,
+      addresses_len + ports_len,
       device_matches_len,
       consolidated_matches_len
     );
@@ -73,20 +85,23 @@ struct DeviceMatch {
 
 impl Process {
   #[tracing::instrument(skip(self, config))]
-  async fn match_address(
+  async fn match_modbus_device(
     &self,
     config: &config::Values,
-    address: SocketAddr,
+    modbus_device: Device,
   ) -> Vec<DeviceMatch> {
     if let Some(device_match) = self
-      .match_destination(config, modbus::Destination::standalone_for(address))
+      .match_destination(
+        config,
+        modbus::Destination::standalone_for(modbus_device.clone()),
+      )
       .await
     {
       return vec![device_match];
     }
 
     let mut device_matches = Vec::new();
-    for destination in modbus::Destination::slaves_for(address) {
+    for destination in modbus::Destination::slaves_for(modbus_device) {
       if let Some(device_match) =
         self.match_destination(config, destination).await
       {
@@ -105,10 +120,12 @@ impl Process {
     config: &config::Values,
     destination: modbus::Destination,
   ) -> Option<DeviceMatch> {
-    let device = join_all(config.modbus.devices.values().map(|device| {
+    let matching_destination = destination.clone();
+    let device = join_all(config.modbus.devices.values().map(move |device| {
+      let matching_destination = matching_destination.clone();
       Box::pin(
         self
-          .match_device(device.clone(), destination)
+          .match_device(device.clone(), matching_destination)
           .timeout(timeout_from_chrono(config.modbus.discovery_timeout)),
       )
     }))
@@ -230,10 +247,11 @@ impl Process {
     device: config::Device,
     destination: modbus::Destination,
   ) -> Option<DeviceMatch> {
+    let matching_destination = destination.clone();
     let registers = self
       .services
       .modbus()
-      .read_from_destination(destination, device.id)
+      .read_from_destination(matching_destination, device.id)
       .await;
 
     registers.ok().map(|id_registers| DeviceMatch {

@@ -1804,6 +1804,7 @@ dependencies = [
  "futures-time",
  "ipnet",
  "itertools",
+ "lazy_static",
  "log",
  "netdev",
  "regex",
