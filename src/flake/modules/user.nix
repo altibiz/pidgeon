@@ -7,7 +7,7 @@
     isNormalUser = true;
     createHome = true;
     hashedPasswordFile = "${self}/src/flake/pass/${id}";
-    extraGroups = [ "wheel" ];
+    extraGroups = [ "wheel" "dialout" ];
     useDefaultShell = true;
   };
 

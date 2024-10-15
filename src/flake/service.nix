@@ -42,6 +42,7 @@ in
       isSystemUser = true;
       description = "Pidgeon service user";
       group = "pidgeon";
+      extraGroups = [ "dialout" ];
     };
 
     systemd.services.pidgeon = {

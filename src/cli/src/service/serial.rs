@@ -25,7 +25,8 @@ impl Service {
       Err(_) => return Vec::new(),
     };
 
-    available
+    tracing::trace!("Matching {:?}", available);
+    let matched = available
       .into_iter()
       .filter(|port| port.port_type == serialport::SerialPortType::Unknown)
       .filter(|port| FILE_PATH_REGEX.is_match(&port.port_name))
@@ -33,14 +34,14 @@ impl Service {
         path: port.port_name,
         baud_rate: 38400,
       })
-      .collect::<Vec<_>>()
+      .collect::<Vec<_>>();
+    tracing::trace!("Matched {:?}", matched);
+
+    matched
   }
 }
 
 lazy_static::lazy_static! {
-  static ref FILE_PATH_REGEX: regex::Regex = {
-    #[allow(clippy::unwrap_used)] // NOTE: valid static file path regex
-    let regex = regex::Regex::new("^/[^/]+(/[^/]+)+$").unwrap();
-    regex
-  };
+  static ref FILE_PATH_REGEX: regex::Regex =
+    regex::Regex::new("^/[^/]+(/[^/]+)+$").unwrap();
 }
