@@ -34,7 +34,7 @@ class Client:
     if self.__device.startswith("/"):
       return AsyncModbusSerialClient(
         port=self.__device,
-        baud_rate=self.__baud_rate,
+        baudrate=self.__baud_rate,
         retries=0,
         timeout=0.1,
       )
