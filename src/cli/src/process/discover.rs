@@ -34,7 +34,7 @@ impl super::Recurring for Process {
     let addresses = self.services.net().scan_modbus().await;
     let addresses_len = addresses.len();
 
-    let ports = self.services.serial().scan_serial().await;
+    let ports = self.services.serial().scan_modbus().await;
     let ports_len = ports.len();
 
     let device_matches = join_all(

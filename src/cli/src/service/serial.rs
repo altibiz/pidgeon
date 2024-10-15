@@ -1,5 +1,7 @@
 use crate::*;
 
+// TODO: detect parameters
+
 #[derive(Debug, Clone)]
 pub(crate) struct Service {}
 
@@ -17,7 +19,7 @@ pub(crate) struct SerialPort {
 
 impl Service {
   #[tracing::instrument(skip(self))]
-  pub(crate) async fn scan_serial(&self) -> Vec<SerialPort> {
+  pub(crate) async fn scan_modbus(&self) -> Vec<SerialPort> {
     let available = match serialport::available_ports() {
       Ok(available) => available,
       Err(_) => return Vec::new(),
@@ -29,7 +31,7 @@ impl Service {
       .filter(|port| FILE_PATH_REGEX.is_match(&port.port_name))
       .map(|port| SerialPort {
         path: port.port_name,
-        baud_rate: 57600,
+        baud_rate: 38400,
       })
       .collect::<Vec<_>>()
   }

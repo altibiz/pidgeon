@@ -34,7 +34,6 @@ impl Service {
           .ipv4
           .iter()
           .map(|addr| IpNet::V4(*addr).hosts())
-          .chain(interface.ipv6.iter().map(|addr| IpNet::V6(*addr).hosts()))
           .collect::<Vec<_>>(),
         Err(_) => Vec::new(),
       };
