@@ -45,7 +45,8 @@ class Server:
 
   def __create_context(self, registers: dict[int, int]):
     slave = Server.ModbusDelayedSlaveContext(
-      hr=Server.ModbusZeroedSparseDataBlock(registers),
+      # NOTE: its valid because it infers type by defaults
+      hr=Server.ModbusZeroedSparseDataBlock(registers),  # type: ignore
       zero_mode=True,
     )
     # NOTE: single makes it always return the slave for any slave number...
