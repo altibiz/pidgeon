@@ -21,6 +21,12 @@ let
             --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.nodejs ]}
         '';
       });
+
+      smbus = prev.smbus.overridePythonAttrs (old: {
+        buildInputs = (old.buildInputs or [ ]) ++ (with prev; [
+          setuptools
+        ]);
+      });
     });
   };
 
