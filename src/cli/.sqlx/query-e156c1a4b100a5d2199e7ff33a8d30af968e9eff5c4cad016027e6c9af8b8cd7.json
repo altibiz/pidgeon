@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        insert into devices (id, kind, status, seen, pinged, address, slave)\n        values ($1, $2, $3, $4, $5, $6, $7)\n      ",
+  "query": "\n        insert into devices (id, kind, status, seen, pinged, address, path, baud_rate, slave)\n        values ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n      ",
   "describe": {
     "columns": [],
     "parameters": {
@@ -18,10 +18,12 @@
         "Timestamptz",
         "Timestamptz",
         "Inet",
+        "Text",
+        "Int4",
         "Int4"
       ]
     },
     "nullable": []
   },
-  "hash": "48997ff2d4149110fffe65284cb9fb0119bedaa1d7a1632f1634f04dd493594c"
+  "hash": "e156c1a4b100a5d2199e7ff33a8d30af968e9eff5c4cad016027e6c9af8b8cd7"
 }

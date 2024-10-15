@@ -29,9 +29,11 @@ pub(crate) struct Device {
   pub(crate) id: String,
   pub(crate) kind: String,
   pub(crate) status: DeviceStatus,
-  pub(crate) address: IpNetwork,
   pub(crate) seen: DateTime<Utc>,
   pub(crate) pinged: DateTime<Utc>,
+  pub(crate) address: Option<IpNetwork>,
+  pub(crate) path: Option<String>,
+  pub(crate) baud_rate: Option<i32>,
   pub(crate) slave: Option<i32>,
 }
 
@@ -153,7 +155,7 @@ impl Service {
     let devices = sqlx::query_as!(
       Device,
       r#"
-        select id, kind, status as "status: DeviceStatus", seen, pinged, address, slave
+        select id, kind, status as "status: DeviceStatus", seen, pinged, address, path, baud_rate, slave
         from devices
       "#,
     )
@@ -174,7 +176,7 @@ impl Service {
     let device = sqlx::query_as!(
       Device,
       r#"
-        select id, kind, status as "status: DeviceStatus", seen, pinged, address, slave
+        select id, kind, status as "status: DeviceStatus", seen, pinged, address, path, baud_rate, slave
         from devices
         where id = $1
       "#,
@@ -196,8 +198,8 @@ impl Service {
     #[allow(clippy::panic)] // NOTE: sqlx thing
     sqlx::query!(
       r#"
-        insert into devices (id, kind, status, seen, pinged, address, slave)
-        values ($1, $2, $3, $4, $5, $6, $7)
+        insert into devices (id, kind, status, seen, pinged, address, path, baud_rate, slave)
+        values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       "#,
       device.id,
       device.kind,
@@ -205,6 +207,8 @@ impl Service {
       device.seen,
       device.pinged,
       device.address,
+      device.path,
+      device.baud_rate,
       device.slave
     )
     .execute(&self.pool)

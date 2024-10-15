@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        select id, kind, status as \"status: DeviceStatus\", seen, pinged, address, slave\n        from devices\n      ",
+  "query": "\n        select id, kind, status as \"status: DeviceStatus\", seen, pinged, address, path, baud_rate, slave\n        from devices\n      ",
   "describe": {
     "columns": [
       {
@@ -42,6 +42,16 @@
       },
       {
         "ordinal": 6,
+        "name": "path",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "baud_rate",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
         "name": "slave",
         "type_info": "Int4"
       }
@@ -49,7 +59,7 @@
     "parameters": {
       "Left": []
     },
-    "nullable": [false, false, false, false, false, false, true]
+    "nullable": [false, false, false, false, false, true, true, true, true]
   },
-  "hash": "8c1b52b6d869499610cc1a92729df708f189074db94e3975dbca8489ef0370f4"
+  "hash": "2d959cf721fac42f3c2aea2d1c129a73e3c49d39118bd04bd049edfac025347a"
 }
