@@ -1,5 +1,6 @@
 use std::net::SocketAddr;
 
+use derivative::Derivative;
 use futures_time::future::FutureExt;
 use thiserror::Error;
 use tokio::net::TcpStream;
@@ -13,10 +14,16 @@ use tokio_serial::SerialPortBuilderExt;
 
 use super::{record::SimpleRecord, span::SimpleSpan};
 
-#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+#[derive(Derivative)]
+#[derivative(Clone, Debug, Hash, Eq, PartialEq)]
 pub(crate) enum Device {
   Tcp(SocketAddr),
-  Rtu { path: String, baud_rate: u32 },
+  Rtu {
+    path: String,
+    // NOTE: Eq is just a marker trait and works through PartialEq
+    #[derivative(Hash = "ignore", PartialEq = "ignore")]
+    baud_rate: u32,
+  },
 }
 
 #[derive(Clone, Debug, Hash, Eq, PartialEq)]
