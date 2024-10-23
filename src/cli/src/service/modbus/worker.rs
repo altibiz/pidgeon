@@ -720,9 +720,25 @@ impl Task {
     };
 
     match kind {
-      ReadRequestKind::Read => self.reads.push(storage),
-      ReadRequestKind::Stream => self.streams.push(storage),
-    };
+      ReadRequestKind::Read => {
+        let index = self
+          .reads
+          .binary_search_by(|r| {
+            r.destination.slave.cmp(&storage.destination.slave)
+          })
+          .unwrap_or_else(|i| i);
+        self.reads.insert(index, storage);
+      }
+      ReadRequestKind::Stream => {
+        let index = self
+          .streams
+          .binary_search_by(|s| {
+            s.destination.slave.cmp(&storage.destination.slave)
+          })
+          .unwrap_or_else(|i| i);
+        self.streams.insert(index, storage);
+      }
+    }
 
     tracing::trace!("Added read request");
   }
@@ -748,7 +764,12 @@ impl Task {
       },
     };
 
-    self.writes.push(storage);
+    let index = self
+      .writes
+      .binary_search_by(|w| w.destination.slave.cmp(&storage.destination.slave))
+      .unwrap_or_else(|i| i);
+
+    self.writes.insert(index, storage);
 
     tracing::trace!("Added write request");
   }
