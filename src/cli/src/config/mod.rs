@@ -290,7 +290,7 @@ impl Manager {
       },
       modbus: Modbus {
         request_timeout: file::milliseconds_to_chrono(
-          config.from_file.modbus.request_timeout.unwrap_or(100),
+          config.from_file.modbus.request_timeout.unwrap_or(2000),
         ),
         batch_threshold: config.from_file.modbus.batch_threshold.unwrap_or(4),
         termination_timeout: file::milliseconds_to_chrono(
@@ -301,7 +301,7 @@ impl Manager {
             .unwrap_or(10_000),
         ),
         congestion_backoff: file::milliseconds_to_chrono(
-          config.from_file.modbus.congestion_backoff.unwrap_or(50),
+          config.from_file.modbus.congestion_backoff.unwrap_or(1000),
         ),
         partial_retries: config.from_file.modbus.partial_retries.unwrap_or(10),
         ping_timeout: file::milliseconds_to_chrono(
