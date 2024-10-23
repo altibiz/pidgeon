@@ -71,14 +71,18 @@ pub(crate) enum TerminateError {
 
 impl Worker {
   pub(crate) fn new(
-    read_timeout: chrono::Duration,
+    request_timeout: chrono::Duration,
     termination_timeout: chrono::Duration,
     congestion_backoff: chrono::Duration,
     partial_retries: u32,
   ) -> Self {
     let (sender, receiver) = flume::unbounded();
-    let task =
-      Task::new(read_timeout, receiver, congestion_backoff, partial_retries);
+    let task = Task::new(
+      request_timeout,
+      receiver,
+      congestion_backoff,
+      partial_retries,
+    );
     let handle = tokio::spawn(task.execute());
     Self {
       sender,

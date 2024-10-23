@@ -100,7 +100,7 @@ pub(crate) struct Device {
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Modbus {
-  pub(crate) read_timeout: Option<u32>,
+  pub(crate) request_timeout: Option<u32>,
   pub(crate) batch_threshold: Option<u16>,
   pub(crate) termination_timeout: Option<u32>,
   pub(crate) congestion_backoff: Option<u32>,

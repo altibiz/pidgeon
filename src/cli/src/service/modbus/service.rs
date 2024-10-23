@@ -22,7 +22,7 @@ pub(crate) type WriteResponse = Vec<chrono::DateTime<chrono::Utc>>;
 pub(crate) struct Service {
   devices: Arc<Mutex<HashMap<String, Designation>>>,
   servers: Arc<Mutex<HashMap<Device, Server>>>,
-  read_timeout: chrono::Duration,
+  request_timeout: chrono::Duration,
   batch_threshold: u16,
   termination_timeout: chrono::Duration,
   congestion_backoff: chrono::Duration,
@@ -88,7 +88,7 @@ impl service::Service for Service {
     Self {
       devices: Arc::new(Mutex::new(HashMap::new())),
       servers: Arc::new(Mutex::new(HashMap::new())),
-      read_timeout: config.modbus.read_timeout,
+      request_timeout: config.modbus.request_timeout,
       batch_threshold: config.modbus.batch_threshold,
       termination_timeout: config.modbus.termination_timeout,
       congestion_backoff: config.modbus.congestion_backoff,
@@ -490,7 +490,7 @@ impl Service {
       .entry(destination.device)
       .or_insert_with(|| Server {
         worker: Worker::new(
-          self.read_timeout,
+          self.request_timeout,
           self.termination_timeout,
           self.congestion_backoff,
           self.partial_retries,

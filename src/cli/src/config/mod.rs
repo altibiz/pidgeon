@@ -57,7 +57,7 @@ pub(crate) struct Device {
 
 #[derive(Debug, Clone)]
 pub(crate) struct Modbus {
-  pub(crate) read_timeout: chrono::Duration,
+  pub(crate) request_timeout: chrono::Duration,
   pub(crate) batch_threshold: u16,
   pub(crate) termination_timeout: chrono::Duration,
   pub(crate) congestion_backoff: chrono::Duration,
@@ -289,8 +289,8 @@ impl Manager {
         modbus_port: config.from_env.network.modbus_port,
       },
       modbus: Modbus {
-        read_timeout: file::milliseconds_to_chrono(
-          config.from_file.modbus.read_timeout.unwrap_or(100),
+        request_timeout: file::milliseconds_to_chrono(
+          config.from_file.modbus.request_timeout.unwrap_or(100),
         ),
         batch_threshold: config.from_file.modbus.batch_threshold.unwrap_or(4),
         termination_timeout: file::milliseconds_to_chrono(
