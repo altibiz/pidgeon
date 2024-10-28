@@ -273,6 +273,10 @@ impl Connection {
     &mut self,
     slave: Option<u8>,
   ) -> Result<&mut Context, ConnectError> {
+    if let Some(ctx) = &mut self.ctx {
+      ctx.disconnect().await?;
+    }
+
     let mut ctx = match &self.device {
       Device::Tcp(socket) => {
         let stream = TcpStream::connect(socket).await?;
