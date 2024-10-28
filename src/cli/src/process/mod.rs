@@ -152,15 +152,19 @@ impl Container {
       }
     };
 
-    run_add_job!(self, config, scheduler, poll);
+    if config.local != true {
+      run_add_job!(self, config, scheduler, poll);
+    }
     run_add_job!(self, config, scheduler, discover);
     run_add_job!(self, config, scheduler, ping);
     run_add_job!(self, config, scheduler, measure);
-    add_job!(self, config, scheduler, push);
-    add_job!(self, config, scheduler, update);
-    add_job!(self, config, scheduler, health);
-    add_job!(self, config, scheduler, daily);
-    add_job!(self, config, scheduler, nightly);
+    if config.local != true {
+      add_job!(self, config, scheduler, push);
+      add_job!(self, config, scheduler, update);
+      add_job!(self, config, scheduler, health);
+      add_job!(self, config, scheduler, daily);
+      add_job!(self, config, scheduler, nightly);
+    }
 
     if let Err(error) = scheduler.start().await {
       return Err(ContainerError::StartupFailed(error));

@@ -92,6 +92,7 @@ pub(crate) struct Values {
   pub(crate) hardware: Hardware,
   pub(crate) schedule: Schedule,
   pub(crate) log_level: tracing::level_filters::LevelFilter,
+  pub(crate) local: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -197,6 +198,7 @@ impl Manager {
           tracing::level_filters::LevelFilter::INFO
         }
       },
+      local: config.from_args.local,
       schedule: Schedule {
         discover: file::string_to_cron(
           &config.from_file.schedule.discover,

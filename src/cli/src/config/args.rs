@@ -12,6 +12,10 @@ pub(crate) struct Values {
   /// Alternative configuration location
   #[arg(short, long)]
   pub(crate) config: Option<String>,
+
+  /// Skip running cloud processes
+  #[arg(short, long)]
+  pub(crate) local: bool,
 }
 
 pub(crate) fn parse() -> Values {
