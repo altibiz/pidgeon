@@ -152,13 +152,13 @@ impl Container {
       }
     };
 
-    if config.local != true {
+    if !config.local {
       run_add_job!(self, config, scheduler, poll);
     }
     run_add_job!(self, config, scheduler, discover);
     run_add_job!(self, config, scheduler, ping);
     run_add_job!(self, config, scheduler, measure);
-    if config.local != true {
+    if !config.local {
       add_job!(self, config, scheduler, push);
       add_job!(self, config, scheduler, update);
       add_job!(self, config, scheduler, health);
