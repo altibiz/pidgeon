@@ -61,53 +61,27 @@ pub(crate) type WriteResponse = ();
 pub(crate) struct Connection {
   device: Device,
   ctx: Option<Context>,
+  slave: Option<u8>,
 }
 
 impl Connection {
   pub(crate) fn new(device: Device) -> Self {
-    Self { device, ctx: None }
+    Self {
+      device,
+      ctx: None,
+      slave: None,
+    }
   }
 
-  pub(crate) async fn ensure_connected(&mut self) -> Result<(), ConnectError> {
-    if self.ctx.is_none() {
-      let _ = self.reconnect().await?;
+  pub(crate) async fn ensure_connected(
+    &mut self,
+    slave: Option<u8>,
+  ) -> Result<(), ConnectError> {
+    if self.ctx.is_none() || self.slave != slave {
+      let _ = self.reconnect(slave).await?;
     }
 
     Ok(())
-  }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub(crate) enum ConnectError {
-  #[error("Failed to connect TCP")]
-  TcpConnect(#[from] std::io::Error),
-
-  #[error("Failed to connect RTU")]
-  RtuConnect(#[from] serialport::Error),
-
-  #[error("Wrong slave number")]
-  Slave,
-}
-
-impl Connection {
-  async fn reconnect(&mut self) -> Result<&mut Context, ConnectError> {
-    let ctx = match &self.device {
-      Device::Tcp(socket) => {
-        let stream = TcpStream::connect(socket).await?;
-        tokio_modbus::prelude::tcp::attach(stream)
-      }
-      Device::Rtu { path, baud_rate } => {
-        let stream = tokio_serial::new(path, *baud_rate).open_native_async()?;
-        tokio_modbus::prelude::rtu::attach(stream)
-      }
-    };
-
-    tracing::trace!("Connected");
-
-    self.ctx = Some(ctx);
-
-    #[allow(clippy::unwrap_used)] // NOTE: we just put it in
-    Ok(self.ctx.as_mut().unwrap())
   }
 }
 
@@ -176,10 +150,15 @@ impl Connection {
   ) -> Result<ReadResponse, ReadError> {
     let response = match &mut self.ctx {
       Some(ctx) => {
+        let ctx = if self.slave != slave {
+          self.reconnect(slave).await?
+        } else {
+          ctx
+        };
         Self::simple_read_impl_connected(ctx, slave, span, timeout).await
       }
       None => {
-        let ctx = self.reconnect().await?;
+        let ctx = self.reconnect(slave).await?;
         Self::simple_read_impl_connected(ctx, slave, span, timeout).await
       }
     };
@@ -199,10 +178,15 @@ impl Connection {
   ) -> Result<WriteResponse, WriteError> {
     let response = match &mut self.ctx {
       Some(ctx) => {
+        let ctx = if self.slave != slave {
+          self.reconnect(slave).await?
+        } else {
+          ctx
+        };
         Self::simple_write_impl_connected(ctx, slave, record, timeout).await
       }
       None => {
-        let ctx = self.reconnect().await?;
+        let ctx = self.reconnect(slave).await?;
         Self::simple_write_impl_connected(ctx, slave, record, timeout).await
       }
     };
@@ -269,6 +253,49 @@ impl Connection {
       Ok(Err(connection_error)) => Err(WriteError::Read(connection_error)),
       Ok(Ok(_)) => Ok(()),
     }
+  }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum ConnectError {
+  #[error("Failed to connect TCP")]
+  TcpConnect(#[from] std::io::Error),
+
+  #[error("Failed to connect RTU")]
+  RtuConnect(#[from] serialport::Error),
+
+  #[error("Wrong slave number")]
+  Slave,
+}
+
+impl Connection {
+  async fn reconnect(
+    &mut self,
+    slave: Option<u8>,
+  ) -> Result<&mut Context, ConnectError> {
+    let mut ctx = match &self.device {
+      Device::Tcp(socket) => {
+        let stream = TcpStream::connect(socket).await?;
+        tokio_modbus::prelude::tcp::attach(stream)
+      }
+      Device::Rtu { path, baud_rate } => {
+        let stream = tokio_serial::new(path, *baud_rate).open_native_async()?;
+        tokio_modbus::prelude::rtu::attach(stream)
+      }
+    };
+    if let Some(slave) = slave {
+      ctx.set_slave(Slave(slave))
+    } else {
+      ctx.set_slave(Slave::tcp_device())
+    }
+
+    tracing::trace!("Connected");
+
+    self.ctx = Some(ctx);
+    self.slave = slave;
+
+    #[allow(clippy::unwrap_used)] // NOTE: we just put it in
+    Ok(self.ctx.as_mut().unwrap())
   }
 }
 

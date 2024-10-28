@@ -796,7 +796,7 @@ impl Task {
       }
       None => {
         let mut connection = Connection::new(destination.device.clone());
-        match connection.ensure_connected().await {
+        match connection.ensure_connected(destination.slave).await {
           Ok(()) => {
             tracing::trace!("Connected to new connection");
 
@@ -854,7 +854,9 @@ impl Task {
         let read = match partial {
           Some(partial) => Some(partial.clone()),
           None => {
-            if let Err(error) = connection.ensure_connected().await {
+            if let Err(error) =
+              connection.ensure_connected(storage.destination.slave).await
+            {
               metrics
                 .reads
                 .entry(storage.destination.clone())
@@ -960,7 +962,9 @@ impl Task {
         let read = match partial {
           Some(partial) => Some(partial.clone()),
           None => {
-            if let Err(error) = connection.ensure_connected().await {
+            if let Err(error) =
+              connection.ensure_connected(storage.destination.slave).await
+            {
               metrics
                 .writes
                 .entry(storage.destination.clone())
