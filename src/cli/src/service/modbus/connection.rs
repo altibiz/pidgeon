@@ -275,6 +275,7 @@ impl Connection {
   ) -> Result<&mut Context, ConnectError> {
     if let Some(ctx) = &mut self.ctx {
       ctx.disconnect().await?;
+      self.ctx = None;
     }
 
     let mut ctx = match &self.device {
