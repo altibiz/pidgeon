@@ -78,3 +78,6 @@ docs:
 
 rebuild:
     nixos-rebuild switch --flake $"{{ root }}#pidgeon-(open --raw /etc/id)-aarch64-linux"
+
+make-secrets *args:
+    {{ mksecrets }} {{ args }}

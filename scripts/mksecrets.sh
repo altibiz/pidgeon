@@ -64,7 +64,7 @@ mkid() {
 
   name="$1"
   length="${2:-32}"
-  prefix="${3:}"
+  prefix="${3:-}"
 
   id="$(openssl rand -base64 256 | tr -cd '[:alnum:]' | head -c "$length")"
   while [ "${#id}" -lt "$length" ]; do
