@@ -71,13 +71,7 @@ mkid() {
     id="${id}x"
   done
 
-  if [ "$prefix" -eq "" ]; then
-    # NOTE: if you do it raw it adds a newline
-    printf "%s" "$id" >"$ID_SECRETS/$name.id.pub"
-  else
-    # NOTE: if you do it raw it adds a newline
-    printf "%s" "$prefix-$id" >"$ID_SECRETS/$name.id.pub"
-  fi
+  printf "%s" "${prefix:+$prefix-}$id" >"$ID_SECRETS/$name.id.pub"
 }
 
 mkkey() {
@@ -93,7 +87,6 @@ mkkey() {
     key="${key}x"
   done
 
-  # NOTE: if you do it raw it adds a newline
   printf "%s" "$key" >"$ID_SECRETS/$name.key"
 }
 
