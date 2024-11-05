@@ -29,13 +29,16 @@
       wifi-security = {
         auth-alg = "open";
         key-mgmt = "wpa-psk";
-        psk = "$WIFI_PASSWORD";
+        psk = "$WIFI_PASS";
       };
     };
   };
 
+  networking.networkmanager.ensureProfiles.environmentFiles = [
+    "/etc/NetworkManager/env/wifi.env"
+  ];
   sops.secrets."wifi.env" = {
-    path = "/etc/NetworkManager/system-connections/wifi.env";
+    path = "/etc/NetworkManager/env/wifi.env";
     owner = "root";
     group = "root";
     mode = "0600";
