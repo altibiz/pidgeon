@@ -177,7 +177,7 @@ indent() {
   local amount
 
   text="$1"
-  amount="$2"
+  amount="${2:-2}"
 
   printf "%b" "$text" |
     sed -z "s/\\n/,/g;s/,/\\n$(printf "%${amount}s" "")/g"
