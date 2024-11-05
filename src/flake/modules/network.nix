@@ -5,39 +5,39 @@
   networking.networkmanager.enable = true;
   networking.nameservers = [ "1.1.1.1" "1.0.0.1" ];
 
-  # networking.networkmanager.ensureProfiles.profiles = {
-  #   "wifi" = {
-  #     connection = {
-  #       id = "wifi";
-  #       permissions = "";
-  #       type = "wifi";
-  #     };
-  #     ipv4 = {
-  #       dns-search = "";
-  #       method = "auto";
-  #     };
-  #     ipv6 = {
-  #       addr-gen-mode = "stable-privacy";
-  #       dns-search = "";
-  #       method = "auto";
-  #     };
-  #     wifi = {
-  #       mac-address-blacklist = "";
-  #       mode = "infrastructure";
-  #       ssid = "$WIFI_SSID";
-  #     };
-  #     wifi-security = {
-  #       auth-alg = "open";
-  #       key-mgmt = "wpa-psk";
-  #       psk = "$WIFI_PASSWORD";
-  #     };
-  #   };
-  # };
+  networking.networkmanager.ensureProfiles.profiles = {
+    "wifi" = {
+      connection = {
+        id = "wifi";
+        permissions = "";
+        type = "wifi";
+      };
+      ipv4 = {
+        dns-search = "";
+        method = "auto";
+      };
+      ipv6 = {
+        addr-gen-mode = "stable-privacy";
+        dns-search = "";
+        method = "auto";
+      };
+      wifi = {
+        mac-address-blacklist = "";
+        mode = "infrastructure";
+        ssid = "$WIFI_SSID";
+      };
+      wifi-security = {
+        auth-alg = "open";
+        key-mgmt = "wpa-psk";
+        psk = "$WIFI_PASSWORD";
+      };
+    };
+  };
 
-  # sops.secrets."wifi.env" = {
-  #   path = "/etc/NetworkManager/system-connections/wifi.env";
-  #   owner = "root";
-  #   group = "root";
-  #   mode = "0600";
-  # };
+  sops.secrets."wifi.env" = {
+    path = "/etc/NetworkManager/system-connections/wifi.env";
+    owner = "root";
+    group = "root";
+    mode = "0600";
+  };
 }

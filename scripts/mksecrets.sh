@@ -58,29 +58,58 @@ mktmp() {
 
 mkid() {
   local name
+  local length
+  local prefix
+  local id
 
   name="$1"
+  length="${2:-32}"
+  prefix="${3:}"
 
-  # NOTE: if you do it raw it adds a newline
-  printf "%s" "$(openssl rand -base64 32)" >"$ID_SECRETS/$name.id.pub"
+  id="$(openssl rand -base64 256 | tr -cd '[:alnum:]' | head -c "$length")"
+  while [ "${#id}" -lt "$length" ]; do
+    id="${id}x"
+  done
+
+  if [ "$prefix" -eq "" ]; then
+    # NOTE: if you do it raw it adds a newline
+    printf "%s" "$id" >"$ID_SECRETS/$name.id.pub"
+  else
+    # NOTE: if you do it raw it adds a newline
+    printf "%s" "$prefix-$id" >"$ID_SECRETS/$name.id.pub"
+  fi
 }
 
 mkkey() {
   local name
+  local length
+  local key
 
   name="$1"
+  length="${2:-32}"
+
+  key="$(openssl rand -base64 256 | tr -cd '[:alnum:]' | head -c "$length")"
+  while [ "${#key}" -lt "$length" ]; do
+    key="${key}x"
+  done
 
   # NOTE: if you do it raw it adds a newline
-  printf "%s" "$(openssl rand -base64 32)" >"$ID_SECRETS/$name.key"
+  printf "%s" "$key" >"$ID_SECRETS/$name.key"
 }
 
 mkpass() {
   local name
+  local length
+  local passwd
 
   name="$1"
+  length="${2:-32}"
 
-  # NOTE: if you do it raw it adds a newline
-  passwd="$(openssl rand -base64 32)"
+  passwd="$(openssl rand -base64 256 | tr -cd '[:alnum:]' | head -c "$length")"
+  while [ "${#passwd}" -lt "$length" ]; do
+    passwd="${passwd}x"
+  done
+
   printf "%s" "$passwd" >"$ID_SECRETS/$name.pass"
   printf "%s" "$(echo "$passwd" | mkpasswd --stdin)" >"$ID_SECRETS/$name.pass.pub"
 }
@@ -223,6 +252,15 @@ PIDGEON_NETWORK_IP_RANGE_START="$network_ip_range_start"
 PIDGEON_NETWORK_IP_RANGE_END="$network_ip_range_end"
 EOF
 
+mkid "wifi" 16 "pidgeon"
+mkkey "wifi" 32
+mktmp "wifi.id.pub"
+mktmp "wifi.key"
+cat >"$ID_SECRETS/wifi.env" <<EOF
+WIFI_SSID="$(cat "$ID_SECRETS/wifi.id.pub")"
+WIFI_PASS="$(cat "$ID_SECRETS/wifi.key")"
+EOF
+
 cat >"$ID_SECRETS/secrets.yaml" <<EOF
 altibiz.pass.pub: |
   $(indent "$(cat "$ID_SECRETS/altibiz.pass.pub")" 2)
@@ -240,6 +278,8 @@ postgres.crt.pub: |
   $(indent "$(cat "$ID_SECRETS/postgres.crt.pub")" 2)
 postgres.sql: |
   $(indent "$(cat "$ID_SECRETS/postgres.sql")" 2)
+wifi.env: |
+  $(indent "$(cat "$ID_SECRETS/wifi.env")" 2)
 EOF
 
 sops --encrypt \
