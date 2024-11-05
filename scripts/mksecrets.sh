@@ -173,14 +173,13 @@ mkssl() {
 }
 
 indent() {
-  local text
-  local amount
+  local text="$1"
+  local amount="${2:-2}"
 
-  text="$1"
-  amount="${2:-2}"
+  local spaces
+  spaces="$(printf "%${amount}s" "")"
 
-  printf "%b" "$text" |
-    sed -z "s/\\n/,/g;s/,/\\n$(printf "%${amount}s" "")/g"
+  printf "%s\n" "$text" | sed "2,\$s/^/$spaces/"
 }
 
 mkpass "altibiz"
