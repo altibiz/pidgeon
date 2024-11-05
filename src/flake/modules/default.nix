@@ -3,6 +3,7 @@
   postgresql = import ./postgresql.nix;
   secrets = import ./secrets.nix;
   system = import ./system.nix;
+  network = import ./network.nix;
   user = import ./user.nix;
   # FIXME: brighs the whole system down
   # visualization = import ./visualization.nix;

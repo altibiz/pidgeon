@@ -76,7 +76,6 @@ pkgs.mkShell {
     cargo-edit
     cargo2nix.packages.${system}.default
     evcxr
-    cargo-flamegraph
 
     # build inputs
     pkg-config
