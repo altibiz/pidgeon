@@ -11,6 +11,7 @@
         id = "wifi";
         permissions = "";
         type = "wifi";
+        interface-name = "wlan0";
       };
       ipv4 = {
         dns-search = "";
