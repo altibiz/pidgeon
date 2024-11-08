@@ -28,6 +28,39 @@
         "process handle SIGPIPE -n true -p true -s false",
         "process handle SIGSTOP -n true -p true -s false"
       ]
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Local CLI",
+      "cargo": {
+        "args": ["build", "--bin", "pidgeon-cli"]
+      },
+      "cwd": "${workspaceFolder}/src/cli",
+      "args": ["--config", "${workspaceFolder}/assets/config.toml", "--local"],
+      "postRunCommands": [
+        "process handle SIGPIPE -n true -p true -s false",
+        "process handle SIGSTOP -n true -p true -s false"
+      ]
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Trace local CLI",
+      "cargo": {
+        "args": ["build", "--bin", "pidgeon-cli"]
+      },
+      "cwd": "${workspaceFolder}/src/cli",
+      "args": [
+        "--config",
+        "${workspaceFolder}/assets/config.toml",
+        "--trace",
+        "--local"
+      ],
+      "postRunCommands": [
+        "process handle SIGPIPE -n true -p true -s false",
+        "process handle SIGSTOP -n true -p true -s false"
+      ]
     }
   ]
 }
