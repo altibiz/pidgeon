@@ -28,7 +28,10 @@ impl Service {
     tracing::trace!("Matching {:?}", available);
     let matched = available
       .into_iter()
-      .filter(|port| port.port_type == serialport::SerialPortType::Unknown)
+      .filter(|port| {
+        port.port_type == serialport::SerialPortType::Unknown
+          || matches!(port.port_type, serialport::SerialPortType::UsbPort(_))
+      })
       .filter(|port| FILE_PATH_REGEX.is_match(&port.port_name))
       .map(|port| SerialPort {
         path: port.port_name,
