@@ -5,7 +5,7 @@ timezone = "Europe/Zagreb"
 
 [[modbus.devices.schneider-iEM3xxx.detect]]
 address = 0x0031
-match = "iEM3255"
+match = "iEM3[0-9]{3}"
 kind = { string = { length = 20 } }
 
 [[modbus.devices.schneider-iEM3xxx.id]]
