@@ -48,7 +48,7 @@ in
     systemd.services.pidgeon = {
       description = "Pidgeon - Raspberry Pi message broker.";
       after = [ "network.target" ];
-      wantedBy = [ "manual-start.target" ];
+      wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         ExecStart = "${service}/bin/pidgeon-service";
         Restart = "always";
