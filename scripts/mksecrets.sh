@@ -107,6 +107,22 @@ mkpass() {
   printf "%s" "$(echo "$passwd" | mkpasswd --stdin)" >"$ID_SECRETS/$name.pass.pub"
 }
 
+mkpin() {
+  local name
+  local length
+  local pin
+
+  name="$1"
+  length="${2:-4}"
+
+  pin="$(openssl rand -hex 256 | tr -cd '[:digit:]' | head -c "$length")"
+  while [ "${#pin}" -lt "$length" ]; do
+    pin="${pin}0"
+  done
+
+  printf "%s" "$pin" >"$ID_SECRETS/$name.pin"
+}
+
 mkage() {
   local path
 
@@ -244,13 +260,17 @@ PIDGEON_NETWORK_IP_RANGE_START="$network_ip_range_start"
 PIDGEON_NETWORK_IP_RANGE_END="$network_ip_range_end"
 EOF
 
-mkid "wifi" 16 "pidgeon"
-mkkey "wifi" 32
-mktmp "wifi.id.pub"
-mktmp "wifi.key"
+mkid "router-wifi" 16 "pidgeon"
+mkkey "router-wifi" 32
+mkkey "router-admin"
+mkpin "router-wps"
+mktmp "router-ssid.id.pub"
+mktmp "router-wifi.key"
+mktmp "router-admin.key"
+mktmp "router-wps.pin"
 cat >"$ID_SECRETS/wifi.env" <<EOF
-WIFI_SSID="$(cat "$ID_SECRETS/wifi.id.pub")"
-WIFI_PASS="$(cat "$ID_SECRETS/wifi.key")"
+WIFI_SSID="$(cat "$ID_SECRETS/router-wifi.id.pub")"
+WIFI_PASS="$(cat "$ID_SECRETS/router-wifi.key")"
 EOF
 
 cat >"$ID_SECRETS/secrets.yaml" <<EOF
