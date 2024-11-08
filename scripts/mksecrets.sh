@@ -262,7 +262,7 @@ EOF
 
 mkid "router-wifi" 16 "pidgeon"
 mkkey "router-wifi" 32
-mkkey "router-admin"
+mkkey "router-admin" 10
 mkpin "router-wps"
 mktmp "router-ssid.id.pub"
 mktmp "router-wifi.key"
