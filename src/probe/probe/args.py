@@ -32,7 +32,7 @@ class Args:
       "-b",
       "--baud-rate",
       required=False,
-      default=57600,
+      default=38400,
       type=int,
       help="Baudrate for Modbus RTU connection",
     )
