@@ -93,5 +93,6 @@ pkgs.mkShell {
     zip
     unzip
     zstd
+    mbpoll
   ];
 }
