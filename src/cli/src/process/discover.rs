@@ -31,7 +31,11 @@ impl super::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
     let config = self.config.values().await;
 
-    let addresses = self.services.net().scan_modbus().await;
+    let addresses = if !config.local {
+      self.services.net().scan_modbus().await
+    } else {
+      Vec::new()
+    };
     let addresses_len = addresses.len();
 
     let ports = self.services.serial().scan_modbus().await;
