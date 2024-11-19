@@ -88,6 +88,12 @@ pub(crate) struct ValueRegister {
   pub(crate) value: Vec<u16>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) enum TimeImplementation {
+  #[serde(rename = "schneider-iEM3xxx")]
+  SchneideriEM3xxx,
+}
+
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Device {
   pub(crate) detect: Vec<DetectRegister>,
@@ -96,6 +102,7 @@ pub(crate) struct Device {
   pub(crate) configuration: Vec<ValueRegister>,
   pub(crate) daily: Vec<ValueRegister>,
   pub(crate) nightly: Vec<ValueRegister>,
+  pub(crate) time: Option<TimeImplementation>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
@@ -107,6 +114,7 @@ pub(crate) struct Modbus {
   pub(crate) partial_retries: Option<u32>,
   pub(crate) ping_timeout: Option<u32>,
   pub(crate) tariff_timeout: Option<u32>,
+  pub(crate) time_timeout: Option<u32>,
   pub(crate) inactive_timeout: Option<u32>,
   pub(crate) discovery_timeout: Option<u32>,
   pub(crate) devices: HashMap<String, Device>,
@@ -128,6 +136,7 @@ pub(crate) struct Schedule {
   pub(crate) health: Option<String>,
   pub(crate) daily: Option<String>,
   pub(crate) nightly: Option<String>,
+  pub(crate) time: Option<String>,
   pub(crate) poll: Option<String>,
   pub(crate) timezone: Option<chrono_tz::Tz>,
 }

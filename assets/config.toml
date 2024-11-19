@@ -24,6 +24,9 @@ value = [2008, 0x0000, 0x0001]
 address = 5249
 value = [2008, 0x0000, 0x0002]
 
+[modbus.devices.schneider-iEM3xxx]
+time = "schneider-iEM3xxx"
+
 # schneider-iEM3xxx instantaneous
 
 [[modbus.devices.schneider-iEM3xxx.measurement]]

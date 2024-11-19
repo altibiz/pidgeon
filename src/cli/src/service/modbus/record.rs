@@ -22,7 +22,39 @@ impl Span for SimpleRecord {
   }
 }
 
+impl Span for &SimpleRecord {
+  fn address(&self) -> Address {
+    self.address
+  }
+
+  fn quantity(&self) -> Quantity {
+    self.values.len() as Quantity
+  }
+}
+
+impl Span for Box<SimpleRecord> {
+  fn address(&self) -> Address {
+    self.address
+  }
+
+  fn quantity(&self) -> Quantity {
+    self.values.len() as Quantity
+  }
+}
+
 impl Record for SimpleRecord {
+  fn values(&self) -> impl Iterator<Item = u16> {
+    self.values.clone().into_iter()
+  }
+}
+
+impl Record for &SimpleRecord {
+  fn values(&self) -> impl Iterator<Item = u16> {
+    self.values.clone().into_iter()
+  }
+}
+
+impl Record for Box<SimpleRecord> {
   fn values(&self) -> impl Iterator<Item = u16> {
     self.values.clone().into_iter()
   }

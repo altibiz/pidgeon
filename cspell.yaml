@@ -60,3 +60,6 @@ words:
   - serialport
   - netdev
   - baudrate
+  - schneideri
+  - datelike
+  - timelike

@@ -290,6 +290,16 @@ macro_rules! impl_span {
         self.storage.quantity()
       }
     }
+
+    impl<T: RegisterStorage> Span for Box<$type<T>> {
+      fn address(&self) -> Address {
+        self.address
+      }
+
+      fn quantity(&self) -> Quantity {
+        self.storage.quantity()
+      }
+    }
   };
 }
 
@@ -538,6 +548,12 @@ macro_rules! impl_record {
     }
 
     impl Record for &$type<RegisterValueStorage> {
+      fn values(&self) -> impl Iterator<Item = u16> {
+        serialize_register!(self)
+      }
+    }
+
+    impl Record for Box<$type<RegisterValueStorage>> {
       fn values(&self) -> impl Iterator<Item = u16> {
         serialize_register!(self)
       }

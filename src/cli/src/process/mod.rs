@@ -6,6 +6,7 @@ mod nightly;
 mod ping;
 mod poll;
 mod push;
+mod time;
 mod update;
 
 use std::sync::Arc;
@@ -164,6 +165,7 @@ impl Container {
       add_job!(self, config, scheduler, health);
       add_job!(self, config, scheduler, daily);
       add_job!(self, config, scheduler, nightly);
+      add_job!(self, config, scheduler, time);
     }
 
     if let Err(error) = scheduler.start().await {

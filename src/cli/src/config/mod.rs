@@ -8,7 +8,7 @@ use ipnet::IpAddrRange;
 use thiserror::Error;
 use tokio::sync::Mutex;
 
-use crate::service::modbus::{self, RegisterValueStorage};
+use crate::service::modbus;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Db {
@@ -50,9 +50,11 @@ pub(crate) struct Device {
   pub(crate) detect: Vec<modbus::DetectRegister<modbus::RegisterKindStorage>>,
   pub(crate) measurement:
     Vec<modbus::MeasurementRegister<modbus::RegisterKindStorage>>,
-  pub(crate) configuration: Vec<modbus::ValueRegister<RegisterValueStorage>>,
-  pub(crate) daily: Vec<modbus::ValueRegister<RegisterValueStorage>>,
-  pub(crate) nightly: Vec<modbus::ValueRegister<RegisterValueStorage>>,
+  pub(crate) configuration:
+    Vec<modbus::ValueRegister<modbus::RegisterValueStorage>>,
+  pub(crate) daily: Vec<modbus::ValueRegister<modbus::RegisterValueStorage>>,
+  pub(crate) nightly: Vec<modbus::ValueRegister<modbus::RegisterValueStorage>>,
+  pub(crate) time: Option<modbus::TimeImplementation>,
 }
 
 #[derive(Debug, Clone)]
@@ -64,6 +66,7 @@ pub(crate) struct Modbus {
   pub(crate) partial_retries: u32,
   pub(crate) ping_timeout: chrono::Duration,
   pub(crate) tariff_timeout: chrono::Duration,
+  pub(crate) time_timeout: chrono::Duration,
   pub(crate) inactive_timeout: chrono::Duration,
   pub(crate) discovery_timeout: chrono::Duration,
   pub(crate) devices: HashMap<String, Device>,
@@ -79,6 +82,7 @@ pub(crate) struct Schedule {
   pub(crate) health: cron::Schedule,
   pub(crate) daily: cron::Schedule,
   pub(crate) nightly: cron::Schedule,
+  pub(crate) time: cron::Schedule,
   pub(crate) poll: cron::Schedule,
   pub(crate) timezone: chrono_tz::Tz,
 }
@@ -232,6 +236,10 @@ impl Manager {
           &config.from_file.schedule.nightly,
           "0 0 21 * * * *", // NOTE: at 21:00
         ),
+        time: file::string_to_cron(
+          &config.from_file.schedule.time,
+          "0 0 0 1 * * *", // NOTE: at start of every month
+        ),
         poll: file::string_to_cron(
           &config.from_file.schedule.poll,
           "0 * * * * * *", // NOTE: every minute
@@ -312,6 +320,9 @@ impl Manager {
         tariff_timeout: file::milliseconds_to_chrono(
           config.from_file.modbus.tariff_timeout.unwrap_or(30_000),
         ),
+        time_timeout: file::milliseconds_to_chrono(
+          config.from_file.modbus.time_timeout.unwrap_or(30_000),
+        ),
         inactive_timeout: file::milliseconds_to_chrono(
           config
             .from_file
@@ -362,6 +373,11 @@ impl Manager {
                   .into_iter()
                   .map(file::to_modbus_value_register)
                   .collect(),
+                time: device.time.map(|time| match time {
+                  file::TimeImplementation::SchneideriEM3xxx => {
+                    modbus::TimeImplementation::SchneideriEM3xxx
+                  }
+                }),
               },
             )
           })
