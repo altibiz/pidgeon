@@ -11,13 +11,6 @@
     useDefaultShell = true;
   };
 
-  sops.secrets."altibiz.pass.pub" = {
-    path = "/home/altibiz/pass.pub";
-    owner = "altibiz";
-    group = "users";
-    mode = "0644";
-  };
-
   sops.secrets."altibiz.ssh.pub" = {
     path = "/home/altibiz/.ssh/authorized_keys";
     owner = "altibiz";

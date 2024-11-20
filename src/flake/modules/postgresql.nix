@@ -22,16 +22,16 @@
 
   # NITPICK: cert renewal
   services.postgresql.settings.ssl = "on";
-  services.postgresql.settings.ssl_cert_file = "/etc/postgresql/server.crt";
+  services.postgresql.settings.ssl_cert_file = "/etc/postgresql/host.crt";
   sops.secrets."postgres.crt.pub" = {
-    path = "/etc/postgresql/server.crt";
+    path = "/etc/postgresql/host.crt";
     owner = "postgres";
     group = "postgres";
     mode = "0600";
   };
-  services.postgresql.settings.ssl_key_file = "/etc/postgresql/server.key";
+  services.postgresql.settings.ssl_key_file = "/etc/postgresql/host.key";
   sops.secrets."postgres.crt" = {
-    path = "/etc/postgresql/server.key";
+    path = "/etc/postgresql/host.key";
     owner = "postgres";
     group = "postgres";
     mode = "0600";

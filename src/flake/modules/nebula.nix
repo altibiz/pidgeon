@@ -3,7 +3,7 @@
 {
   system = {
     # NOTE: these values are not used but nix evaluates them for some reason
-    services.nebula.networks.nebula = {
+    services.nebula.networks.ozds-vpn = {
       enable = true;
       cert = "/etc/nebula/host.crt";
       key = "/etc/nebula/host.key";
@@ -29,28 +29,31 @@
         ];
       };
       settings = {
+        handshakes = {
+          try_interval = "1s";
+        };
         static_map = {
           cadence = "5m";
           lookup_timeout = "10s";
         };
       };
     };
-    sops.secrets."vpn.ca" = {
+    sops.secrets."nebula.ca.pub" = {
       path = "/etc/nebula/ca.crt";
-      owner = "nebula-nebula";
-      group = "nebula-nebula";
+      owner = "nebula-ozds-vpn";
+      group = "nebula-ozds-vpn";
       mode = "0644";
     };
-    sops.secrets."vpn.crt.pub" = {
+    sops.secrets."nebula.crt.pub" = {
       path = "/etc/nebula/host.crt";
-      owner = "nebula-nebula";
-      group = "nebula-nebula";
+      owner = "nebula-ozds-vpn";
+      group = "nebula-ozds-vpn";
       mode = "0644";
     };
-    sops.secrets."vpn.crt" = {
+    sops.secrets."nebula.crt" = {
       path = "/etc/nebula/host.key";
-      owner = "nebula-nebula";
-      group = "nebula-nebula";
+      owner = "nebula-ozds-vpn";
+      group = "nebula-ozds-vpn";
       mode = "0400";
     };
   };

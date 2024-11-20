@@ -50,7 +50,7 @@
   services.openssh.enable = true;
   services.openssh.settings.PasswordAuthentication = false;
 
-  networking.hostName = "pidgeon";
+  networking.hostName = "pidgeon-${id}";
 
   programs.direnv.enable = true;
   programs.direnv.nix-direnv.enable = true;

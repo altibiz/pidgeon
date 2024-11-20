@@ -12,5 +12,5 @@
   ];
 
   sops.defaultSopsFile = "${self}/src/flake/enc/${id}";
-  sops.age.keyFile = "/root/.sops/secrets.age";
+  sops.age.keyFile = "/root/secrets.age";
 }

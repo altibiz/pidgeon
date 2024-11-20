@@ -153,24 +153,24 @@ mkssh() {
 
 mkssl() {
   local name
-  local ca
   local subj
+  local ca
 
   if [[ "$3" == "" ]]; then
     name="$1"
     subj="$2"
 
     openssl genpkey -algorithm ED25519 \
-      -out "$SECRETS/$name.crt" >/dev/null 2>&1
+      -out "$SECRETS/$name.ca" >/dev/null 2>&1
     openssl req -x509 \
-      -key "$SECRETS/$name.crt" \
-      -out "$SECRETS/$name.crt.pub" \
+      -key "$SECRETS/$name.ca" \
+      -out "$SECRETS/$name.ca.pub" \
       -subj "/CN=$subj" \
       -days 3650 >/dev/null 2>&1
   else
     name="$1"
-    ca="$2"
-    subj="$3"
+    subj="$2"
+    ca="$3"
 
     openssl genpkey -algorithm ED25519 \
       -out "$ID_SECRETS/$name.crt" >/dev/null 2>&1
@@ -178,13 +178,54 @@ mkssl() {
       -key "$ID_SECRETS/$name.crt" \
       -out "$ID_SECRETS/$name.csr" \
       -subj "/CN=$subj" >/dev/null 2>&1
-    openssl x509 -req \
-      -in "$ID_SECRETS/$name.csr" \
-      -CA "$ca.crt.pub" \
-      -CAkey "$ca.crt" \
-      -CAcreateserial \
-      -out "$ID_SECRETS/$name.crt.pub" \
-      -days 3650 >/dev/null 2>&1
+    if [[ -f "$ca.ca.srl" ]]; then
+      openssl x509 -req \
+        -in "$ID_SECRETS/$name.csr" \
+        -CA "$ca.ca.pub" \
+        -CAkey "$ca.ca" \
+        -CAserial "$ca.ca.srl" \
+        -out "$ID_SECRETS/$name.crt.pub" \
+        -days 3650 >/dev/null 2>&1
+    else
+      openssl x509 -req \
+        -in "$ID_SECRETS/$name.csr" \
+        -CA "$ca.ca.pub" \
+        -CAkey "$ca.ca" \
+        -CAcreateserial \
+        -out "$ID_SECRETS/$name.crt.pub" \
+        -days 3650 >/dev/null 2>&1
+    fi
+  fi
+}
+
+mknebula() {
+  local name
+  local subj
+  local ca
+  local ip
+
+  if [[ "$3" == "" ]]; then
+    name="$1"
+    subj="$2"
+
+    nebula-cert ca \
+      -name "$subj" \
+      -duration 87600h \
+      -out-crt "$name.ca.pub" \
+      -out-key "$name.ca"
+  else
+    name="$1"
+    subj="$2"
+    ca="$3"
+    ip="$4"
+
+    nebula-cert sign \
+      -name "$subj" \
+      -ca-crt "$ca.ca.pub" \
+      -ca-key "$ca.ca" \
+      -ip "$ip" \
+      -out-crt "$name.crt.pub" \
+      -out-key "$name.crt"
   fi
 }
 
@@ -207,17 +248,13 @@ mktmp "altibiz.ssh.pub"
 mkkey "api"
 mktmp "api.key"
 
-mkage "pidgeon"
-mkage "altibiz"
 mkage "secrets"
 mktmp "secrets.age"
 
-if [[ ! -f "$SECRETS/root.crt" ]]; then
-  mkssl "root" "pidgeon root ca"
+if [[ ! -f "$SECRETS/postgres.crt" ]]; then
+  mkssl "postgres" "ca"
 fi
-mkssl "ca" "$SECRETS/root" "pidgeon-$ID ca"
-mktmp "ca.crt.pub"
-mkssl "postgres" "$ID_SECRETS/ca" "pidgeon-$ID postgres"
+mkssl "postgres" "pidgeon-$ID" "$SECRETS/postgres"
 mktmp "postgres.crt.pub"
 
 mkkey "postgres-postgres"
@@ -273,17 +310,17 @@ WIFI_SSID="$(cat "$ID_SECRETS/router-wifi.id.pub")"
 WIFI_PASS="$(cat "$ID_SECRETS/router-wifi.key")"
 EOF
 
+if [[ ! -f "$SECRETS/nebula.crt" ]]; then
+  mknebula "nebula" "ca"
+fi
+mknebula "vpn" "$SECRETS/vpn" "pidgeon-$ID" ""
+mktmp "vpn.crt.pub"
+
 cat >"$ID_SECRETS/secrets.yaml" <<EOF
-altibiz.pass.pub: |
-  $(indent "$(cat "$ID_SECRETS/altibiz.pass.pub")" 2)
 altibiz.ssh.pub: |
   $(indent "$(cat "$ID_SECRETS/altibiz.ssh.pub")" 2)
 pidgeon.env: |
   $(indent "$(cat "$ID_SECRETS/pidgeon.env")" 2)
-ca.crt: |
-  $(indent "$(cat "$ID_SECRETS/ca.crt")" 2)
-ca.crt.pub: |
-  $(indent "$(cat "$ID_SECRETS/ca.crt.pub")" 2)
 postgres.crt: |
   $(indent "$(cat "$ID_SECRETS/postgres.crt")" 2)
 postgres.crt.pub: |
@@ -292,13 +329,17 @@ postgres.sql: |
   $(indent "$(cat "$ID_SECRETS/postgres.sql")" 2)
 wifi.env: |
   $(indent "$(cat "$ID_SECRETS/wifi.env")" 2)
+nebula.ca.pub: |
+  $(indent "$(cat "$SECRETS/nebula.ca.pub")" 2)
+nebula.crt: |
+  $(indent "$(cat "$ID_SECRETS/nebula.crt")" 2)
+nebula.crt.pub: |
+  $(indent "$(cat "$ID_SECRETS/nebula.crt.pub")" 2)
 EOF
 
 sops --encrypt \
   --age "$(
-    printf "%s,%s,%s" \
-      "$(cat "$ID_SECRETS/altibiz.age.pub")" \
-      "$(cat "$ID_SECRETS/pidgeon.age.pub")" \
+    printf "%s" \
       "$(cat "$ID_SECRETS/secrets.age.pub")"
   )" \
   "$ID_SECRETS/secrets.yaml" >"$ID_SECRETS/secrets.enc.yaml"
