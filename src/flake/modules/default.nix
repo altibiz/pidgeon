@@ -1,6 +1,7 @@
 {
   hardware = import ./hardware.nix;
   postgresql = import ./postgresql.nix;
+  nebula = import ./nebula.nix;
   secrets = import ./secrets.nix;
   system = import ./system.nix;
   network = import ./network.nix;
