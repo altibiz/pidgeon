@@ -94,5 +94,6 @@ pkgs.mkShell {
     unzip
     zstd
     mbpoll
+    nebula
   ];
 }
