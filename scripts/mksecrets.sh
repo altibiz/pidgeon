@@ -19,6 +19,12 @@ if [[ "$network_ip_range_end" == "" ]]; then
   exit 1
 fi
 
+vpn_ip="$4"
+if [[ "$vpn_ip" == "" ]]; then
+  printf "Vpn ip required! Exiting..."
+  exit 1
+fi
+
 ensure() {
   local path
 
@@ -211,21 +217,21 @@ mknebula() {
     nebula-cert ca \
       -name "$subj" \
       -duration 87600h \
-      -out-crt "$name.ca.pub" \
-      -out-key "$name.ca"
+      -out-crt "$SECRETS/$name.ca.pub" \
+      -out-key "$SECRETS/$name.ca"
   else
     name="$1"
     subj="$2"
-    ca="$3"
-    ip="$4"
+    ip="$3"
+    ca="$4"
 
     nebula-cert sign \
       -name "$subj" \
       -ca-crt "$ca.ca.pub" \
       -ca-key "$ca.ca" \
       -ip "$ip" \
-      -out-crt "$name.crt.pub" \
-      -out-key "$name.crt"
+      -out-crt "$ID_SECRETS/$name.crt.pub" \
+      -out-key "$ID_SECRETS/$name.crt"
   fi
 }
 
@@ -251,7 +257,7 @@ mktmp "api.key"
 mkage "secrets"
 mktmp "secrets.age"
 
-if [[ ! -f "$SECRETS/postgres.crt" ]]; then
+if [[ ! -f "$SECRETS/postgres.ca" ]]; then
   mkssl "postgres" "ca"
 fi
 mkssl "postgres" "pidgeon-$ID" "$SECRETS/postgres"
@@ -301,7 +307,7 @@ mkid "router-wifi" 16 "pidgeon"
 mkkey "router-wifi" 32
 mkkey "router-admin" 10
 mkpin "router-wps"
-mktmp "router-ssid.id.pub"
+mktmp "router-wifi.id.pub"
 mktmp "router-wifi.key"
 mktmp "router-admin.key"
 mktmp "router-wps.pin"
@@ -310,11 +316,11 @@ WIFI_SSID="$(cat "$ID_SECRETS/router-wifi.id.pub")"
 WIFI_PASS="$(cat "$ID_SECRETS/router-wifi.key")"
 EOF
 
-if [[ ! -f "$SECRETS/nebula.crt" ]]; then
+if [[ ! -f "$SECRETS/nebula.ca" ]]; then
   mknebula "nebula" "ca"
 fi
-mknebula "vpn" "$SECRETS/vpn" "pidgeon-$ID" ""
-mktmp "vpn.crt.pub"
+mknebula "nebula" "pidgeon-$ID" "$vpn_ip" "$SECRETS/nebula"
+mktmp "nebula.crt.pub"
 
 cat >"$ID_SECRETS/secrets.yaml" <<EOF
 altibiz.ssh.pub: |
