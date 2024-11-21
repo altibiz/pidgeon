@@ -12,7 +12,7 @@ target := absolute_path('target')
 docs := absolute_path('docs')
 isready := absolute_path('scripts/isready.nu')
 mksecrets-script := absolute_path('scripts/mksecrets.sh')
-image := absolute_path('scripts/image.sh')
+image-script := absolute_path('scripts/image.sh')
 inject-script := absolute_path('scripts/inject.sh')
 
 default:
@@ -81,6 +81,9 @@ rebuild:
 
 mksecrets *args:
     {{ mksecrets-script }} {{ args }}
+
+image *args:
+    {{ image-script }} {{ args }}
 
 inject *args:
     {{ inject-script }} {{ args }}
