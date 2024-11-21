@@ -11,14 +11,14 @@
       {
         host = "all";
         port = "all";
-        proto = "any";
+        proto = "all";
       }
     ];
     firewall.outbound = [
       {
         host = "all";
         port = "all";
-        proto = "any";
+        proto = "all";
       }
     ];
     lighthouses = [ "10.8.0.1" ];
