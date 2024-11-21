@@ -23,8 +23,8 @@
     ];
     lighthouses = [ "10.8.0.1" ];
     staticHostMap = {
-      "\\'ozds-vpn.altibiz.com\\'" = [
-        "\\'10.8.0.1:4242\\'"
+      "10.8.0.1" = [
+        "ozds-vpn.altibiz.com:4242"
       ];
     };
     settings = {
