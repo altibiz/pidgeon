@@ -9,16 +9,16 @@
     ca = "/etc/nebula/ca.crt";
     firewall.inbound = [
       {
-        host = "all";
-        port = "all";
-        proto = "all";
+        host = "any";
+        port = "any";
+        proto = "any";
       }
     ];
     firewall.outbound = [
       {
-        host = "all";
-        port = "all";
-        proto = "all";
+        host = "any";
+        port = "any";
+        proto = "any";
       }
     ];
     lighthouses = [ "10.8.0.1" ];
