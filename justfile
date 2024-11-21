@@ -11,9 +11,9 @@ artifacts := absolute_path('artifacts')
 target := absolute_path('target')
 docs := absolute_path('docs')
 isready := absolute_path('scripts/isready.nu')
-mksecrets := absolute_path('scripts/mksecrets.sh')
+mksecrets-script := absolute_path('scripts/mksecrets.sh')
 image := absolute_path('scripts/image.sh')
-inject := absolute_path('scripts/inject.sh')
+inject-script := absolute_path('scripts/inject.sh')
 
 default:
     @just --choose
@@ -79,5 +79,8 @@ docs:
 rebuild:
     nixos-rebuild switch --flake $"{{ root }}#pidgeon-(open --raw /etc/id)-aarch64-linux"
 
-make-secrets *args:
-    {{ mksecrets }} {{ args }}
+mksecrets *args:
+    {{ mksecrets-script }} {{ args }}
+
+inject *args:
+    {{ inject-script }} {{ args }}
