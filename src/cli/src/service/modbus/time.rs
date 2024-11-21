@@ -29,7 +29,7 @@ impl SchneideriEM3xxxTime {
 
 impl Time for SchneideriEM3xxxTime {
   fn create(&self) -> SimpleRecord {
-    let now = chrono::Utc::now();
+    let now = chrono::Utc::now().with_timezone(&*UTC_PLUS_ONE);
 
     let values = vec![
       1003,
@@ -48,4 +48,12 @@ impl Time for SchneideriEM3xxxTime {
       values,
     }
   }
+}
+
+lazy_static::lazy_static! {
+  static ref UTC_PLUS_ONE: chrono::FixedOffset = {
+    #[allow(clippy::unwrap_used)] // NOTE: correct static timezone
+    let utc_plus_one = chrono::FixedOffset::east_opt(60 * 60).unwrap();
+    utc_plus_one
+  };
 }
