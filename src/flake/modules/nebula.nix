@@ -44,6 +44,9 @@
         cadence = "5m";
         lookup_timeout = "10s";
       };
+      logging = {
+        level = "debug";
+      };
     };
   };
   sops.secrets."nebula.ca.pub" = {
