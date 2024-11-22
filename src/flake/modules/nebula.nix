@@ -28,6 +28,9 @@
       ];
     };
     settings = {
+      relay = {
+        relays = [ "10.8.0.1" ];
+      };
       handshakes = {
         try_interval = "1s";
       };
