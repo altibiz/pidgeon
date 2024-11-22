@@ -41,7 +41,7 @@
         try_interval = "1s";
       };
       static_map = {
-        cadence = "5m";
+        cadence = "1m";
         lookup_timeout = "10s";
       };
       logging = {
