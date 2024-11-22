@@ -31,6 +31,12 @@
       relay = {
         relays = [ "10.8.0.1" ];
       };
+      punchy = {
+        punch = true;
+        delay = "1s";
+        respond = true;
+        respond_delay = "5s";
+      };
       handshakes = {
         try_interval = "1s";
       };
