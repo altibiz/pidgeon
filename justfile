@@ -76,8 +76,8 @@ docs:
     mv '{{ docs }}/hr/book' '{{ artifacts }}/hr'
     cp '{{ docs }}/index.html' '{{ artifacts }}'
 
-rebuild:
-    nixos-rebuild switch --flake $"{{ root }}#pidgeon-(open --raw /etc/id)-aarch64-linux"
+rebuild *args:
+    nixos-rebuild switch --flake $"{{ root }}#pidgeon-(open --raw /etc/id)-aarch64-linux" {{ args }}
 
 mksecrets *args:
     {{ mksecrets-script }} {{ args }}
