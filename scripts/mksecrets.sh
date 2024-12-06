@@ -232,6 +232,8 @@ mknebula() {
       -ip "$ip" \
       -out-crt "$ID_SECRETS/$name.crt.pub" \
       -out-key "$ID_SECRETS/$name.crt"
+
+    print "%s" "$ip" >"$ID_SECRETS/$name.ip.pub"
   fi
 }
 
