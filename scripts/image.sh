@@ -11,7 +11,7 @@ if [ ! -f "$ROOT/src/flake/enc/$id" ]; then
   exit 1
 fi
 
-nix build \
-  --extra-experimental-features nix-command \
-  --extra-experimental-features flakes \
-  "$ROOT#nixosConfigurations.pidgeon-$id-aarch64-linux.config.system.build.sdImage"
+nixos-generate \
+  --system "aarch64-linux" \
+  --format "sd-aarch64" \
+  --flake "$ROOT#pidgeon-$id-aarch64-linux"
