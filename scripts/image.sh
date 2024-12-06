@@ -11,7 +11,7 @@ if [ ! -f "$ROOT/src/flake/enc/$id" ]; then
   exit 1
 fi
 
-nixos-generate \
+exec nixos-generate \
   --system "aarch64-linux" \
   --format "sd-aarch64" \
   --flake "$ROOT#pidgeon-$id-aarch64-linux"
