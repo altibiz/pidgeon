@@ -1,16 +1,16 @@
 use futures::future::join_all;
 use futures_time::future::FutureExt;
 
-#[allow(unused_imports)]
+#[allow(unused_imports, reason = "services")]
 use crate::{service::*, *};
 
 use self::modbus::connection::Device;
 
 pub(crate) struct Process {
-  #[allow(unused)]
+  #[allow(dead_code, reason = "process")]
   config: config::Manager,
 
-  #[allow(unused)]
+  #[allow(dead_code, reason = "process")]
   services: service::Container,
 }
 

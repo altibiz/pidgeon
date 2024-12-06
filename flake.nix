@@ -2,8 +2,7 @@
   description = "Pidgeon - Raspberry Pi message broker.";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/release-24.05";
-    nixpkgs-stable.url = "github:NixOS/nixpkgs/release-24.05";
+    nixpkgs.url = "github:nixos/nixpkgs/release-24.11";
 
     flake-utils.url = "github:numtide/flake-utils";
 
@@ -11,7 +10,6 @@
 
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
-    sops-nix.inputs.nixpkgs-stable.follows = "nixpkgs-stable";
 
     poetry2nix.url = "github:nix-community/poetry2nix";
 
@@ -26,7 +24,9 @@
 
       nixosModule = import ./src/flake/service.nix;
 
-      systems = flake-utils.lib.defaultSystems;
+      systems = builtins.filter
+        (system: (builtins.elemAt (builtins.split "-" system) 2) == "linux")
+        flake-utils.lib.defaultSystems;
 
       ids = builtins.map
         (x: x.name)

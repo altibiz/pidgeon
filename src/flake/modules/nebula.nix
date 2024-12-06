@@ -1,12 +1,11 @@
-{ ... }:
+{ config, ... }:
 
 {
-  # NOTE: these values are not used but nix evaluates them for some reason
   services.nebula.networks.ozds-vpn = {
     enable = true;
-    cert = "/etc/nebula/host.crt";
-    key = "/etc/nebula/host.key";
-    ca = "/etc/nebula/ca.crt";
+    cert = config.sops.secrets."nebula.crt.pub".path;
+    key = config.sops.secrets."nebula.crt".path;
+    ca = config.sops.secrets."nebula.ca.pub".path;
     firewall.inbound = [
       {
         host = "any";
@@ -50,21 +49,15 @@
     };
   };
   sops.secrets."nebula.ca.pub" = {
-    path = "/etc/nebula/ca.crt";
-    owner = "nebula-ozds-vpn";
-    group = "nebula-ozds-vpn";
-    mode = "0644";
+    owner = config.systemd.services."nebula@ozds-vpn".serviceConfig.User;
+    group = config.systemd.services."nebula@ozds-vpn".serviceConfig.Group;
   };
   sops.secrets."nebula.crt.pub" = {
-    path = "/etc/nebula/host.crt";
-    owner = "nebula-ozds-vpn";
-    group = "nebula-ozds-vpn";
-    mode = "0644";
+    owner = config.systemd.services."nebula@ozds-vpn".serviceConfig.User;
+    group = config.systemd.services."nebula@ozds-vpn".serviceConfig.Group;
   };
   sops.secrets."nebula.crt" = {
-    path = "/etc/nebula/host.key";
-    owner = "nebula-ozds-vpn";
-    group = "nebula-ozds-vpn";
-    mode = "0400";
+    owner = config.systemd.services."nebula@ozds-vpn".serviceConfig.User;
+    group = config.systemd.services."nebula@ozds-vpn".serviceConfig.Group;
   };
 }

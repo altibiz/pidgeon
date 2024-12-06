@@ -389,7 +389,7 @@ macro_rules! parse_register {
       }
     };
 
-    #[allow(clippy::redundant_closure_call)]
+    #[allow(clippy::redundant_closure_call, reason = "easier for macro")]
     Ok($result($self, value))
   }};
 }

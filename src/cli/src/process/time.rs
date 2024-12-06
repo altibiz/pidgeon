@@ -2,14 +2,14 @@ use futures::future::join_all;
 
 use modbus::Time;
 
-#[allow(unused_imports)]
+#[allow(unused_imports, reason = "services")]
 use crate::{service::*, *};
 
 pub(crate) struct Process {
-  #[allow(unused)]
+  #[allow(dead_code, reason = "process")]
   config: config::Manager,
 
-  #[allow(unused)]
+  #[allow(dead_code, reason = "process")]
   services: service::Container,
 }
 
@@ -45,7 +45,7 @@ impl process::Recurring for Process {
             .find(|device_config| device_config.kind == device.kind)
             .map(|config| Device {
               id: device.id,
-              #[allow(clippy::unwrap_used)] // NOTE: filtered by is_some
+              #[allow(clippy::unwrap_used, reason = "filtered by is_some")]
               time: config.time.unwrap(),
             })
         })

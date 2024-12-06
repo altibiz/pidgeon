@@ -94,6 +94,8 @@ pkgs.mkShell {
     unzip
     zstd
     mbpoll
+    i2c-tools
     nebula
+    nixos-generators
   ];
 }

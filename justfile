@@ -56,6 +56,7 @@ lint:
     ruff check '{{ probe }}'
     cd '{{ root }}'; cargo clippy -- -D warnings
     cd '{{ probe }}'; pyright .
+    nix flake check --all-systems
 
 test:
     cd '{{ root }}'; cargo test

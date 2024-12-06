@@ -8,14 +8,14 @@ use futures_core::Stream;
 use itertools::Itertools;
 use tokio::sync::Mutex;
 
-#[allow(unused_imports)]
+#[allow(unused_imports, reason = "services")]
 use crate::{service::*, *};
 
 pub(crate) struct Process {
-  #[allow(unused)]
+  #[allow(dead_code, reason = "process")]
   config: config::Manager,
 
-  #[allow(unused)]
+  #[allow(dead_code, reason = "process")]
   services: service::Container,
 
   streams: Arc<Mutex<Vec<DeviceStream>>>,

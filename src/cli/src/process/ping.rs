@@ -1,16 +1,16 @@
 use futures::future::join_all;
 use futures_time::future::FutureExt;
 
-#[allow(unused_imports)]
+#[allow(unused_imports, reason = "services")]
 use crate::{service::*, *};
 
 // TODO: use destination to send request because the device might not be discovered
 
 pub(crate) struct Process {
-  #[allow(unused)]
+  #[allow(dead_code, reason = "process")]
   config: config::Manager,
 
-  #[allow(unused)]
+  #[allow(dead_code, reason = "process")]
   services: service::Container,
 }
 

@@ -60,7 +60,7 @@ macro_rules! add_job_impl {
     let config = $self.config.clone();
     let services = $self.services.clone();
     let process = Arc::new(Mutex::new($name::Process::new(config, services)));
-    #[allow(clippy::redundant_closure_call)] // NOTE: it gets optimized
+    #[allow(clippy::redundant_closure_call, reason = "easier for macro")]
     {
       $startup(process.clone()).await;
     }

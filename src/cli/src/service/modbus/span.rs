@@ -10,6 +10,7 @@ pub(crate) trait Span {
 }
 
 pub(crate) trait SpanParser<TParsed: Span> {
+  #[allow(dead_code, reason = "keep it just in case")]
   fn parse<TIterator, TIntoIterator>(
     &self,
     data: TIntoIterator,

@@ -262,7 +262,10 @@ impl Manager {
         domain: config.from_env.cloud.domain,
         api_key: config.from_env.cloud.api_key,
         id: config.from_env.cloud.id.unwrap_or_else(|| {
-          #[allow(clippy::unwrap_used)] // NOTE: it is for sure there on rpi4
+          #[allow(
+            clippy::unwrap_used,
+            reason = "it exists on the raspberry pi and should panic if there is no id to work with"
+          )]
           {
             "pidgeon-".to_string()
               + fs::read_to_string(

@@ -3,7 +3,7 @@
 {
   services.postgresql.enable = true;
   services.postgresql.package = pkgs.postgresql_16;
-  services.postgresql.extraPlugins = with config.services.postgresql.package.pkgs; [
+  services.postgresql.extensions = with config.services.postgresql.package.pkgs; [
     timescaledb
   ];
   services.postgresql.settings.shared_preload_libraries = "timescaledb";
@@ -22,26 +22,20 @@
 
   # NITPICK: cert renewal
   services.postgresql.settings.ssl = "on";
-  services.postgresql.settings.ssl_cert_file = "/etc/postgresql/host.crt";
+  services.postgresql.settings.ssl_cert_file = config.sops.secrets."postgres.crt.pub".path;
   sops.secrets."postgres.crt.pub" = {
-    path = "/etc/postgresql/host.crt";
-    owner = "postgres";
-    group = "postgres";
-    mode = "0600";
+    owner = config.systemd.services.postgresql.serviceConfig.User;
+    group = config.systemd.services.postgresql.serviceConfig.Group;
   };
-  services.postgresql.settings.ssl_key_file = "/etc/postgresql/host.key";
+  services.postgresql.settings.ssl_key_file = config.sops.secrets."postgres.crt".path;
   sops.secrets."postgres.crt" = {
-    path = "/etc/postgresql/host.key";
-    owner = "postgres";
-    group = "postgres";
-    mode = "0600";
+    owner = config.systemd.services.postgresql.serviceConfig.User;
+    group = config.systemd.services.postgresql.serviceConfig.Group;
   };
-  services.postgresql.initialScript = "/etc/postgresql/init.sql";
+  services.postgresql.initialScript = config.sops.secrets."postgres.sql".path;
   sops.secrets."postgres.sql" = {
-    path = "/etc/postgresql/init.sql";
-    owner = "postgres";
-    group = "postgres";
-    mode = "0600";
+    owner = config.systemd.services.postgresql.serviceConfig.User;
+    group = config.systemd.services.postgresql.serviceConfig.Group;
   };
 
   services.postgresql.settings = {

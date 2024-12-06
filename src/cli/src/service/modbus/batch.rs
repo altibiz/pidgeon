@@ -127,13 +127,13 @@ pub(crate) fn batch_spans<
   };
 
   for span in iter {
-    #[allow(clippy::unwrap_used)] // NOTE: i want this to fail
+    #[allow(clippy::unwrap_used, reason = "it should panic")]
     let gap = span
       .address()
       .checked_sub(current.address.checked_add(current.quantity).unwrap())
       .unwrap();
     if gap < threshold {
-      #[allow(clippy::unwrap_used)] // NOTE: i want this to fail
+      #[allow(clippy::unwrap_used, reason = "it should panic")]
       let quantity = span
         .address()
         .checked_add(span.quantity())

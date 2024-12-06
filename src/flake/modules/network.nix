@@ -1,6 +1,8 @@
-{ ... }:
+{ id, config, ... }:
 
 {
+  networking.hostName = "pidgeon-${id}";
+
   networking.firewall.enable = true;
   networking.networkmanager.enable = true;
   networking.nameservers = [ "1.1.1.1" "1.0.0.1" ];
@@ -37,12 +39,7 @@
   };
 
   networking.networkmanager.ensureProfiles.environmentFiles = [
-    "/etc/NetworkManager/env/wifi.env"
+    config.sops.secrets."wifi.env".path
   ];
-  sops.secrets."wifi.env" = {
-    path = "/etc/NetworkManager/env/wifi.env";
-    owner = "root";
-    group = "root";
-    mode = "0600";
-  };
+  sops.secrets."wifi.env" = { };
 }

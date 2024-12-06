@@ -27,7 +27,7 @@ pub(crate) struct ReadResponseEntry {
 
 #[derive(Debug, Clone)]
 pub(crate) struct WriteResponseEntry {
-  #[allow(unused)]
+  #[allow(dead_code, reason = "keep it just in case")]
   pub(crate) inner: super::connection::WriteResponse,
   pub(crate) timestamp: chrono::DateTime<chrono::Utc>,
 }
@@ -1053,7 +1053,7 @@ impl Task {
 }
 
 #[derive(Debug, Clone)]
-#[allow(unused)]
+#[allow(dead_code, reason = "used with tracing")]
 struct WriteMetric {
   message: String,
   error: bool,
@@ -1062,7 +1062,7 @@ struct WriteMetric {
 }
 
 #[derive(Debug, Clone)]
-#[allow(unused)]
+#[allow(dead_code, reason = "used with tracing")]
 struct ReadMetric {
   message: String,
   error: bool,

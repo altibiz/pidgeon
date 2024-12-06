@@ -1,15 +1,19 @@
-{ modulesPath
-, nixos-hardware
-  #, pkgs
+{ nixos-hardware
+, pkgs
 , ...
 }:
 
 {
   imports = [
-    # TODO: make it work with `nixos-generate`
-    "${modulesPath}/installer/sd-card/sd-image-aarch64.nix"
     nixos-hardware.nixosModules.raspberry-pi-4
   ];
+
+  environment.systemPackages = with pkgs; [
+    libraspberrypi
+    raspberrypi-eeprom
+  ];
+
+  services.fstrim.enable = true;
 
   boot.kernelModules = [ "i2c_dev" "spidev" ];
   hardware.deviceTree.overlays = [

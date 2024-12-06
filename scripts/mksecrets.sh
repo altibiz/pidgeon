@@ -325,6 +325,8 @@ mktmp "nebula.crt.pub"
 cat >"$ID_SECRETS/secrets.yaml" <<EOF
 altibiz.ssh.pub: |
   $(indent "$(cat "$ID_SECRETS/altibiz.ssh.pub")" 2)
+altibiz.pass.pub: |
+  $(indent "$(cat "$ID_SECRETS/altibiz.pass.pub")" 2)
 pidgeon.env: |
   $(indent "$(cat "$ID_SECRETS/pidgeon.env")" 2)
 postgres.crt: |
@@ -353,6 +355,3 @@ mktmp "secrets.enc.yaml"
 
 mkdir -p "$ROOT/src/flake/enc"
 cp "$ID_SECRETS/secrets.enc.yaml" "$ROOT/src/flake/enc/$ID"
-
-mkdir -p "$ROOT/src/flake/pass"
-cp "$ID_SECRETS/altibiz.pass.pub" "$ROOT/src/flake/pass/$ID"

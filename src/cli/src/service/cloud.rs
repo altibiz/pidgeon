@@ -77,12 +77,12 @@ impl service::Service for Service {
     let mut headers = HeaderMap::new();
     match config.cloud.api_key {
       Some(api_key) => {
-        #[allow(clippy::unwrap_used)] // NOTE: this is ok header value
+        #[allow(clippy::unwrap_used, reason = "it should panic")]
         let value = HeaderValue::from_str(api_key.as_str()).unwrap();
         headers.insert("X-API-Key", value);
       }
       None => {
-        #[allow(clippy::unwrap_used)] // NOTE: this is ok header value
+        #[allow(clippy::unwrap_used, reason = "it should panic")]
         let value = HeaderValue::from_str(id.as_str()).unwrap();
         headers.insert("X-API-Key", value);
       }
@@ -95,7 +95,10 @@ impl service::Service for Service {
       .default_headers(headers)
       .gzip(true);
 
-    #[allow(clippy::unwrap_used)] // NOTE: should work on rpi4
+    #[allow(
+      clippy::unwrap_used,
+      reason = "works with our system configuration"
+    )]
     let http = builder.build().unwrap();
 
     Self {

@@ -52,7 +52,7 @@ impl Time for SchneideriEM3xxxTime {
 
 lazy_static::lazy_static! {
   static ref UTC_PLUS_ONE: chrono::FixedOffset = {
-    #[allow(clippy::unwrap_used)] // NOTE: correct static timezone
+    #[allow(clippy::unwrap_used, reason = "correct static timezone")]
     let utc_plus_one = chrono::FixedOffset::east_opt(60 * 60).unwrap();
     utc_plus_one
   };

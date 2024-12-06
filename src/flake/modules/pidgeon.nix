@@ -1,4 +1,4 @@
-{ self, ... }:
+{ self, config, ... }:
 
 {
   services.pidgeon.enable = true;
@@ -11,11 +11,6 @@
     mode = "0644";
   };
 
-  services.pidgeon.envPath = "/etc/pidgeon/.env";
-  sops.secrets."pidgeon.env" = {
-    path = "/etc/pidgeon/.env";
-    owner = "pidgeon";
-    group = "pidgeon";
-    mode = "0600";
-  };
+  services.pidgeon.envPath = config.sops.secrets."pidgeon.env".path;
+  sops.secrets."pidgeon.env" = { };
 }

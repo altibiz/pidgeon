@@ -313,7 +313,7 @@ pub(crate) fn to_modbus_register_kind(
 pub(crate) fn make_ip_range(start: String, end: String) -> ipnet::IpAddrRange {
   let (start, end) = match (start.parse(), end.parse()) {
     (Ok(start), Ok(end)) => (start, end),
-    #[allow(clippy::unwrap_used)] // NOTE: valid ipv4 addresses
+    #[allow(clippy::unwrap_used, reason = "valid static ipv4 addresses")]
     err => {
       tracing::warn!("Invalid IP addresses {:?}", err);
       (
@@ -358,7 +358,7 @@ pub(crate) fn string_to_cron(
     }
   }
 
-  #[allow(clippy::unwrap_used)] // NOTE: this is a valid cron expression
+  #[allow(clippy::unwrap_used, reason = "valid static cron expression")]
   cron::Schedule::from_str(
     // NOTE: every minute
     // NOTE: sec | min | hour | day of month | month | day of week | year

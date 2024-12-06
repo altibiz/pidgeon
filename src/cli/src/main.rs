@@ -1,19 +1,10 @@
-#![deny(
-  unsafe_code,
-  // reason = "Let's just not do it"
-)]
-#![deny(
-  clippy::unwrap_used,
-  clippy::expect_used,
-  clippy::panic,
-  clippy::unreachable,
-  clippy::arithmetic_side_effects
-  // reason = "We have to handle errors properly"
-)]
-#![deny(
-  clippy::dbg_macro,
-  // reason = "Use tracing instead"
-)]
+#![deny(unsafe_code)]
+#![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![deny(clippy::arithmetic_side_effects)]
+#![deny(clippy::dbg_macro, clippy::print_stdout, clippy::print_stderr)]
+#![deny(clippy::todo)]
+#![deny(clippy::unreachable)]
+#![deny(clippy::allow_attributes_without_reason)]
 
 mod config;
 mod process;
@@ -44,7 +35,7 @@ async fn main() -> anyhow::Result<()> {
 
   let log_level = config.log_level.to_string();
   filter_handle.modify(move |filter| {
-    #[allow(clippy::unwrap_used)] // NOTE: static and env doesn't change
+    #[allow(clippy::unwrap_used, reason = "it should panic")]
     let new_filter = build_tracing_filter(log_level.as_str()).unwrap();
     *filter = new_filter;
   })?;
