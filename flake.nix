@@ -2,9 +2,16 @@
   description = "Pidgeon - Raspberry Pi message broker.";
 
   inputs = {
+    flake-utils.url = "github:numtide/flake-utils";
+
     nixpkgs.url = "github:nixos/nixpkgs/release-24.11";
 
-    flake-utils.url = "github:numtide/flake-utils";
+    deploy-rs.url = "github:serokell/deploy-rs";
+    deploy-rs.inputs.nixpkgs.follows = "nixpkgs";
+    deploy-rs.inputs.utils.follows = "flake-utils";
+
+    home-manager.url = "github:nix-community/home-manager/release-24.11";
+    home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
 
@@ -13,116 +20,54 @@
 
     poetry2nix.url = "github:nix-community/poetry2nix";
 
-    cargo2nix.url = "github:cargo2nix/cargo2nix/release-0.11.0";
-    cargo2nix.inputs.nixpkgs.follows = "nixpkgs";
-    cargo2nix.inputs.flake-utils.follows = "flake-utils";
+    crane.url = "github:ipetkov/crane";
   };
 
-  outputs = { self, nixpkgs, cargo2nix, flake-utils, ... } @ rawInputs:
+  outputs =
+    { self
+    , flake-utils
+    , nixpkgs
+    , deploy-rs
+    , ...
+    } @ rawInputs:
     let
-      overlay = (import ./src/flake/overlay.nix) rawInputs;
+      inputs = rawInputs;
 
-      nixosModule = import ./src/flake/service.nix;
+      libPart = {
+        lib = nixpkgs.lib.mapAttrs'
+          (name: value: { inherit name; value = value inputs; })
+          (((import "${self}/src/flake/lib/import.nix") inputs).importDir "${self}/src/flake/lib");
 
-      systems = builtins.filter
-        (system: (builtins.elemAt (builtins.split "-" system) 2) == "linux")
-        flake-utils.lib.defaultSystems;
+        overlays = self.lib.overlays inputs;
+      };
 
-      ids = builtins.map
-        (x: x.name)
-        (builtins.filter
-          (x: x.value == "regular")
-          (
-            let
-              dir = builtins.readDir ./src/flake/enc;
-            in
-            builtins.map
-              (name: {
-                inherit name;
-                value = dir.${name};
-              })
-              (builtins.attrNames dir)
-          ));
-    in
-    builtins.foldl'
-      (outputs: system:
+      systemPart = flake-utils.lib.eachDefaultSystem (system: {
+        devShells = self.lib.devShell.mkDevShells system;
+        formatter = self.lib.formatter.mkFormatter system;
+        checks = self.lib.check.mkChecks system;
+
+        packages = self.lib.package.mkPackages system;
+        apps = self.lib.app.mkApps system;
+      });
+
+      hostPart =
         let
-          pkgs = import nixpkgs {
-            inherit system;
-            config = { allowUnfree = true; };
-            overlays = [ overlay cargo2nix.overlays.default ];
-          };
-
-          rustPkgs = pkgs.rustBuilder.makePackageSet {
-            rustVersion = "1.75.0";
-            packageFun = import ./Cargo.nix;
-          };
-
-          poetry2nix = rawInputs.poetry2nix.lib.mkPoetry2Nix { inherit pkgs; };
-
-          inputs =
-            let
-              libInputs = rawInputs // {
-                inherit pkgs;
-                inherit poetry2nix;
-                inherit rustPkgs;
-              };
-            in
-            libInputs // {
-              pidgeonLib = (import ./src/flake/pidgeonLib/default.nix) libInputs;
-            };
-
-          devShellInputs = inputs // {
-            pkgs = inputs.pkgs //
-              ((import ./src/flake/packages/default.nix) inputs);
-          };
-
-          configInputs = inputs // {
-            self = inputs.self // {
-              nixosModules = inputs.self.nixosModules //
-                (import ./src/flake/modules/default.nix);
-            };
-          };
-
-          cli = (import ./src/flake/cli.nix) inputs;
-          probe = (import ./src/flake/probe.nix) inputs;
+          invokeForHostSystemMatrix = mk: nixpkgs.lib.mergeAttrsList
+            (builtins.map
+              ({ host, system }: {
+                "${host}-${system}" = mk (self.lib.host.mkHost system);
+              })
+              (nixpkgs.lib.cartesianProduct {
+                host = self.lib.host.hosts;
+                system = flake-utils.lib.defaultSystems;
+              }));
         in
-        outputs // {
-          packages = (outputs.packages or { }) // {
-            ${system} = {
-              default = cli;
-              default-docker = (import ./src/flake/cli-docker.nix) inputs;
-              probe = probe;
-              probe-docker = (import ./src/flake/probe-docker.nix) inputs;
-            };
-          };
-
-          apps = (outputs.packages or { }) // {
-            ${system} = {
-              default = { type = "app"; program = "${cli}/bin/pidgeon"; };
-              probe = { type = "app"; program = "${probe}/bin/pidgeon-probe"; };
-            };
-          };
-
-          devShells = (outputs.devShells or { }) // {
-            ${system} = builtins.mapAttrs
-              (name: value: value devShellInputs)
-              (import ./src/flake/shells/default.nix);
-          };
-
-          nixosConfigurations = builtins.foldl'
-            (configs: id: configs // {
-              "pidgeon-${id}-${system}" =
-                (import ./src/flake/configuration.nix)
-                  (configInputs // { inherit id; });
-            })
-            (outputs.nixosConfigurations or { })
-            ids;
-        })
-      {
-        overlays.default = overlay;
-
-        nixosModules.default = nixosModule;
-      }
-      systems;
+        {
+          nixosModules = invokeForHostSystemMatrix self.lib.nixosModule.mkNixosModule;
+          hmModules = invokeForHostSystemMatrix self.lib.hmModule.mkHmModule;
+          nixosConfigurations = invokeForHostSystemMatrix self.lib.nixosConfiguration.mkNixosConfiguration;
+          deploy.nodes = invokeForHostSystemMatrix self.lib.deploy.mkDeploy;
+        };
+    in
+    libPart // systemPart // hostPart;
 }
