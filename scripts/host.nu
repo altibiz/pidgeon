@@ -69,11 +69,12 @@ def "main generate" [
 
   cd $secrets_dir
   let secrets = main secrets generate $id --wifi-from $wifi_from
+  cd $pwd
 
   cd $images_dir
   let image = main image generate $id
-
   cd $pwd
+
   main image inject $secrets $image
 
   main image write $image $destination
@@ -216,7 +217,7 @@ def "main image generate" [id: string] {
     --system "aarch64-linux"
     --format "sd-aarch64"
     --flake $"($root)#pidgeon-($id)-aarch64-linux")
-  unzstd ./result/sd-image/* $"./($id)-temp.img"
+  unzstd (ls ./result/sd-image/ | get name | first) $"./($id)-temp.img"
   mv -f  $"./($id)-temp.img" $"./($id).img" 
   ^rm -f result
   print $"./($id).img"
@@ -333,8 +334,12 @@ def "main secrets scrt val" [name: string]: nothing -> nothing {
 #   ./name.ssh.key.pub
 #   ./name.ssh.key
 def "main secrets ssh key" [name: string]: nothing -> nothing {
-  ssh-keygen -q -a 100 -t ed25519 -N "" -C $name -f $"($name).ssh.key"
+  ssh-keygen -q -a 100 -t ed25519 -N "" -C $name -f $"($name)-temp.ssh.key"
+
+  try { mv $"($name)-temp.ssh.key.pub" $"($name).ssh.key.pub" }
   chmod 644 $"($name).ssh.key.pub"
+
+  try { mv $"($name)-temp.ssh.key" $"($name).ssh.key" }
   chmod 600 $"($name).ssh.key"
 }
 
@@ -344,12 +349,16 @@ def "main secrets ssh key" [name: string]: nothing -> nothing {
 #   ./name.vpn.ca.pub
 #   ./name.vpn.ca
 def "main secrets vpn ca" [name: string]: nothing -> nothing {
-  nebula-cert ca -name $name -duration $"(365 * 24 * 100)h"
+  (nebula-cert ca
+    -name $name
+    -duration $"(365 * 24 * 100)h"
+    -out-crt $"($name)-temp.vpn.ca.pub"
+    -out-key $"($name)-temp.vpn.ca")
 
-  mv $"ca.crt" $"($name).vpn.ca.pub"
+  try { mv $"($name)-temp.vpn.ca.pub" $"($name).vpn.ca.pub" }
   chmod 644 $"($name).vpn.ca.pub"
 
-  mv $"ca.key" $"($name).vpn.ca"
+  try { mv $"($name)-temp.vpn.ca" $"($name).vpn.ca" }
   chmod 600 $"($name).vpn.ca"
 }
 
@@ -381,9 +390,13 @@ def "main secrets vpn key" [name: string, ca: path]: nothing -> nothing {
     -ca-key $"($ca).vpn.ca"
     -name $name
     -ip $ip
-    -out-crt $"($name).vpn.key.pub"
-    -out-key $"($name).vpn.key")
+    -out-crt $"($name)-temp.vpn.key.pub"
+    -out-key $"($name)-temp.vpn.key")
+
+  try { mv $"($name)-temp.vpn.key.pub" $"($name).vpn.key.pub" }
   chmod 644 $"($name).vpn.key.pub"
+
+  try { mv $"($name)-temp.vpn.key" $"($name).vpn.key" }
   chmod 600 $"($name).vpn.key"
 }
 
@@ -513,31 +526,31 @@ WIFI_PASS=\"(open --raw $"($name).wifi.pass")\""
 
 # generate pidgeon environment
 #
-# expects network ip range start in `PIDGEON_NAME_NETWORK_IP_RANGE_START`
+# expects network ip range start in `PIDGEON_NETWORK_IP_RANGE_START`
 # with "192.168.1.0 as default value
 #
-# expects network ip range end in `PIDGEON_NAME_NETWORK_IP_RANGE_END`
+# expects network ip range end in `PIDGEON_NETWORK_IP_RANGE_END`
 # with "192.168.1.0 as default value
 #
 # expects cloud domain provided in `PIDGEON_NAME_CLOUD_DOMAIN`
 def "main secrets pidgeon env" [name: string] -> {
-  let network_ip_range_start_key = $"PIDGEON_($name | str upcase)_NETWORK_IP_RANGE_START"
+  let network_ip_range_start_key = $"PIDGEON_NETWORK_IP_RANGE_START"
   let network_ip_range_start = $env
     | default "192.168.1.255" $network_ip_range_start_key
     | get $network_ip_range_start_key
-  let network_ip_range_end_key = $"PIDGEON_($name | str upcase)_NETWORK_IP_RANGE_END"
+  let network_ip_range_end_key = $"PIDGEON_NETWORK_IP_RANGE_END"
   let network_ip_range_end = $env
     | default "192.168.1.0" $network_ip_range_end_key
     | get $network_ip_range_end_key
-  let cloud_domain_key = $"PIDGEON_($name | str upcase)_CLOUD_DOMAIN"
+  let cloud_domain_key = $"PIDGEON_CLOUD_DOMAIN"
   let cloud_domain = $env | default null $cloud_domain_key | get $cloud_domain_key
   if ($cloud_domain | is-empty) {
     error make {
-      msg: "expected api key provided via PIDGEON_`NAME`_CLOUD_DOMAIN"
+      msg: "expected api key provided via PIDGEON_CLOUD_DOMAIN"
     }
   }
 
-  let port = [ $root "dodocker-compose.yml" ]
+  let port = [ $root "docker-compose.yml" ]
     | path join
     | open
     | get services.postgres.ports
