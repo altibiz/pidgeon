@@ -30,9 +30,6 @@ lfs:
     dvc add {{ assets }}/*.sql
     dvc push
 
-cargo2nix:
-    cd '{{ root }}'; yes yes | cargo2nix
-
 run *args:
     cd '{{ cli }}'; cargo run -- --config '{{ config }}' {{ args }}
 
@@ -56,7 +53,6 @@ lint:
     ruff check '{{ probe }}'
     cd '{{ root }}'; cargo clippy -- -D warnings
     cd '{{ probe }}'; pyright .
-    nix flake check --all-systems
 
 test:
     cd '{{ root }}'; cargo test
@@ -64,7 +60,6 @@ test:
 upgrade:
     nix flake update
     cargo upgrade
-    cd '{{ root }}'; yes yes | cargo2nix
 
 docs:
     rm -rf '{{ artifacts }}'
