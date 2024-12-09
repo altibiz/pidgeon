@@ -489,15 +489,15 @@ def "main secrets wifi env" [name: string]: nothing -> nothing {
   chmod 644 $"($name).wifi.ssid.pub"
 
   let pass = random chars --length 32
-  $ssid | try { save $"($name).wifi.pass" }
+  $pass | try { save $"($name).wifi.pass" }
   chmod 600 $"($name).wifi.pass"
 
   let admin = random chars --length 32
-  $ssid | try { save $"($name).wifi.admin" }
+  $admin | try { save $"($name).wifi.admin" }
   chmod 600 $"($name).wifi.admin"
 
   let wps = (0..(4 - 1)) | each { |_| random int 0..9 } | str join ""
-  $ssid | try { save $"($name).wifi.wps" }
+  $wps | try { save $"($name).wifi.wps" }
   chmod 600 $"($name).wifi.wps"
 
   let wifi_env = $"WIFI_SSID=\"(open --raw $"($name).wifi.ssid.pub")\"
