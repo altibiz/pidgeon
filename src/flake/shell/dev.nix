@@ -22,6 +22,14 @@ pkgs.mkShell {
   PIDGEON_DB_PASSWORD = postgres.password;
   PIDGEON_DB_NAME = postgres.database;
 
+  PIDGEON_CLOUD_DOMAIN = "localhost:5000";
+  PIDGEON_CLOUD_API_KEY = "messenger";
+  PIDGEON_CLOUD_ID = "messenger";
+
+  PIDGEON_NETWORK_IP_RANGE_START = "127.0.0.1";
+  PIDGEON_NETWORK_IP_RANGE_END = "127.0.0.1";
+  PIDGEON_MODBUS_PORT = "5020";
+
   packages = with pkgs; [
     # python - first because dvc python gets first in path
     poetry
