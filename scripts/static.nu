@@ -8,7 +8,7 @@ const schema = {
         "type": "string"
       }
       "bits": {
-        "type": "int"
+        "type": "string"
       }
       "mask": {
         "type": "string"

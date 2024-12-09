@@ -128,16 +128,7 @@ def "main init" [--id: string] {
   }
 
   echo '{ }' | try { save $"($host_dir)/config.nix" }
-  {
-    vpn: {
-      ip: $next_ip,
-      subnet: {
-        ip: "10.8.0.0",
-        bits: 16,
-        mask: "255.255.255.0"
-      }
-    }
-  } | to json | try { save $"($host_dir)/static.json" }
+  { vpn: { ip: $next_ip } } | to json | try { save $"($host_dir)/static.json" }
 
   $id
 }
