@@ -14,6 +14,7 @@ isready := absolute_path('scripts/isready.nu')
 mksecrets-script := absolute_path('scripts/mksecrets.sh')
 image-script := absolute_path('scripts/image.sh')
 inject-script := absolute_path('scripts/inject.sh')
+host-script := absolute_path('scripts/host.nu')
 
 default:
     @just --choose
@@ -74,6 +75,9 @@ docs:
 
 rebuild *args:
     nixos-rebuild switch --flake $"{{ root }}#pidgeon-(open --raw /etc/id)-aarch64-linux" {{ args }}
+
+host *args:
+    {{ host-script }} {{ args }}
 
 mksecrets *args:
     {{ mksecrets-script }} {{ args }}
