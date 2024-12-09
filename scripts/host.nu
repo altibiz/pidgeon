@@ -374,12 +374,10 @@ def "main secrets vpn key" [name: string, ca: path]: nothing -> nothing {
     -ca-crt $"($ca).vpn.ca.pub"
     -ca-key $"($ca).vpn.ca"
     -name $name
-    -ip $ip)
-
-  mv $"($name).crt" $"($name).vpn.key.pub"
+    -ip $ip
+    -out-crt $"($name).vpn.key.pub"
+    -out-key $"($name).vpn.key")
   chmod 644 $"($name).vpn.key.pub"
-
-  mv $"($name).key" $"($name).vpn.key"
   chmod 600 $"($name).vpn.key"
 }
 
