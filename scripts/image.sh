@@ -5,9 +5,9 @@ SCRIPTS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$(dirname "$SCRIPTS")" && pwd)"
 
 id="$1"
-if [ ! -f "$ROOT/src/flake/enc/$id" ]; then
+if [ ! -d "$ROOT/src/flake/host/pidgeon-$id" ]; then
   echo "Usage: $0 <id>"
-  printf "Available ids:\n%s\n" "$(ls "$ROOT/src/flake/enc")"
+  printf "Available ids:\n%s\n" "$(ls "$ROOT/src/flake/host")"
   exit 1
 fi
 
