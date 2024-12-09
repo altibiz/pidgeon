@@ -511,8 +511,55 @@ WIFI_PASS=\"(open --raw $"($name).wifi.pass")\""
   chmod 600 $"($name).wifi.env"
 }
 
+# generate pidgeon environment
+#
+# expects network ip range start in `PIDGEON_NAME_NETWORK_IP_RANGE_START`
+# with "192.168.1.0 as default value
+#
+# expects network ip range end in `PIDGEON_NAME_NETWORK_IP_RANGE_END`
+# with "192.168.1.0 as default value
+#
+# expects cloud domain provided in `PIDGEON_NAME_CLOUD_DOMAIN`
 def "main secrets pidgeon env" [name: string] -> {
-    
+  let network_ip_range_start_key = $"PIDGEON_($name | str upcase)_NETWORK_IP_RANGE_START"
+  let network_ip_range_start = $env
+    | default "192.168.1.255" $network_ip_range_start_key
+    | get $network_ip_range_start_key
+  let network_ip_range_end_key = $"PIDGEON_($name | str upcase)_NETWORK_IP_RANGE_END"
+  let network_ip_range_end = $env
+    | default "192.168.1.0" $network_ip_range_end_key
+    | get $network_ip_range_end_key
+  let cloud_domain_key = $"PIDGEON_($name | str upcase)_CLOUD_DOMAIN"
+  let cloud_domain = $env | default null $cloud_domain_key | get $cloud_domain_key
+  if ($cloud_domain | is-empty) {
+    error make {
+      msg: "expected api key provided via PIDGEON_`NAME`_CLOUD_DOMAIN"
+    }
+  }
+
+  let port = [ $root "dodocker-compose.yml" ]
+    | path join
+    | open
+    | get services.postgres.ports
+    | filter { |x| ($x | split row ":" | get 1) == "5432" }
+    | split row ":"
+    | get 0
+
+
+  let pidgeon_env = $"PIDGEON_DB_DOMAIN = \"localhost\";
+PIDGEON_DB_PORT = \"($port)\";
+PIDGEON_DB_USER = \"pidgeon\";
+PIDGEON_DB_PASSWORD = \"(open --raw $"($name).pidgeon.db.user")\";
+PIDGEON_DB_NAME = \"pidgeon\";
+
+PIDGEON_CLOUD_DOMAIN = \"($cloud_domain)\";
+PIDGEON_CLOUD_API_KEY = \"(open --raw $"($name).key")\";
+PIDGEON_CLOUD_ID = \"pidgeon-($name)\";
+
+PIDGEON_NETWORK_IP_RANGE_START = \"($network_ip_range_start)\";
+PIDGEON_NETWORK_IP_RANGE_END = \"($network_ip_range_end)\""
+  $pidgeon_env | try { save $"($name).pidgeon.env" }
+  chmod 600 $"($name).pidgeon.env"
 }
 
 # create a linux user password
