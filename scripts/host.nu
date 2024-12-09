@@ -3,7 +3,6 @@
 use ./static.nu *
 let root = $env.FILE_PWD | path dirname
 let hosts_dir = [ $root "src" "flake" "host" ] | path join
-let hosts = static hosts $hosts_dir
 
 # host configuration, secret, image generation script
 #
@@ -81,6 +80,8 @@ def "main generate" [
 # initialize host with empty configuration
 # and an available ip address
 def "main init" [--id: string] {
+  let $hosts = static hosts $hosts_dir
+
   mut id = $id
   if ($id | is-empty) {
     $id = random chars --length 32
@@ -88,31 +89,35 @@ def "main init" [--id: string] {
   let host_dir = $"($hosts_dir)/pidgeon-($id)"
   mkdir $host_dir
 
-  let last_ip = $hosts
-    | get vpn.ip
-    | each { |x| 
-        let p = $x
-          | parse "{3}.{2}.{1}.{0}"
-          | each { |x|
-              {
-                0: ($x.0 | into int),
-                1: ($x.1 | into int),
-                2: ($x.2 | into int),
-                3: ($x.3 | into int)
-               }
+  let last_ip = if (($hosts | values | length) == 0) {
+      null
+    } else {
+      $hosts
+        | get vpn.ip
+        | each { |x| 
+            let p = $x
+              | parse "{3}.{2}.{1}.{0}"
+              | each { |x|
+                  {
+                    0: ($x.0 | into int),
+                    1: ($x.1 | into int),
+                    2: ($x.2 | into int),
+                    3: ($x.3 | into int)
+                   }
+                }
+              | first
+            {
+              parsed: $p
+              sum: ($p.0 * 2 ** 0
+                + $p.1 * 2 ** 1
+                + $p.2 * 2 ** 2
+                + $p.3 * 2 ** 3)
+              ip: $x
             }
-          | first
-        {
-          parsed: $p
-          sum: ($p.0 * 2 ** 0
-            + $p.1 * 2 ** 1
-            + $p.2 * 2 ** 2
-            + $p.3 * 2 ** 3)
-          ip: $x
-        }
-      }
-    | sort-by sum
-    | try { last }
+          }
+        | sort-by sum
+        | last
+    }
 
   let next_ip = if ($last_ip == null) {
     "10.8.0.10"
@@ -123,9 +128,18 @@ def "main init" [--id: string] {
   }
 
   echo '{ }' | try { save $"($host_dir)/config.nix" }
-  { vpn: { ip: $next_ip } } | to json | try { save $"($host_dir)/static.json" }
+  {
+    vpn: {
+      ip: $next_ip,
+      subnet: {
+        ip: "10.8.0.0",
+        bits: 16,
+        mask: "255.255.255.0"
+      }
+    }
+  } | to json | try { save $"($host_dir)/static.json" }
 
-  print $id
+  $id
 }
 
 # generate secrets for a specified host
@@ -352,11 +366,13 @@ def "main secrets vpn ca" [name: string]: nothing -> nothing {
 #   ./name.vpn.key.pub
 #   ./name.vpn.key
 def "main secrets vpn key" [name: string, ca: path]: nothing -> nothing {
+  let $hosts = static hosts $hosts_dir
+
   let ip_key = $"VPN_($name | str upcase)_IP"
   let ip = $env | get $ip_key --ignore-errors
-    | default (($hosts | get ([ $name "vpn" "ip" ] | into cell-path))
+    | default (($hosts | get ([ $"pidgeon-($name)" "vpn" "ip" ] | into cell-path))
         + "/"
-        + ($hosts | get ([ $name "vpn" "subnet" "bits" ] | into cell-path)))
+        + ($hosts | get ([ $"pidgeon-($name)" "vpn" "subnet" "bits" ] | into cell-path)))
   if ($ip | is-empty) {
     error make {
       msg: "expected ip provided via VPN_`NAME`_IP"
