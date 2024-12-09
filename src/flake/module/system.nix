@@ -67,7 +67,7 @@ in
     nixpkgs.config = {
       allowUnfree = true;
     };
-    nixpkgs.overlays = self.overlays.default;
+    nixpkgs.overlays = [ self.overlays.default ];
   };
 
   system = {

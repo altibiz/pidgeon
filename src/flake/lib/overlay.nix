@@ -7,11 +7,9 @@ let
       "${self}/src/flake/overlay";
 
   composed =
-    nixpkgs.lib.foldl'
-      nixpkgs.lib.composeExtensions
-      (_: _: { })
+    nixpkgs.lib.composeManyExtensions
       (builtins.map
-        (x: x.__import.value)
+        (x: x.__import.value inputs)
         (nixpkgs.lib.collect
           (builtins.hasAttr "__import")
           (self.lib.import.importDirMeta "${self}/src/flake/overlay")));
