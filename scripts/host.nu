@@ -39,11 +39,12 @@ def "main create" [
 
   cd $secrets_dir
   let secrets = main secrets generate $id --wifi-from $wifi_from
+  cd $pwd
 
   cd $images_dir
   let image = main image generate $id
-
   cd $pwd
+
   main image inject $secrets $image
 
   main image write $image $destination
@@ -131,6 +132,12 @@ def "main init" [--id: string] {
   echo '{ }' | try { save $"($host_dir)/config.nix" }
   { vpn: { ip: $next_ip } } | to json | try { save $"($host_dir)/static.json" }
 
+  let pwd = pwd
+  cd $root
+  git add $"($host_dir)/config.nix"
+  git add $"($host_dir)/static.json"
+  cd $pwd
+
   $id
 }
 
@@ -178,9 +185,10 @@ def "main secrets generate" [id: string, --wifi-from: string] {
   try { cp $"../($id).db.key.pub" postgres.crt.pub }
   try { cp $"../($id).db.sql" postgres.sql }
   try { cp $"../($id).wifi.env" wifi.env }
-  try { cp ../../shared.vpn.key.pub nebula.ca.pub }
+  try { cp ../../shared.vpn.ca.pub nebula.ca.pub }
   try { cp $"../($id).vpn.key" nebula.crt }
   try { cp $"../($id).vpn.key.pub" nebula.crt.pub }
+  try { cp $"../($id).scrt.key.pub" . }
 
   main secrets scrt val $id
 
@@ -189,11 +197,16 @@ def "main secrets generate" [id: string, --wifi-from: string] {
 
   try { cp $"($secrets_dir)/($id).scrt.key.pub" . }
   try { cp $"($secrets_dir)/($id).scrt.key" . }
-  cp -f $"($secrets_dir)/vals/($id).scrt.val.pub" .
-  cp -f $"($secrets_dir)/vals/($id).scrt.val" .
+  cp -f $"($secrets_dir)/val/($id).scrt.val.pub" .
+  cp -f $"($secrets_dir)/val/($id).scrt.val" .
   cp -f $"($id).scrt.val.pub" $"($host_dir)/secrets.yaml"
 
-  print $"($id).scrt.key"
+  let pwd = pwd
+  cd $root
+  git add $"($host_dir)/secrets.yaml"
+  cd $pwd
+
+  $"($id).scrt.key"
 }
 
 # generate a specified hosts' image
@@ -281,10 +294,6 @@ def "main secrets scrt val" [name: string]: nothing -> nothing {
           and not ($basename | str ends-with ".scrt.val.pub")
           and not ($basename | str ends-with ".scrt.key")
           and not ($basename | str ends-with ".scrt.key.pub")
-          and (
-            ($basename | str starts-with $name)
-            or ($basename | str starts-with shared)
-          )
         )
       }
     | each { |x|
@@ -303,10 +312,6 @@ def "main secrets scrt val" [name: string]: nothing -> nothing {
         let basename = $x.name | path basename
         return (
           ($basename | str ends-with ".scrt.key.pub")
-          and (
-            ($basename | str starts-with $name)
-            or ($basename | str starts-with shared)
-          )
         )
       }
     | each { |x| open --raw $x.name }
