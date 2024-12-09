@@ -7,7 +7,7 @@ let
       inputs = rawInputs // { inherit pkgs; };
     in
     self.lib.import.importDirWrap
-      (x: x.__import.value inputs)
+      (x: x.__import.value (inputs // { inherit pkgs; }))
       "${self}/src/flake/package";
 in
 {

@@ -4,7 +4,7 @@ let
   imported =
     self.lib.import.importDirWrap
       (x: x.__import.value inputs)
-      "${self}/src/flake/package";
+      "${self}/src/flake/overlay";
 
   composed =
     nixpkgs.lib.foldl'
@@ -14,7 +14,7 @@ let
         (x: x.__import.value)
         (nixpkgs.lib.collect
           (builtins.hasAttr "__import")
-          (self.lib.import.importDirMeta "${self}/src/flake/package")));
+          (self.lib.import.importDirMeta "${self}/src/flake/overlay")));
 in
 {
   overlays = imported // { default = composed; };

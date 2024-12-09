@@ -1,5 +1,6 @@
 { self
 , nixpkgs
+, nixos-hardware
 , sops-nix
 , home-manager
 , ...
@@ -10,7 +11,7 @@
     builtins.map
       (x: x.__import.value)
       (builtins.filter
-        (x: x.__import.type == "default")
+        (x: x.__import.type == "regular" || x.__import.type == "default")
         (nixpkgs.lib.collect
           (builtins.hasAttr "__import")
           (self.lib.import.importDirMeta "${self}/src/flake/module")));
@@ -25,6 +26,7 @@
       modules = [
         sops-nix.nixosModules.default
         home-manager.nixosModules.default
+        nixos-hardware.nixosModules.raspberry-pi-4
         self.nixosModules."${host.name}-${host.system}"
         {
           home-manager.backupFileExtension = "backup";
@@ -34,7 +36,7 @@
             sops-nix.homeManagerModules.sops
           ];
           home-manager.users."${host.user}" =
-            self.hmModules."${host.user}-${host.system}";
+            self.hmModules."${host.name}-${host.system}";
 
         }
       ];

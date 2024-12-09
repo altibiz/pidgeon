@@ -1,12 +1,12 @@
 { ... }:
 
 let
-  mkDotObject = specialArgs: dotModule:
-    if builtins.isFunction dotModule
-    then (dotModule specialArgs)
-    else dotModule;
+  mkDotObject = specialArgs: pidgeonModule:
+    if builtins.isFunction pidgeonModule
+    then (pidgeonModule specialArgs)
+    else pidgeonModule;
 
-  mkImports = mkModule: specialArgs: dotObject: builtins.map
+  mkImports = mkModule: specialArgs: pidgeonObject: builtins.map
     (maybeImport:
       if (builtins.isPath maybeImport) || (builtins.isString maybeImport)
       then
@@ -17,41 +17,41 @@ let
         then module // { _file = maybeImport; }
         else module
       else mkModule maybeImport specialArgs)
-    (if builtins.hasAttr "imports" dotObject
-    then dotObject.imports
+    (if builtins.hasAttr "imports" pidgeonObject
+    then pidgeonObject.imports
     else [ ]);
 
-  mkOptions = specialArgs: dotObject:
-    if builtins.hasAttr "disabled" dotObject
+  mkOptions = specialArgs: pidgeonObject:
+    if builtins.hasAttr "disabled" pidgeonObject
     then { }
-    else if builtins.hasAttr "options" dotObject
-    then { dot = dotObject.options; }
+    else if builtins.hasAttr "options" pidgeonObject
+    then pidgeonObject.options
     else { };
 
-  mkConfig = { lib, ... }: path: dotObject:
-    if builtins.hasAttr "disabled" dotObject
+  mkConfig = { lib, ... }: path: pidgeonObject:
+    if builtins.hasAttr "disabled" pidgeonObject
     then { }
-    else if builtins.hasAttr "config" dotObject
+    else if builtins.hasAttr "config" pidgeonObject
     then
       let
-        configObject = dotObject.config;
+        configObject = pidgeonObject.config;
       in
       if lib.hasAttrByPath path configObject
       then lib.getAttrFromPath path configObject
       else { }
     else
-      if lib.hasAttrByPath path dotObject
-      then lib.getAttrFromPath path dotObject
+      if lib.hasAttrByPath path pidgeonObject
+      then lib.getAttrFromPath path pidgeonObject
       else { };
 
   # NOTE: if pkgs here not demanded other modules don't get access...
-  mkSystemModule = mkSystemModule: dotModule: { pkgs, ... } @specialArgs:
+  mkSystemModule = mkSystemModule: pidgeonModule: { pkgs, ... } @specialArgs:
     let
-      dotObject = mkDotObject specialArgs dotModule;
-      imports = mkImports mkSystemModule specialArgs dotObject;
-      options = mkOptions specialArgs dotObject;
-      config = mkConfig specialArgs [ "system" ] dotObject;
-      sharedConfig = mkConfig specialArgs [ "shared" ] dotObject;
+      pidgeonObject = mkDotObject specialArgs pidgeonModule;
+      imports = mkImports mkSystemModule specialArgs pidgeonObject;
+      options = mkOptions specialArgs pidgeonObject;
+      config = mkConfig specialArgs [ "system" ] pidgeonObject;
+      sharedConfig = mkConfig specialArgs [ "shared" ] pidgeonObject;
     in
     {
       imports = imports ++ [ sharedConfig ];
@@ -59,13 +59,13 @@ let
     };
 
   # NOTE: if pkgs here not demanded other modules don't get access...
-  mkHomeModule = mkHomeModule: dotModule: { pkgs, ... } @specialArgs:
+  mkHomeModule = mkHomeModule: pidgeonModule: { pkgs, ... } @specialArgs:
     let
-      dotObject = mkDotObject specialArgs dotModule;
-      imports = mkImports mkHomeModule specialArgs dotObject;
-      options = mkOptions specialArgs dotObject;
-      config = mkConfig specialArgs [ "home" ] dotObject;
-      sharedConfig = mkConfig specialArgs [ "shared" ] dotObject;
+      pidgeonObject = mkDotObject specialArgs pidgeonModule;
+      imports = mkImports mkHomeModule specialArgs pidgeonObject;
+      options = mkOptions specialArgs pidgeonObject;
+      config = mkConfig specialArgs [ "home" ] pidgeonObject;
+      sharedConfig = mkConfig specialArgs [ "shared" ] pidgeonObject;
     in
     {
       imports = imports ++ [ sharedConfig ];

@@ -9,7 +9,9 @@ let
     self.lib.import.importDirWrap
       (x: {
         type = "app";
-        program = nixpkgs.lib.getExe (x.__import.value inputs);
+        program = nixpkgs.lib.getExe
+          (x.__import.value
+            (inputs // { inherit pkgs; }));
       })
       "${self}/src/flake/package";
 in

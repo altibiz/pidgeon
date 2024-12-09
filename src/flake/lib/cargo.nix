@@ -4,15 +4,18 @@ let
   mkCraneLib = pkgs: crane.mkLib pkgs;
 
   mkSrc = pkgs: nixpkgs.lib.fileset.toSource {
-    root = ./.;
+    root = ../../..;
     fileset = nixpkgs.lib.fileset.unions [
-      ((mkCraneLib pkgs).fileset.commonCargoSources ./.)
-      ./src/cli/.sqlx
-      ./src/cli/migrations
+      ((mkCraneLib pkgs).fileset.commonCargoSources ../../..)
+      ../../../src/cli/.sqlx
+      ../../../src/cli/migrations
     ];
   };
 
   mkCommon = pkgs: {
+    pname = "pidgeon";
+    version = "0.1.0";
+
     src = mkSrc pkgs;
     strictDeps = true;
     nativeBuildInputs = [

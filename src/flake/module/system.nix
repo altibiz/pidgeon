@@ -1,4 +1,4 @@
-{ pkgs, id, config, host, lib, ... }:
+{ pkgs, config, host, lib, ... }:
 
 let
   path = "${config.xdg.dataHome}/dot";
@@ -85,8 +85,6 @@ in
       man-pages
       man-pages-posix
     ];
-
-    environment.etc."id".text = id;
 
     environment.shells = [ "${pkgs.bashInteractive}/bin/bash" ];
 

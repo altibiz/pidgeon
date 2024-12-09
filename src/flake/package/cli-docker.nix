@@ -1,7 +1,7 @@
 { self, pkgs, ... }:
 
 let
-  package = self.packages.${pkgs.system}.pidgeon-probe;
+  package = self.packages.${pkgs.system}.cli;
 
   base = self.lib.gns3.mkBaseDockerImage pkgs;
 
@@ -12,16 +12,15 @@ let
   };
 
   run = pkgs.writeShellApplication {
-    name = "pidgeon-probe-docker";
+    name = "pidgeon-docker";
     runtimeInputs = [ package ];
     text = ''
-      export PIDGEON_PROBE_ENV=production
-      ${package}/bin/pidgeon-probe "$@" --config '${config}/share/config.toml'
+      ${package}/bin/pidgeon "$@" --config '${config}/share/config.toml'
     '';
   };
 in
 pkgs.dockerTools.buildImage {
-  name = "altibiz/pidgeon-probe";
+  name = "altibiz/pidgeon";
   tag = "latest";
   created = "now";
   fromImage = base;
@@ -31,6 +30,6 @@ pkgs.dockerTools.buildImage {
     pathsToLink = [ "/bin" "/share" ];
   };
   config = {
-    Cmd = [ "pidgeon-probe-docker" ];
+    Cmd = [ "pidgeon-docker" ];
   };
 }

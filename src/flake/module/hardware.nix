@@ -1,14 +1,9 @@
-{ nixos-hardware
-, pkgs
+{ pkgs
 , ...
 }:
 
 {
   system = {
-    imports = [
-      nixos-hardware.nixosModules.raspberry-pi-4
-    ];
-
     environment.systemPackages = with pkgs; [
       libraspberrypi
       raspberrypi-eeprom

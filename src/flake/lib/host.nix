@@ -18,8 +18,14 @@
       secrets = "${self}/src/flake/host/${name}/secrets.yaml";
     in
     let
-      staticObject = if builtins.pathExists staticPath then builtins.fromJSON staticPath else { };
-      sharedStaticObject = if builtins.pathExists sharedStaticPath then builtins.fromJSON sharedStaticPath else { };
+      staticObject =
+        if builtins.pathExists staticPath
+        then builtins.fromJSON (builtins.readFile staticPath)
+        else { };
+      sharedStaticObject =
+        if builtins.pathExists sharedStaticPath
+        then builtins.fromJSON (builtins.readFile sharedStaticPath)
+        else { };
     in
     let
       static = nixpkgs.lib.recursiveUpdate sharedStaticObject staticObject;
@@ -35,8 +41,14 @@
 
       inherit static;
 
-      config = if builtins.pathExists configPath then import configPath else { };
-      sharedConfig = if builtins.pathExists sharedConfigPath then import sharedConfigPath else { };
+      config =
+        if builtins.pathExists configPath
+        then import configPath
+        else { };
+      sharedConfig =
+        if builtins.pathExists sharedConfigPath
+        then import sharedConfigPath
+        else { };
 
       secrets = if builtins.pathExists secrets then secrets else null;
     };

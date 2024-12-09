@@ -26,7 +26,7 @@
         sops.defaultSopsFile = host.secrets;
         sops.age.keyFile = "/root/host.scrt.key";
 
-        networking.hostName = host;
+        networking.hostName = host.name;
         system.stateVersion = host.version;
 
         users.mutableUsers = false;

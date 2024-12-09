@@ -1,6 +1,12 @@
-{ config, host, ... }:
+{ lib, config, host, ... }:
 
 {
+  options = {
+    pidgeon.vpn.ip = lib.mkOption {
+      type = lib.types.str;
+    };
+  };
+
   system = {
     services.nebula.networks.ozds-vpn = {
       enable = true;
