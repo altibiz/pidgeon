@@ -10,9 +10,9 @@
   system = {
     services.nebula.networks.ozds-vpn = {
       enable = true;
-      cert = config.sops.secrets."${host.name}.vpn.crt.pub".path;
-      key = config.sops.secrets."${host.name}.vpn.crt".path;
-      ca = config.sops.secrets."shared.vpn.ca.pub".path;
+      cert = config.sops.secrets."nebula.crt.pub".path;
+      key = config.sops.secrets."nebula.crt".path;
+      ca = config.sops.secrets."nebula.ca.pub".path;
       firewall.inbound = [
         {
           host = "any";
@@ -55,15 +55,15 @@
         };
       };
     };
-    sops.secrets."${host.name}.vpn.crt.pub" = {
+    sops.secrets."nebula.crt.pub" = {
       owner = config.systemd.services."nebula@ozds-vpn".serviceConfig.User;
       group = config.systemd.services."nebula@ozds-vpn".serviceConfig.Group;
     };
-    sops.secrets."${host.name}.vpn.crt" = {
+    sops.secrets."nebula.crt" = {
       owner = config.systemd.services."nebula@ozds-vpn".serviceConfig.User;
       group = config.systemd.services."nebula@ozds-vpn".serviceConfig.Group;
     };
-    sops.secrets."shared.vpn.ca.pub" = {
+    sops.secrets."nebula.ca.pub" = {
       owner = config.systemd.services."nebula@ozds-vpn".serviceConfig.User;
       group = config.systemd.services."nebula@ozds-vpn".serviceConfig.Group;
     };

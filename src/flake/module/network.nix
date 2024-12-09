@@ -38,8 +38,8 @@
     };
 
     networking.networkmanager.ensureProfiles.environmentFiles = [
-      config.sops.secrets."${host.name}.wifi.env".path
+      config.sops.secrets."wifi.env".path
     ];
-    sops.secrets."${host.name}.wifi.env" = { };
+    sops.secrets."wifi.env" = { };
   };
 }

@@ -35,13 +35,13 @@
         };
 
         users.defaultUserShell = "${pkgs.bashInteractive}/bin/bash";
-        sops.secrets."${host.name}.pass.pub".neededForUsers = true;
+        sops.secrets."${host.user}.pass.pub".neededForUsers = true;
         users.users.${host.user} = {
           uid = host.uid;
           home = "/home/${host.user}";
           isNormalUser = true;
           createHome = true;
-          hashedPasswordFile = config.sops.secrets."${host.name}.pass.pub".path;
+          hashedPasswordFile = config.sops.secrets."${host.user}.pass.pub".path;
           extraGroups = [ "wheel" "dialout" ];
           useDefaultShell = true;
         };

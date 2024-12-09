@@ -1,4 +1,4 @@
-{ self, config, host, ... }:
+{ self, config, ... }:
 
 {
   system = {
@@ -11,7 +11,7 @@
       group = config.systemd.services.pidgeon.serviceConfig.Group;
     };
 
-    services.pidgeon.envPath = config.sops.secrets."${host.name}.pidgeon.env".path;
-    sops.secrets."${host.name}.pidgeon.env" = { };
+    services.pidgeon.envPath = config.sops.secrets."pidgeon.env".path;
+    sops.secrets."pidgeon.env" = { };
   };
 }

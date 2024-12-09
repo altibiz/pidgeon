@@ -1,4 +1,4 @@
-{ pkgs, config, host, ... }:
+{ pkgs, config, ... }:
 
 {
   system = {
@@ -22,18 +22,18 @@
     networking.firewall.allowedTCPPorts = [ 5433 ];
 
     services.postgresql.settings.ssl = "on";
-    services.postgresql.settings.ssl_cert_file = config.sops.secrets."${host.name}.postgres.crt.pub".path;
-    sops.secrets."${host.name}.postgres.crt.pub" = {
+    services.postgresql.settings.ssl_cert_file = config.sops.secrets."postgres.crt.pub".path;
+    sops.secrets."postgres.crt.pub" = {
       owner = config.systemd.services.postgresql.serviceConfig.User;
       group = config.systemd.services.postgresql.serviceConfig.Group;
     };
-    services.postgresql.settings.ssl_key_file = config.sops.secrets."${host.name}.postgres.crt".path;
-    sops.secrets."${host.name}.postgres.crt" = {
+    services.postgresql.settings.ssl_key_file = config.sops.secrets."postgres.crt".path;
+    sops.secrets."postgres.crt" = {
       owner = config.systemd.services.postgresql.serviceConfig.User;
       group = config.systemd.services.postgresql.serviceConfig.Group;
     };
-    services.postgresql.initialScript = config.sops.secrets."${host.name}.postgres.sql".path;
-    sops.secrets."${host.name}.postgres.sql" = {
+    services.postgresql.initialScript = config.sops.secrets."postgres.sql".path;
+    sops.secrets."postgres.sql" = {
       owner = config.systemd.services.postgresql.serviceConfig.User;
       group = config.systemd.services.postgresql.serviceConfig.Group;
     };

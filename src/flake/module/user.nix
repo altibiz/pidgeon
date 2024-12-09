@@ -8,7 +8,7 @@
     programs.direnv.enable = true;
     programs.direnv.nix-direnv.enable = true;
 
-    sops.secrets."${host.name}.ssh.pub" = {
+    sops.secrets."${host.user}.ssh.pub" = {
       path = "/home/${host.user}/.ssh/authorized_keys";
       owner = config.users.users.${host.user}.name;
       group = config.users.users.${host.user}.group;
