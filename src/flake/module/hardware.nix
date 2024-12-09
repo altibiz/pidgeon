@@ -14,6 +14,7 @@
     boot.kernelModules = [ "i2c_dev" "spidev" ];
     hardware.deviceTree.overlays = [
       {
+        # NOTE: https://github.com/raspberrypi/linux/blob/rpi-6.6.y/arch/arm/boot/dts/overlays/i2c-bcm2708-overlay.dts
         name = "i2c1-okay-overlay";
         dtsText = ''
           /dts-v1/;
@@ -30,7 +31,7 @@
         '';
       }
       {
-        # NOTE: https://github.com/raspberrypi/linux/blob/rpi-6.1.y/arch/arm/boot/dts/overlays/sc16is752-spi1-overlay.dts
+        # NOTE: https://github.com/raspberrypi/linux/blob/rpi-6.6.y/arch/arm/boot/dts/overlays/sc16is752-spi1-overlay.dts
         name = "sc16is752-spi1-overlay";
         dtsText = ''
           /dts-v1/;
