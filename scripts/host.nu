@@ -9,7 +9,10 @@ let hosts = static hosts $hosts_dir
 #
 # additionally writes host images to specified locaitons
 #
-# NOTE: any generated secret will not jjjjj
+# start with `host create` if you're starting from scratch
+# when adding new secrets for all hosts use `host generate`
+#
+# NOTE: any generated secret will not trump
 # a previously generated secret
 def "main" [ ] { }
 
@@ -137,38 +140,54 @@ def "main secrets generate" [id: string, --wifi-from: string] {
 
   cd $secrets_dir
 
-  main secrets pass altibiz
-  main secrets ssh key altibiz
-  main secrets key api
-  main secrets vpn key nebula ../shared
-  main secrets db key postgres ../shared
-  main secrets db sql postgres
+  main secrets pass $id
+  main secrets ssh key $id
+  main secrets key $id
+  main secrets vpn key $id ../shared
+  main secrets db key $id ../shared
+  main secrets db sql $id
   if ($wifi_from | is-empty) {
-    main secrets wifi env router
+    main secrets wifi env $id
   } else {
-    glob $"../($id)/router.*" | each { |x| try { cp $x.name . } }
+    glob $"../($id)/($id).wifi.*"
+      | each { |x|
+          let suffix = $x.name
+            | path basename
+            | parse "{id}.wifi.{suffix}"
+            | get suffix
+            | first
+          try { cp $x.name $"($id).wifi.($suffix)" }
+        }
   }
-  main secrets scrt key secrets
+  main secrets pidgeon env $id
+  main secrets scrt key $id
 
-  cp altibiz.ssh.key.pub altibiz.ssh.pub
-  cp nebula.vpn.key nebula.crt
-  cp nebula.vpn.key.pub nebula.crt.pub
-  cp ../shared.vpn.key.pub nebula.ca.pub
-  cp postgres.db.key postgres.crt
-  cp postgres.db.key.pub postgres.crt.pub
-  cp postgres.db.sql postgres.sql
-  cp router.wifi.env wifi.env
+  mkdir val
+  cd val
+
+  try { cp $"($id).ssh.key.pub" altibiz.ssh.pub }
+  try { cp $"($id).pass.pub" altibiz.pass.pub }
+  try { cp $"($id).pidgeon.env" pidgeon.env }
+  try { cp $"($id).db.key" postgres.crt }
+  try { cp $"($id).db.key.pub" postgres.crt.pub }
+  try { cp $"($id).db.sql" postgres.sql }
+  try { cp $"($id).wifi.env" wifi.env }
+  try { cp ../shared.vpn.key.pub nebula.ca.pub }
+  try { cp $"($id).vpn.key" nebula.crt }
+  try { cp $"($id).vpn.key.pub" nebula.crt.pub }
 
   main secrets scrt val $id
 
   cd ../
+  cd ../
 
-  cp $"($secrets_dir)/secrets.scrt.key" $"($id).secrets.age"
-  cp $"($secrets_dir)/($id).scrt.val.pub" .
-  cp $"($secrets_dir)/($id).scrt.val" .
-  cp $"($id).scrt.val.pub" $"($host_dir)/secrets.yaml"
+  try { cp $"($secrets_dir)/($id).scrt.key.pub" . }
+  try { cp $"($secrets_dir)/($id).scrt.key" . }
+  cp -f $"($secrets_dir)/vals/($id).scrt.val.pub" .
+  cp -f $"($secrets_dir)/vals/($id).scrt.val" .
+  cp -f $"($id).scrt.val.pub" $"($host_dir)/secrets.yaml"
 
-  print $"($id).secrets.age"
+  print $"($id).scrt.key"
 }
 
 # generate a specified hosts' image
@@ -479,6 +498,10 @@ def "main secrets wifi env" [name: string]: nothing -> nothing {
 WIFI_PASS=\"(open --raw $"($name).wifi.pass")\""
   $wifi_env | try { save $"($name).wifi.env" }
   chmod 600 $"($name).wifi.env"
+}
+
+def "main secrets pidgeon env" [name: string] -> {
+    
 }
 
 # create a linux user password
