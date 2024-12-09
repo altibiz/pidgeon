@@ -24,7 +24,7 @@
         pidgeon.static = self.lib.static.parseDir "${self}/flake/src/host";
 
         sops.defaultSopsFile = host.secrets;
-        sops.age.keyFile = "/root/host.scrt.key";
+        sops.age.keyFile = "/root/secrets.age";
 
         networking.hostName = host.name;
         system.stateVersion = host.version;
