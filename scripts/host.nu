@@ -1,5 +1,6 @@
 #!/usr/bin/env nu
 
+use std
 use ./static.nu *
 let root = $env.FILE_PWD | path dirname
 let hosts_dir = [ $root "src" "flake" "host" ] | path join
