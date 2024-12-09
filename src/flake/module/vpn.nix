@@ -1,4 +1,4 @@
-{ lib, config, host, ... }:
+{ lib, config, ... }:
 
 {
   options = {

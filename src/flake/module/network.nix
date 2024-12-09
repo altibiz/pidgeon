@@ -1,4 +1,4 @@
-{ config, host, ... }:
+{ config, ... }:
 
 {
   system = {
