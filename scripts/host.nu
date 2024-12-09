@@ -171,16 +171,16 @@ def "main secrets generate" [id: string, --wifi-from: string] {
   mkdir val
   cd val
 
-  try { cp $"($id).ssh.key.pub" altibiz.ssh.pub }
-  try { cp $"($id).pass.pub" altibiz.pass.pub }
-  try { cp $"($id).pidgeon.env" pidgeon.env }
-  try { cp $"($id).db.key" postgres.crt }
-  try { cp $"($id).db.key.pub" postgres.crt.pub }
-  try { cp $"($id).db.sql" postgres.sql }
-  try { cp $"($id).wifi.env" wifi.env }
-  try { cp ../shared.vpn.key.pub nebula.ca.pub }
-  try { cp $"($id).vpn.key" nebula.crt }
-  try { cp $"($id).vpn.key.pub" nebula.crt.pub }
+  try { cp $"../($id).ssh.key.pub" altibiz.ssh.pub }
+  try { cp $"../($id).pass.pub" altibiz.pass.pub }
+  try { cp $"../($id).pidgeon.env" pidgeon.env }
+  try { cp $"../($id).db.key" postgres.crt }
+  try { cp $"../($id).db.key.pub" postgres.crt.pub }
+  try { cp $"../($id).db.sql" postgres.sql }
+  try { cp $"../($id).wifi.env" wifi.env }
+  try { cp ../../shared.vpn.key.pub nebula.ca.pub }
+  try { cp $"../($id).vpn.key" nebula.crt }
+  try { cp $"../($id).vpn.key.pub" nebula.crt.pub }
 
   main secrets scrt val $id
 
