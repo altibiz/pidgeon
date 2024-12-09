@@ -1,5 +1,7 @@
 { self, poetry2nix, ... }:
 
+# TODO: per package options
+
 let
   mkPoetry2nixLib = pkgs: poetry2nix.lib.mkPoetry2Nix { inherit pkgs; };
 

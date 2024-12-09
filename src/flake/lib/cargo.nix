@@ -1,7 +1,5 @@
 { nixpkgs, crane, ... }:
 
-# NOTE: just ignore the pname/version warnings
-
 let
   mkCraneLib = pkgs: crane.mkLib pkgs;
 

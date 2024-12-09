@@ -1,11 +1,11 @@
 [package]
 name = "pidgeon-cli"
-version = "0.1.0"
-description = "Pidgeon CLI"
-authors = ["Hrvoje Jurić <hrvoje@altibiz.com>"]
-license = "MIT"
-readme = "README.md"
-edition = "2021"
+version.workspace = true
+description.workspace = true
+authors.workspace = true
+license.workspace = true
+readme.workspace = true
+edition.workspace = true
 
 [dependencies]
 anyhow = "1.0.94"
@@ -36,7 +36,10 @@ reqwest = { version = "0.11.27", features = [
   "rustls-tls",
   "gzip",
 ] }
-rust_decimal = { version = "1.36.0", features = ["serde", "serde-arbitrary-precision"] }
+rust_decimal = { version = "1.36.0", features = [
+  "serde",
+  "serde-arbitrary-precision",
+] }
 rust_decimal_macros = "1.36.0"
 rustls = "0.21.12"
 serde = { version = "1.0.215", features = ["derive"] }
@@ -59,5 +62,5 @@ tokio-serial = "5.4.4"
 tokio-util = { version = "0.7.13", features = ["full"] }
 toml = "0.8.19"
 tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"]}
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 uuid = { version = "1.11.0", features = ["v4", "fast-rng"] }
