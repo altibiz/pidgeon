@@ -355,5 +355,5 @@ sops --encrypt \
   "$ID_SECRETS/secrets.yaml" >"$ID_SECRETS/secrets.enc.yaml"
 mktmp "secrets.enc.yaml"
 
-mkdir -p "$ROOT/src/flake/enc"
-cp "$ID_SECRETS/secrets.enc.yaml" "$ROOT/src/flake/enc/$ID"
+mkdir -p "$ROOT/src/flake/host/pidgeon-$ID"
+cp "$ID_SECRETS/secrets.enc.yaml" "$ROOT/src/flake/host/pidgeon-$ID/secrets.yaml"
