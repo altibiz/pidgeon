@@ -5,15 +5,34 @@ let root = $env.FILE_PWD | path dirname
 let hosts_dir = [ $root "src" "flake" "host" ] | path join
 let hosts = static hosts $hosts_dir
 
+# host configuration, secret, image generation script
+#
+# additionally writes host images to specified locaitons
+#
+# NOTE: any generated secret will not jjjjj
+# a previously generated secret
+def "main" [ ] { }
+
+# create host configuration, secrets and image
+#
+# additionally write the image to the specified destination
+#
+# optionally borrow wifi secrets from another host
 def "main create" [
+  # directory in which to generate secrets
   secrets_dir: string,
+  # directory in which to generate image
   images_dir: string,
+  # destination to write the image to
   destination: string,
-  --wifi-from: string
+  # id of host to borrow wifi secrets from
+  --wifi-from: string,
+  # set the id of the host instead of randomly generating it
+  --id: string
 ] {
   let pwd = pwd
 
-  let id = main init
+  let id = main init --id $id
 
   cd $secrets_dir
   let secrets = main secrets generate $id --wifi-from $wifi_from
@@ -27,11 +46,19 @@ def "main create" [
   main image write $image $destination
 }
 
+# regenerate host secrets and image
+#
+# additionally write the image to the specified destination
 def "main generate" [
+  # id of host to generate secrets and image for
   id: string,
+  # directory in which to generate secrets
   secrets_dir: string,
+  # directory in which to generate image
   images_dir: string,
+  # destination to write the image to
   destination: string,
+  # id of host to borrow wifi secrets from
   --wifi-from: string
 ] {
   let pwd = pwd
@@ -48,6 +75,8 @@ def "main generate" [
   main image write $image $destination
 }
 
+# initialize host with empty configuration
+# and an available ip address
 def "main init" [--id: string] {
   mut id = $id
   if ($id | is-empty) {
@@ -96,6 +125,7 @@ def "main init" [--id: string] {
   print $id
 }
 
+# generate secrets for a specified host
 def "main secrets generate" [id: string, --wifi-from: string] {
   let host_dir = $"($hosts_dir)/pidgeon-($id)"
   mkdir $host_dir
@@ -141,6 +171,8 @@ def "main secrets generate" [id: string, --wifi-from: string] {
   print $"($id).secrets.age"
 }
 
+# generate a specified hosts' image
+# outputs the path to the generated image
 def "main image generate" [id: string] {
   (nixos-generate
     --system "aarch64-linux"
@@ -152,7 +184,10 @@ def "main image generate" [id: string] {
   print $"./($id).img"
 }
 
-def "main image inject" [secrets: string, image: string] {
+# inject secrets key into a host image
+#
+# requires root privileges
+def "main image inject" [secrets_key: string, image: string] {
   let temp = mktemp -d
   let loop = losetup -f
 
@@ -162,7 +197,7 @@ def "main image inject" [secrets: string, image: string] {
   mkdir $"($temp)/root"
   chown root:root $"($temp)/root"
   chmod 700 $"($temp)/root"
-  cp -f $secrets $"($temp)/root/secrets.age"
+  cp -f $secrets_key $"($temp)/root/secrets.age"
   chown root:root $"($temp)/root/secrets.age"
   chmod 400 $"($temp)/root/secrets.age"
 
@@ -170,6 +205,9 @@ def "main image inject" [secrets: string, image: string] {
   sudo losetup -d $loop
 }
 
+# write image to specified destination
+#
+# basically a sane wrapper over the `dd` and `sync` commands
 def "main image write" [image: string, destination: string] {
   sudo dd $"if=($image)" $"of=($destination)" bs=4M conv=sync,noerror oflag=direct
   sync
