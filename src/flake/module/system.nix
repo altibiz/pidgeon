@@ -1,4 +1,4 @@
-{ pkgs, config, host, lib, ... }:
+{ self, pkgs, config, host, lib, ... }:
 
 let
   path = "${config.xdg.dataHome}/dot";
@@ -67,6 +67,7 @@ in
     nixpkgs.config = {
       allowUnfree = true;
     };
+    nixpkgs.overlays = self.overlays.default;
   };
 
   system = {
