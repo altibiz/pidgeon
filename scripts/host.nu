@@ -94,11 +94,20 @@ def "main" [ ] {
     if ($id | is-not-empty) {
       print $"You wrote in '($id)' for the host id."
     } else {
+      $id = random chars --length 32
       print $"You did not write an id for the host id."
+      print $"The '($id)' id has been generated for you."
     }
     print ""
 
     print "I am ready to start the `create` command now."
+    print ""
+    print $"I will initialize a new host configuration in '($hosts_dir)/($id)'."
+    if (ls $secrets_dir | is-empty) {
+      print $"I will initialize secrets in '($secrets_dir)'."
+    }
+    print $"I will generate secrets for the new host in '($secrets_dir)/($id)'."
+    print $"I will generate an image for the new host in '($images_dir)/($id).img'."
     print ""
     print "This might take some time."
     try {
@@ -183,6 +192,9 @@ def "main" [ ] {
 
     print "I am ready to start the `generate` command now."
     print ""
+    print $"I will generate new secrets for host in the '($secrets_dir)/($id)'"
+    print $"I will generate the image for the host in the '($images_dir)/($id).img'"
+    print ""
     print "This might take some time."
     try {
       gum confirm "Are you ready to generate the host secrets and image?"
@@ -234,6 +246,8 @@ def "main" [ ] {
     print ""
 
     print "I am ready to start the `write` command now."
+    print ""
+    print $"I will write '($image)' to '($destination)'."
     print ""
     print "This might take some time."
     print "Don't go away right away because there will likely be a sudo password prompt."
