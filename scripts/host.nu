@@ -136,7 +136,10 @@ def "main" [ ] {
     }
     print ""
 
-    gum spin $"nu -c '($self) create ($secrets_dir) ($images_dir) --wifi-from ($wifi_host) --id ($id)'"
+    print "Starting the `create` command now."
+    let command = $"nu -c '($self) create ($secrets_dir) ($images_dir) --wifi-from ($wifi_host) --id ($id)'"
+    print $"Executing '($command)'."
+    gum spin $command
     print ""
 
     print "Starting the `create` command now."
@@ -217,7 +220,9 @@ def "main" [ ] {
     print ""
 
     print "Starting the `generate` command now."
-    gum spin $"nu -c '($self) generate ($id) ($secrets_dir) ($images_dir) --wifi-from ($wifi_host)'"
+    let command = $"nu -c '($self) generate ($id) ($secrets_dir) ($images_dir) --wifi-from ($wifi_host)'"
+    print $"Executing '($command)'."
+    gum spin $command
     print ""
 
     print $"Host successfully generated with the id: '($id)'."
@@ -271,7 +276,10 @@ def "main" [ ] {
       exit 1
     }
 
-    gum spin $"nu -c '($self) write ($image) ($destination)'"
+    print "Starting the `write` command now."
+    let command = $"nu -c '($self) write ($image) ($destination)'"
+    print $"Executing '($command)'."
+    gum spin $command
     print ""
 
     print $"Image ($image) successfully written to ($destination)."
