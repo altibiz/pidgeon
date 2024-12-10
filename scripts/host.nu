@@ -128,16 +128,15 @@ def "main" [ ] {
     try {
       gum confirm "Are you ready to create the host configuration, secrets and image?"
     } catch {
-      print ""
       print "You were not ready to start the command."
       print "Exiting..."
       print ""
       exit 1
     }
-    print ""
 
     print "Starting the `create` command now."
-    let command = $"nu ($self) create ($secrets_dir) ($images_dir) --wifi-from '($wifi_host)' --id ($id)"
+    let wifi_arg = if ($wifi_host | is-empty) { "" } else { $"--wifi-from ($wifi_host)" }
+    let command = $"nu ($self) create ($secrets_dir) ($images_dir) ($wifi_arg) --id ($id)"
     print $"Executing '($command)'."
     gum spin $command
     print ""
@@ -220,7 +219,8 @@ def "main" [ ] {
     print ""
 
     print "Starting the `generate` command now."
-    let command = $"nu ($self) generate ($id) ($secrets_dir) ($images_dir) --wifi-from '($wifi_host)'"
+    let wifi_arg = if ($wifi_host | is-empty) { "" } else { $"--wifi-from ($wifi_host)" }
+    let command = $"nu ($self) generate ($id) ($secrets_dir) ($images_dir) ($wifi_arg)"
     print $"Executing '($command)'."
     gum spin $command
     print ""
