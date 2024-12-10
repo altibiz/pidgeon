@@ -112,7 +112,6 @@ pkgs.mkShell {
     i2c-tools
     nebula
     nixos-generators
-    libguestfs-with-appliance
-    e2fsprogs
+    (e2fsprogs.override { withFuse = true; })
   ];
 }

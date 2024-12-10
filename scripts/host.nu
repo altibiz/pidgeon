@@ -228,40 +228,21 @@ def "main image generate" [id: string]: nothing -> string {
 }
 
 # inject secrets key into a host image
-#
-# will ask for root privileges
 def "main image inject" [secrets_key: string, image: string]: nothing -> nothing {
-  let temp = mktemp -d
-  let loop = losetup -f
+  let partition = (fdisk -l $image | lines | where $it =~ $"($image)2" | first)
+  let columns = ($partition | split row " " | where $it != "")
+  let start_sector = ($columns | where $it =~ ^\d+$ | first)
+  let offset = ($start_sector | into int) * 512
 
-  sudo losetup -P $loop $image
-  sudo mount $"($loop)p2" $temp
+  let temp = (mktemp -d)
+  fuse2fs -o offset=$offset $image $temp
 
   mkdir $"($temp)/root"
-  chown root:root $"($temp)/root"
   chmod 700 $"($temp)/root"
   cp -f $secrets_key $"($temp)/root/secrets.age"
-  chown root:root $"($temp)/root/secrets.age"
   chmod 400 $"($temp)/root/secrets.age"
 
-  sudo umount $temp
-  sudo losetup -d $loop
-}
-
-# inject secrets key into a host image
-#
-# uses libguestfs
-def "main image inject libguestfs" [secrets_key: string, image: string]: nothing -> nothing {
-  let commands = $"run
-mount /dev/sda2 /
-set-e false
-mkdir /root
-chmod 700 /root
-upload ($secrets_key) /root/secrets.age
-chmod 400 /root/secrets.age
-exit"
-
-  echo $commands | guestfish --rw -a $image
+  fusermount -u $temp
 }
 
 # write image to specified destination
