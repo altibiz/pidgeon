@@ -111,7 +111,7 @@ def "main" [ ] {
     print $"I will generate secrets for the new host in '($secrets_dir)/($id)'."
     print $"I will generate an image for the new host in '($images_dir)/($id).img'."
     print ""
-    print "This might take some time."
+    print "This will take some time."
     try {
       gum confirm "Are you ready to create the host configuration, secrets and image?"
     } catch {
@@ -197,7 +197,7 @@ def "main" [ ] {
     print $"I will generate new secrets for host in the '($secrets_dir)/($id)'"
     print $"I will generate the image for the host in the '($images_dir)/($id).img'"
     print ""
-    print "This might take some time."
+    print "This will take some time."
     try {
       gum confirm "Are you ready to generate the host secrets and image?"
     } catch {
