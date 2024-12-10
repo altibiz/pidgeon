@@ -139,10 +139,9 @@ def "main" [ ] {
     let wifi_arg = if ($wifi_host | is-empty) { "" } else { $" --wifi-from ($wifi_host)" }
     let command = $"($self) create ($secrets_dir) ($images_dir)($wifi_arg) --id ($id)"
     let temp = mktemp -t
-    print $temp
     $command | save -f $temp
     chmod 700 $temp
-    print $"Executing '($command)'."
+    print ""
     gum spin nu $temp --title "Please wait for `create` to finish..." --show-error
     ^rm -f $temp
     print ""
@@ -228,10 +227,9 @@ def "main" [ ] {
     let wifi_arg = if ($wifi_host | is-empty) { "" } else { $" --wifi-from ($wifi_host)" }
     let command = $"nu ($self) generate ($id) ($secrets_dir) ($images_dir)($wifi_arg)"
     let temp = mktemp -t
-    print $temp
     $command | save -f $temp
     chmod 700 $temp
-    print $"Executing '($command)'."
+    print ""
     gum spin nu $temp --title "Please wait for `generate` to finish..." --show-error
     ^rm -f $temp
     print ""
@@ -290,10 +288,9 @@ def "main" [ ] {
     print "Starting the `write` command now."
     let command = $"nu ($self) write ($image) ($destination)"
     let temp = mktemp -t
-    print $temp
     $command | save -f $temp
     chmod 700 $temp
-    print $"Executing '($command)'."
+    print ""
     gum spin nu $temp --title "Please wait for `write` to finish..." --show-output --show-error
     ^rm -f $temp
     print ""
