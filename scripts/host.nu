@@ -32,7 +32,7 @@ def "main create" [
   --wifi-from: string,
   # set the id of the host instead of randomly generating it
   --id: string
-] {
+]: nothing -> nothing {
   let pwd = pwd
 
   let id = main init --id $id
@@ -64,7 +64,7 @@ def "main generate" [
   destination: string,
   # id of host to borrow wifi secrets from
   --wifi-from: string
-] {
+]: nothing -> nothing {
   let pwd = pwd
 
   cd $secrets_dir
@@ -82,7 +82,7 @@ def "main generate" [
 
 # initialize host with empty configuration
 # and an available ip address
-def "main init" [--id: string] {
+def "main init" [--id: string]: nothing -> string {
   let $hosts = static hosts $hosts_dir
 
   mut id = $id
@@ -143,7 +143,7 @@ def "main init" [--id: string] {
 }
 
 # generate secrets for a specified host
-def "main secrets generate" [id: string, --wifi-from: string] {
+def "main secrets generate" [id: string, --wifi-from: string]: nothing -> string {
   let host_dir = $"($hosts_dir)/pidgeon-($id)"
   mkdir $host_dir
   let secrets_dir = $"($id)"
@@ -212,7 +212,7 @@ def "main secrets generate" [id: string, --wifi-from: string] {
 
 # generate a specified hosts' image
 # outputs the path to the generated image
-def "main image generate" [id: string] {
+def "main image generate" [id: string]: nothing -> string {
   let compressed = ls (nixos-generate
     --system "aarch64-linux"
     --format "sd-aarch64"
@@ -224,13 +224,13 @@ def "main image generate" [id: string] {
   unzstd $compressed -o $"./($id)-temp.img"
   mv -f  $"./($id)-temp.img" $"./($id).img" 
   ^rm -f result
-  print $"./($id).img"
+  $"./($id).img"
 }
 
 # inject secrets key into a host image
 #
-# requires root privileges
-def "main image inject" [secrets_key: string, image: string] {
+# will ask for root privileges
+def "main image inject" [secrets_key: string, image: string]: nothing -> nothing {
   let temp = mktemp -d
   let loop = losetup -f
 
@@ -251,7 +251,7 @@ def "main image inject" [secrets_key: string, image: string] {
 # write image to specified destination
 #
 # basically a sane wrapper over the `dd` and `sync` commands
-def "main image write" [image: string, destination: string] {
+def "main image write" [image: string, destination: string]: nothing -> nothing {
   sudo dd $"if=($image)" $"of=($destination)" bs=4M conv=sync,noerror oflag=direct
   sync
 }
