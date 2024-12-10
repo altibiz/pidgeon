@@ -3,7 +3,6 @@
 use std
 use ./static.nu *
 let root = $env.FILE_PWD | path dirname
-print  $env.FILE_PWD
 let hosts_dir = [ $root "src" "flake" "host" ] | path join
 let self = [ $root "scripts" "host.nu" ] | path join
 
