@@ -112,5 +112,6 @@ pkgs.mkShell {
     i2c-tools
     nebula
     nixos-generators
+    libguestsfs
   ];
 }
