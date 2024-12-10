@@ -7,18 +7,16 @@ let hosts_dir = [ $root "src" "flake" "host" ] | path join
 
 # host configuration, secret, image generation script
 #
-# additionally writes host images to specified locaitons
-#
 # start with `host create` if you're starting from scratch
 # when adding new secrets for all hosts use `host generate`
+# when writing images to disks use `host write`
+# writing is a separate command because it requires root privileges
 #
 # NOTE: any generated secret will not trump
 # a previously generated secret
 def "main" [ ] { }
 
 # create host configuration, secrets and image
-#
-# additionally write the image to the specified destination
 #
 # optionally borrow wifi secrets from another host
 def "main create" [
@@ -46,8 +44,6 @@ def "main create" [
   cd $pwd
 
   main image inject $secrets $image
-
-  main image write $image $destination
 }
 
 # regenerate host secrets and image
@@ -76,8 +72,6 @@ def "main generate" [
   cd $pwd
 
   main image inject $secrets $image
-
-  main image write $image $destination
 }
 
 # initialize host with empty configuration
