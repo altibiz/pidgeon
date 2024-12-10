@@ -14,7 +14,207 @@ let hosts_dir = [ $root "src" "flake" "host" ] | path join
 #
 # NOTE: any generated secret will not trump
 # a previously generated secret
-def "main" [ ] { }
+def "main" [ ] {
+  echo $"Hello, ($env.USER)!"
+  echo ""
+  echo "You are using the pidgeon host CLI."
+  echo "Please select the command to execute."
+  echo ""
+  echo "Start with the `create` command if you're starting from scratch."
+  echo "When adding new secrets for hosts use the `generate` command."
+  echo "When writing images to disks use the `write` command."
+  echo ""
+  echo "NOTE: the `write` command requires root privileges"
+  let command = (gum choose
+    --header "Command:"
+    create generate write)
+  echo ""
+
+  if $command == "create" {
+    echo "You selected the `create` command."
+    echo ""
+
+    mut secrets_dir = ""
+    if ("secrets" | path exists) {
+      if (gum confirm "Is it okay if I use the secrets directory to get secrets from?") {
+        $secrets_dir = "secrets"
+      }
+    }
+    if ($secrets_dir == "") {
+      echo "Please select the secrets directory."
+      $secrets_dir = (gum choose 
+        --header "Secrets directory:"
+        ...(ls).name)
+    }
+    echo ""
+
+    mut images_dir = ""
+    if ("images" | path exists) {
+      if (gum confirm "Is it okay if I use the images directory to get images from?") {
+        $images_dir = "images"
+      }
+    }
+    if ($images_dir == "") {
+      echo "Please select the images directory."
+      $images_dir = (gum choose
+        --header "Images directory:"
+        ...(ls).name)
+    }
+    echo ""
+
+    mut wifi_host = ""
+    if (gum confirm "Would you like to borrow wifi secrets from another host?") {
+      echo "Please select the host to borrow wifi secrets from."
+      $wifi_host = (gum choose
+        --header "Host:"
+        ..(ls $hosts_dir).name)
+    }
+    echo ""
+
+    mut id = ""
+    if (gum confirm "Would you like to set the id of the host instead of generating it?") {
+      echo "Please write in the id of the host."
+      $id = (gum input --placeholder "Id...")
+    }
+    echo ""
+
+    echo $"You selected the '($secrets_dir)' directory for secrets."
+    echo $"You selected the '($images_dir)' directory for images."
+    if ($wifi_host | is-not-empty) {
+      echo $"You selected the '($wifi_host)' host for wifi secret sharing."
+    }
+    if ($id | is-not-empty) {
+      echo $"You wrote in '($id)' for the host id."
+    }
+    echo ""
+
+    echo "I will start the `create` command now."
+    echo ""
+    echo "This might take some time."
+    if (not (gum confirm "Are you ready to create the host configuration, secrets and image?")) {
+      echo "Exiting..."
+    }
+    echo ""
+
+    let id = main create $secrets_dir $images_dir --wifi-from $wifi_host --id $id
+    echo ""
+
+    echo "Starting the `create` command now."
+    echo $"Host successfully created with the id: '($id)'."
+    echo ""
+  } else if $command == "generate" {
+    echo "You selected the `generate` command."
+    echo ""
+
+    mut secrets_dir = ""
+    if ("secrets" | path exists) {
+      if (gum confirm "Is it okay if I use the secrets directory to get secrets from?") {
+        $secrets_dir = "secrets"
+      }
+    }
+    if ($secrets_dir == "") {
+      echo "Please select the secrets directory."
+      $secrets_dir = (gum choose 
+        --header "Secrets directory:"
+        ...(ls).name)
+    }
+    echo ""
+
+    mut images_dir = ""
+    if ("images" | path exists) {
+      if (gum confirm "Is it okay if I use the images directory to get images from?") {
+        $images_dir = "images"
+      }
+    }
+    if ($images_dir == "") {
+      echo "Please select the images directory."
+      $images_dir = (gum choose
+        --header "Images directory:"
+        ...(ls).name)
+    }
+    echo ""
+
+    mut wifi_host = ""
+    if (gum confirm "Would you like to borrow wifi secrets from another host?") {
+      echo "Please select the host to borrow wifi secrets from."
+      $wifi_host = (gum choose
+        --header "Host:"
+        ..(ls $hosts_dir).name)
+    }
+
+    echo "Please write in the id of the host."
+    let id = (gum input --placeholder "Id...")
+
+    echo $"You selected the '($secrets_dir)' directory for secrets."
+    echo $"You selected the '($images_dir)' directory for images."
+    if ($wifi_host | is-not-empty) {
+      echo $"You selected the '($wifi_host)' host for wifi secret sharing."
+    }
+    if ($id | is-not-empty) {
+      echo $"You wrote in '($id)' for the host id."
+    }
+    echo ""
+
+    echo "I will start the `generate` command now."
+    echo ""
+    echo "This might take some time."
+    if (not (gum confirm "Are you ready to generate the host secrets and image?")) {
+      echo "Exiting..."
+    }
+    echo ""
+
+    echo "Starting the `generate` command now."
+    main generate $id $secrets_dir $images_dir --wifi-from $wifi_host
+    echo ""
+
+    echo $"Host successfully generated with the id: '($id)'."
+    echo ""
+  } else if $command == "write" {
+    echo "You selected the `generate` command."
+    echo "This command requires root privileges."
+    echo ""
+
+    mut image = ""
+    mut images_dir = ""
+    if ("images" | path exists) {
+      if (gum confirm "Is it okay if I use the images directory to get the image from?") {
+        $images_dir = "images"
+      }
+    }
+    if ($images_dir == "") {
+      echo "Please select the images directory."
+      $images_dir = (gum choose
+        --header "Images directory:"
+        ...(ls).name)
+    }
+    echo "Please select the origin image."
+    $image = (gum choose --header "Image:" ...(ls $images_dir))
+    echo ""
+
+    echo "Please select the destination disk."
+    let destination = (gum choose
+      --header "Disk:"
+      ...(glob /dev/sd*[!0-9])
+      ...(glob /dev/nvme*n[!p]))
+    echo ""
+
+    echo $"You selected the '($image)' image for the original image."
+    echo $"You selected the '($destination)' disk for the destination."
+    echo ""
+
+    echo "I will start the `write` command now."
+    echo ""
+    echo "This might take some time."
+    echo "Don't go away right away because there will likely be a sudo password prompt."
+    if (not (gum confirm "Are you ready to write the host image?")) {
+      echo "Exiting..."
+    }
+    main write $image $destination
+    echo ""
+
+    echo $"Image ($image) successfully written to ($destination)."
+  }
+}
 
 # create host configuration, secrets and image
 #
@@ -24,13 +224,11 @@ def "main create" [
   secrets_dir: string,
   # directory in which to generate image
   images_dir: string,
-  # destination to write the image to
-  destination: string,
   # id of host to borrow wifi secrets from
   --wifi-from: string,
   # set the id of the host instead of randomly generating it
   --id: string
-]: nothing -> nothing {
+]: nothing -> string {
   let pwd = pwd
 
   let id = main init --id $id
@@ -44,11 +242,13 @@ def "main create" [
   cd $pwd
 
   main image inject $secrets $image
+
+  $id
 }
 
 # regenerate host secrets and image
 #
-# additionally write the image to the specified destination
+# optionally borrow wifi secrets from another host
 def "main generate" [
   # id of host to generate secrets and image for
   id: string,
@@ -56,8 +256,6 @@ def "main generate" [
   secrets_dir: string,
   # directory in which to generate image
   images_dir: string,
-  # destination to write the image to
-  destination: string,
   # id of host to borrow wifi secrets from
   --wifi-from: string
 ]: nothing -> nothing {
@@ -72,6 +270,14 @@ def "main generate" [
   cd $pwd
 
   main image inject $secrets $image
+}
+
+# write image to specified destination
+#
+# basically a sane wrapper over the `dd` and `sync` commands
+def "main write" [image: string, destination: string]: nothing -> nothing {
+  sudo dd $"if=($image)" $"of=($destination)" bs=4M conv=sync,noerror oflag=direct
+  sync
 }
 
 # initialize host with empty configuration
@@ -233,14 +439,6 @@ chmod 400 /root/secrets.age
 exit"
 
   echo $commands | guestfish --rw -a $image
-}
-
-# write image to specified destination
-#
-# basically a sane wrapper over the `dd` and `sync` commands
-def "main image write" [image: string, destination: string]: nothing -> nothing {
-  sudo dd $"if=($image)" $"of=($destination)" bs=4M conv=sync,noerror oflag=direct
-  sync
 }
 
 # create a secret key
