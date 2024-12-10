@@ -213,11 +213,15 @@ def "main secrets generate" [id: string, --wifi-from: string] {
 # generate a specified hosts' image
 # outputs the path to the generated image
 def "main image generate" [id: string] {
-  (nixos-generate
+  let compressed = ls (nixos-generate
     --system "aarch64-linux"
     --format "sd-aarch64"
-    --flake $"($root)#pidgeon-($id)-aarch64-linux")
-  unzstd (ls ./result/sd-image/ | get name | first) $"./($id)-temp.img"
+    --flake $"($root)#pidgeon-($id)-aarch64-linux"
+    | path dirname --num-levels 2
+    | path join "sd-image")
+    | get name
+    | first
+  unzstd $compressed $"./($id)-temp.img"
   mv -f  $"./($id)-temp.img" $"./($id).img" 
   ^rm -f result
   print $"./($id).img"
