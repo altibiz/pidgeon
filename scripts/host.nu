@@ -137,7 +137,7 @@ def "main" [ ] {
     print ""
 
     print "Starting the `create` command now."
-    let command = $"nu -c '($self) create ($secrets_dir) ($images_dir) --wifi-from ($wifi_host) --id ($id)'"
+    let command = $"nu ($self) create ($secrets_dir) ($images_dir) --wifi-from ($wifi_host) --id ($id)"
     print $"Executing '($command)'."
     gum spin $command
     print ""
@@ -220,7 +220,7 @@ def "main" [ ] {
     print ""
 
     print "Starting the `generate` command now."
-    let command = $"nu -c '($self) generate ($id) ($secrets_dir) ($images_dir) --wifi-from ($wifi_host)'"
+    let command = $"nu ($self) generate ($id) ($secrets_dir) ($images_dir) --wifi-from ($wifi_host)"
     print $"Executing '($command)'."
     gum spin $command
     print ""
@@ -277,7 +277,7 @@ def "main" [ ] {
     }
 
     print "Starting the `write` command now."
-    let command = $"nu -c '($self) write ($image) ($destination)'"
+    let command = $"nu ($self) write ($image) ($destination)"
     print $"Executing '($command)'."
     gum spin $command
     print ""
