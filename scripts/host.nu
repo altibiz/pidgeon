@@ -248,6 +248,22 @@ def "main image inject" [secrets_key: string, image: string]: nothing -> nothing
   sudo losetup -d $loop
 }
 
+# inject secrets key into a host image
+#
+# uses libguestfs
+def "main image inject libguestfs" [secrets_key: string, image: string]: nothing -> nothing {
+  let commands = $"run
+mount /dev/sda2 /
+set-e false
+mkdir /root
+chmod 700 /root
+upload ($secrets_key) /root/secrets.age
+chmod 400 /root/secrets.age
+exit"
+
+  echo $commands | guestfish --rw -a $image
+}
+
 # write image to specified destination
 #
 # basically a sane wrapper over the `dd` and `sync` commands
