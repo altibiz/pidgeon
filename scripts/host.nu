@@ -47,6 +47,7 @@ def "main" [ ] {
         --header "Secrets directory:"
         ...(ls).name)
     }
+    print $"You selected the '($secrets_dir)' directory for secrets."
     print ""
 
     mut images_dir = ""
@@ -62,15 +63,25 @@ def "main" [ ] {
         --header "Images directory:"
         ...(ls).name)
     }
+    print $"You selected the '($images_dir)' directory for images."
     print ""
 
     mut wifi_host = ""
     try {
       gum confirm "Would you like to borrow wifi secrets from another host?"
       print "Please select the host to borrow wifi secrets from."
-      $wifi_host = (gum choose
-        --header "Host:"
-        ..(ls $hosts_dir).name)
+      let hosts = ls $hosts_dir
+        | where $it.type == "dir"
+        | get name
+        | path basename
+        | parse "pidgeon-{id}"
+        | get id
+      $wifi_host = (gum choose --header "Host:" ...($hosts))
+    }
+    if ($wifi_host | is-not-empty) {
+      print $"You selected the '($wifi_host)' host for wifi secret sharing."
+    } else {
+      print $"You did not select a host for wifi secret sharing."
     }
     print ""
 
@@ -80,25 +91,23 @@ def "main" [ ] {
       print "Please write in the id of the host."
       $id = (gum input --placeholder "Id...")
     }
-    print ""
-
-    print $"You selected the '($secrets_dir)' directory for secrets."
-    print $"You selected the '($images_dir)' directory for images."
-    if ($wifi_host | is-not-empty) {
-      print $"You selected the '($wifi_host)' host for wifi secret sharing."
-    }
     if ($id | is-not-empty) {
       print $"You wrote in '($id)' for the host id."
+    } else {
+      print $"You did not write an id for the host id."
     }
     print ""
 
-    print "I will start the `create` command now."
+    print "I am ready to start the `create` command now."
     print ""
     print "This might take some time."
     try {
       gum confirm "Are you ready to create the host configuration, secrets and image?"
     } catch {
+      print ""
+      print "You were not ready to start the command."
       print "Exiting..."
+      print ""
       exit 1
     }
     print ""
@@ -126,6 +135,7 @@ def "main" [ ] {
         --header "Secrets directory:"
         ...(ls).name)
     }
+    print $"You selected the '($secrets_dir)' directory for secrets."
     print ""
 
     mut images_dir = ""
@@ -141,38 +151,46 @@ def "main" [ ] {
         --header "Images directory:"
         ...(ls).name)
     }
+    print $"You selected the '($images_dir)' directory for images."
     print ""
+
+    let hosts = ls $hosts_dir
+      | where $it.type == "dir"
+      | get name
+      | path basename
+      | parse "pidgeon-{id}"
+      | get id
 
     mut wifi_host = ""
-    try {
-      gum confirm "Would you like to borrow wifi secrets from another host?"
-      print "Please select the host to borrow wifi secrets from."
-      $wifi_host = (gum choose
-        --header "Host:"
-        ..(ls $hosts_dir).name)
+    if (($hosts | length) > 1) {
+      try {
+        gum confirm "Would you like to borrow wifi secrets from another host?"
+        print "Please select the host to borrow wifi secrets from."
+        $wifi_host = (gum choose --header "Host:" ...($hosts))
+      }
+      if ($wifi_host | is-not-empty) {
+        print $"You selected the '($wifi_host)' host for wifi secret sharing."
+      } else {
+        print $"You did not select a host for wifi secret sharing."
+      }
+      print ""
     }
+
+    print "Please pick an existing host id."
+    let id = (gum choose --header "Id:" ...($hosts | where $it != $wifi_host))
+    print $"You chose the '($id)' host."
     print ""
 
-    print "Please write in the id of the host."
-    let id = (gum input --placeholder "Id...")
-
-    print $"You selected the '($secrets_dir)' directory for secrets."
-    print $"You selected the '($images_dir)' directory for images."
-    if ($wifi_host | is-not-empty) {
-      print $"You selected the '($wifi_host)' host for wifi secret sharing."
-    }
-    if ($id | is-not-empty) {
-      print $"You wrote in '($id)' for the host id."
-    }
-    print ""
-
-    print "I will start the `generate` command now."
+    print "I am ready to start the `generate` command now."
     print ""
     print "This might take some time."
     try {
       gum confirm "Are you ready to generate the host secrets and image?"
     } catch {
+      print ""
+      print "You were not ready to start the command."
       print "Exiting..."
+      print ""
       exit 1
     }
     print ""
@@ -204,6 +222,7 @@ def "main" [ ] {
     }
     print "Please select the origin image."
     $image = (gum choose --header "Image:" ...(ls $images_dir))
+    print $"You selected the '($image)' image for the original image."
     print ""
 
     print "Please select the destination disk."
@@ -211,20 +230,20 @@ def "main" [ ] {
       --header "Disk:"
       ...(glob /dev/sd*[!0-9])
       ...(glob /dev/nvme*n[!p]))
-    print ""
-
-    print $"You selected the '($image)' image for the original image."
     print $"You selected the '($destination)' disk for the destination."
     print ""
 
-    print "I will start the `write` command now."
+    print "I am ready to start the `write` command now."
     print ""
     print "This might take some time."
     print "Don't go away right away because there will likely be a sudo password prompt."
     try {
       gum confirm "Are you ready to write the host image?"
     } catch {
+      print ""
+      print "You were not ready to start the command."
       print "Exiting..."
+      print ""
       exit 1
     }
     main write $image $destination
