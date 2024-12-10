@@ -113,5 +113,6 @@ pkgs.mkShell {
     nebula
     nixos-generators
     libguestfs-with-appliance
+    e2fsprogs
   ];
 }
