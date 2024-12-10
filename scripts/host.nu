@@ -516,6 +516,8 @@ def "main image generate" [id: string]: nothing -> string {
 def "main image inject" [secrets_key: string, image: string]: nothing -> nothing {
   let commands = $"run
 mount /dev/sda2 /
+mkdir /root
+chmod 700 /root
 upload ($secrets_key) /root/secrets.age
 chmod 400 /root/secrets.age
 exit"
