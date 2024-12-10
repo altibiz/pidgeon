@@ -113,10 +113,5 @@ pkgs.mkShell {
     nebula
     nixos-generators
     libguestfs-with-appliance
-    ((e2fsprogs.override { withFuse = true; }).overrideAttrs (final: prev: {
-      postInstall = (prev.postInstall or "") + ''
-        cp $fuse2fs/bin/fuse2fs $bin/bin
-      '';
-    }))
   ];
 }
