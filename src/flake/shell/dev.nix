@@ -112,6 +112,10 @@ pkgs.mkShell {
     i2c-tools
     nebula
     nixos-generators
-    (e2fsprogs.override { withFuse = true; })
+    ((e2fsprogs.override { withFuse = true; }).overrideAttrs (final: prev: {
+      postInstall = (prev.postInstall or "") + ''
+        cp $fuse2fs/bin/fuse2fs $bin/bin
+      '';
+    }))
   ];
 }

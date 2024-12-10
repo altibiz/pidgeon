@@ -222,7 +222,8 @@ def "main image generate" [id: string]: nothing -> string {
     | get name
     | first
   unzstd $compressed -o $"./($id)-temp.img"
-  mv -f  $"./($id)-temp.img" $"./($id).img" 
+  ^mv -f  $"./($id)-temp.img" $"./($id).img" 
+  chmod 644 $"./($id).img"
   ^rm -f result
   $"./($id).img"
 }
@@ -235,7 +236,7 @@ def "main image inject" [secrets_key: string, image: string]: nothing -> nothing
   let offset = ($start_sector | into int) * 512
 
   let temp = (mktemp -d)
-  fuse2fs -o offset=$offset $image $temp
+  fuse2fs -o $"offset=($offset)" $image $temp
 
   mkdir $"($temp)/root"
   chmod 700 $"($temp)/root"
