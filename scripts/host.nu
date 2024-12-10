@@ -124,6 +124,7 @@ def "main" [ ] {
     print $"I will generate an image for the new host in '($images_dir)/($id).img'."
     print ""
     print "This will take some time."
+    print ""
     try {
       gum confirm "Are you ready to create the host configuration, secrets and image?"
     } catch {
@@ -135,7 +136,7 @@ def "main" [ ] {
     }
     print ""
 
-    gum spin nu -c $"($self) create ($secrets_dir) ($images_dir) --wifi-from ($wifi_host) --id ($id)"
+    gum spin $"nu -c '($self) create ($secrets_dir) ($images_dir) --wifi-from ($wifi_host) --id ($id)'"
     print ""
 
     print "Starting the `create` command now."
@@ -203,6 +204,7 @@ def "main" [ ] {
     print $"I will generate the image for the host in the '($images_dir)/($id).img'"
     print ""
     print "This will take some time."
+    print ""
     try {
       gum confirm "Are you ready to generate the host secrets and image?"
     } catch {
@@ -215,7 +217,7 @@ def "main" [ ] {
     print ""
 
     print "Starting the `generate` command now."
-    gum spin nu -c $"($self) generate ($id) ($secrets_dir) ($images_dir) --wifi-from ($wifi_host)"
+    gum spin $"nu -c '($self) generate ($id) ($secrets_dir) ($images_dir) --wifi-from ($wifi_host)'"
     print ""
 
     print $"Host successfully generated with the id: '($id)'."
@@ -258,6 +260,7 @@ def "main" [ ] {
     print ""
     print "This might take some time."
     print "Don't go away right away because there will likely be a sudo password prompt."
+    print ""
     try {
       gum confirm "Are you ready to write the host image?"
     } catch {
@@ -268,7 +271,7 @@ def "main" [ ] {
       exit 1
     }
 
-    gum spin nu -c $"($self) write ($image) ($destination)"
+    gum spin $"nu -c '($self) write ($image) ($destination)'"
     print ""
 
     print $"Image ($image) successfully written to ($destination)."
