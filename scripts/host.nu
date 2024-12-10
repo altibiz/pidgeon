@@ -66,24 +66,26 @@ def "main" [ ] {
     print $"You selected the '($images_dir)' directory for images."
     print ""
 
+    let hosts = ls $hosts_dir
+      | where $it.type == "dir"
+      | get name
+      | path basename
+      | parse "pidgeon-{id}"
+      | get id
     mut wifi_host = ""
-    try {
-      gum confirm "Would you like to borrow wifi secrets from another host?"
-      print "Please select the host to borrow wifi secrets from."
-      let hosts = ls $hosts_dir
-        | where $it.type == "dir"
-        | get name
-        | path basename
-        | parse "pidgeon-{id}"
-        | get id
-      $wifi_host = (gum choose --header "Host:" ...($hosts))
+    if (($hosts | length) > 0) {
+      try {
+        gum confirm "Would you like to borrow wifi secrets from another host?"
+        print "Please select the host to borrow wifi secrets from."
+        $wifi_host = (gum choose --header "Host:" ...($hosts))
+      }
+      if ($wifi_host | is-not-empty) {
+        print $"You selected the '($wifi_host)' host for wifi secret sharing."
+      } else {
+        print $"You did not select a host for wifi secret sharing."
+      }
+      print ""
     }
-    if ($wifi_host | is-not-empty) {
-      print $"You selected the '($wifi_host)' host for wifi secret sharing."
-    } else {
-      print $"You did not select a host for wifi secret sharing."
-    }
-    print ""
 
     mut id = ""
     try {
