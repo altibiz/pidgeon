@@ -15,204 +15,222 @@ let hosts_dir = [ $root "src" "flake" "host" ] | path join
 # NOTE: any generated secret will not trump
 # a previously generated secret
 def "main" [ ] {
-  echo $"Hello, ($env.USER)!"
-  echo ""
-  echo "You are using the pidgeon host CLI."
-  echo "Please select the command to execute."
-  echo ""
-  echo "Start with the `create` command if you're starting from scratch."
-  echo "When adding new secrets for hosts use the `generate` command."
-  echo "When writing images to disks use the `write` command."
-  echo ""
-  echo "NOTE: the `write` command requires root privileges"
+  print $"Hello, ($env.USER)!"
+  print ""
+  print "You are using the pidgeon host CLI."
+  print "Please select the command to execute."
+  print ""
+  print "Start with the `create` command if you're starting from scratch."
+  print "When adding new secrets for hosts use the `generate` command."
+  print "When writing images to disks use the `write` command."
+  print ""
+  print "NOTE: the `write` command requires root privileges"
   let command = (gum choose
     --header "Command:"
     create generate write)
-  echo ""
+  print ""
 
   if $command == "create" {
-    echo "You selected the `create` command."
-    echo ""
+    print "You selected the `create` command."
+    print ""
 
     mut secrets_dir = ""
     if ("secrets" | path exists) {
-      if (gum confirm "Is it okay if I use the secrets directory to get secrets from?") {
+      try {
+        gum confirm "Is it okay if I use the secrets directory to get secrets from?"
         $secrets_dir = "secrets"
       }
     }
     if ($secrets_dir == "") {
-      echo "Please select the secrets directory."
+      print "Please select the secrets directory."
       $secrets_dir = (gum choose 
         --header "Secrets directory:"
         ...(ls).name)
     }
-    echo ""
+    print ""
 
     mut images_dir = ""
     if ("images" | path exists) {
-      if (gum confirm "Is it okay if I use the images directory to get images from?") {
+      try {
+        gum confirm "Is it okay if I use the images directory to get images from?"
         $images_dir = "images"
       }
     }
     if ($images_dir == "") {
-      echo "Please select the images directory."
+      print "Please select the images directory."
       $images_dir = (gum choose
         --header "Images directory:"
         ...(ls).name)
     }
-    echo ""
+    print ""
 
     mut wifi_host = ""
-    if (gum confirm "Would you like to borrow wifi secrets from another host?") {
-      echo "Please select the host to borrow wifi secrets from."
+    try {
+      gum confirm "Would you like to borrow wifi secrets from another host?"
+      print "Please select the host to borrow wifi secrets from."
       $wifi_host = (gum choose
         --header "Host:"
         ..(ls $hosts_dir).name)
     }
-    echo ""
+    print ""
 
     mut id = ""
-    if (gum confirm "Would you like to set the id of the host instead of generating it?") {
-      echo "Please write in the id of the host."
+    try {
+      gum confirm "Would you like to set the id of the host instead of generating it?"
+      print "Please write in the id of the host."
       $id = (gum input --placeholder "Id...")
     }
-    echo ""
+    print ""
 
-    echo $"You selected the '($secrets_dir)' directory for secrets."
-    echo $"You selected the '($images_dir)' directory for images."
+    print $"You selected the '($secrets_dir)' directory for secrets."
+    print $"You selected the '($images_dir)' directory for images."
     if ($wifi_host | is-not-empty) {
-      echo $"You selected the '($wifi_host)' host for wifi secret sharing."
+      print $"You selected the '($wifi_host)' host for wifi secret sharing."
     }
     if ($id | is-not-empty) {
-      echo $"You wrote in '($id)' for the host id."
+      print $"You wrote in '($id)' for the host id."
     }
-    echo ""
+    print ""
 
-    echo "I will start the `create` command now."
-    echo ""
-    echo "This might take some time."
-    if (not (gum confirm "Are you ready to create the host configuration, secrets and image?")) {
-      echo "Exiting..."
+    print "I will start the `create` command now."
+    print ""
+    print "This might take some time."
+    try {
+      gum confirm "Are you ready to create the host configuration, secrets and image?"
+    } catch {
+      print "Exiting..."
+      exit 1
     }
-    echo ""
+    print ""
 
     let id = main create $secrets_dir $images_dir --wifi-from $wifi_host --id $id
-    echo ""
+    print ""
 
-    echo "Starting the `create` command now."
-    echo $"Host successfully created with the id: '($id)'."
-    echo ""
+    print "Starting the `create` command now."
+    print $"Host successfully created with the id: '($id)'."
+    print ""
   } else if $command == "generate" {
-    echo "You selected the `generate` command."
-    echo ""
+    print "You selected the `generate` command."
+    print ""
 
     mut secrets_dir = ""
     if ("secrets" | path exists) {
-      if (gum confirm "Is it okay if I use the secrets directory to get secrets from?") {
+      try {
+        gum confirm "Is it okay if I use the secrets directory to get secrets from?"
         $secrets_dir = "secrets"
       }
     }
     if ($secrets_dir == "") {
-      echo "Please select the secrets directory."
+      print "Please select the secrets directory."
       $secrets_dir = (gum choose 
         --header "Secrets directory:"
         ...(ls).name)
     }
-    echo ""
+    print ""
 
     mut images_dir = ""
     if ("images" | path exists) {
-      if (gum confirm "Is it okay if I use the images directory to get images from?") {
+      try {
+        gum confirm "Is it okay if I use the images directory to get images from?"
         $images_dir = "images"
       }
     }
     if ($images_dir == "") {
-      echo "Please select the images directory."
+      print "Please select the images directory."
       $images_dir = (gum choose
         --header "Images directory:"
         ...(ls).name)
     }
-    echo ""
+    print ""
 
     mut wifi_host = ""
-    if (gum confirm "Would you like to borrow wifi secrets from another host?") {
-      echo "Please select the host to borrow wifi secrets from."
+    try {
+      gum confirm "Would you like to borrow wifi secrets from another host?"
+      print "Please select the host to borrow wifi secrets from."
       $wifi_host = (gum choose
         --header "Host:"
         ..(ls $hosts_dir).name)
     }
+    print ""
 
-    echo "Please write in the id of the host."
+    print "Please write in the id of the host."
     let id = (gum input --placeholder "Id...")
 
-    echo $"You selected the '($secrets_dir)' directory for secrets."
-    echo $"You selected the '($images_dir)' directory for images."
+    print $"You selected the '($secrets_dir)' directory for secrets."
+    print $"You selected the '($images_dir)' directory for images."
     if ($wifi_host | is-not-empty) {
-      echo $"You selected the '($wifi_host)' host for wifi secret sharing."
+      print $"You selected the '($wifi_host)' host for wifi secret sharing."
     }
     if ($id | is-not-empty) {
-      echo $"You wrote in '($id)' for the host id."
+      print $"You wrote in '($id)' for the host id."
     }
-    echo ""
+    print ""
 
-    echo "I will start the `generate` command now."
-    echo ""
-    echo "This might take some time."
-    if (not (gum confirm "Are you ready to generate the host secrets and image?")) {
-      echo "Exiting..."
+    print "I will start the `generate` command now."
+    print ""
+    print "This might take some time."
+    try {
+      gum confirm "Are you ready to generate the host secrets and image?"
+    } catch {
+      print "Exiting..."
+      exit 1
     }
-    echo ""
+    print ""
 
-    echo "Starting the `generate` command now."
+    print "Starting the `generate` command now."
     main generate $id $secrets_dir $images_dir --wifi-from $wifi_host
-    echo ""
+    print ""
 
-    echo $"Host successfully generated with the id: '($id)'."
-    echo ""
+    print $"Host successfully generated with the id: '($id)'."
+    print ""
   } else if $command == "write" {
-    echo "You selected the `generate` command."
-    echo "This command requires root privileges."
-    echo ""
+    print "You selected the `generate` command."
+    print "This command requires root privileges."
+    print ""
 
     mut image = ""
     mut images_dir = ""
     if ("images" | path exists) {
-      if (gum confirm "Is it okay if I use the images directory to get the image from?") {
+      try {
+        gum confirm "Is it okay if I use the images directory to get images from?"
         $images_dir = "images"
       }
     }
     if ($images_dir == "") {
-      echo "Please select the images directory."
+      print "Please select the images directory."
       $images_dir = (gum choose
         --header "Images directory:"
         ...(ls).name)
     }
-    echo "Please select the origin image."
+    print "Please select the origin image."
     $image = (gum choose --header "Image:" ...(ls $images_dir))
-    echo ""
+    print ""
 
-    echo "Please select the destination disk."
+    print "Please select the destination disk."
     let destination = (gum choose
       --header "Disk:"
       ...(glob /dev/sd*[!0-9])
       ...(glob /dev/nvme*n[!p]))
-    echo ""
+    print ""
 
-    echo $"You selected the '($image)' image for the original image."
-    echo $"You selected the '($destination)' disk for the destination."
-    echo ""
+    print $"You selected the '($image)' image for the original image."
+    print $"You selected the '($destination)' disk for the destination."
+    print ""
 
-    echo "I will start the `write` command now."
-    echo ""
-    echo "This might take some time."
-    echo "Don't go away right away because there will likely be a sudo password prompt."
-    if (not (gum confirm "Are you ready to write the host image?")) {
-      echo "Exiting..."
+    print "I will start the `write` command now."
+    print ""
+    print "This might take some time."
+    print "Don't go away right away because there will likely be a sudo password prompt."
+    try {
+      gum confirm "Are you ready to write the host image?"
+    } catch {
+      print "Exiting..."
+      exit 1
     }
     main write $image $destination
-    echo ""
+    print ""
 
-    echo $"Image ($image) successfully written to ($destination)."
+    print $"Image ($image) successfully written to ($destination)."
   }
 }
 
