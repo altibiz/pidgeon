@@ -3,6 +3,7 @@
 use std
 use ./static.nu *
 let root = $env.FILE_PWD | path dirname
+print  $env.FILE_PWD
 let hosts_dir = [ $root "src" "flake" "host" ] | path join
 let self = [ $root "scripts" "host.nu" ] | path join
 
@@ -135,10 +136,15 @@ def "main" [ ] {
     }
 
     print "Starting the `create` command now."
-    let wifi_arg = if ($wifi_host | is-empty) { "" } else { $"--wifi-from ($wifi_host)" }
-    let command = $"nu ($self) create ($secrets_dir) ($images_dir) ($wifi_arg) --id ($id)"
+    let wifi_arg = if ($wifi_host | is-empty) { "" } else { $" --wifi-from ($wifi_host)" }
+    let command = $"($self) create ($secrets_dir) ($images_dir)($wifi_arg) --id ($id)"
+    let temp = mktemp -t
+    print $temp
+    $command | save -f $temp
+    chmod 700 $temp
     print $"Executing '($command)'."
-    gum spin $command
+    gum spin nu $temp --title "Please wait for `create` to finish..." --show-error
+    ^rm -f $temp
     print ""
 
     print "Starting the `create` command now."
@@ -219,10 +225,15 @@ def "main" [ ] {
     print ""
 
     print "Starting the `generate` command now."
-    let wifi_arg = if ($wifi_host | is-empty) { "" } else { $"--wifi-from ($wifi_host)" }
-    let command = $"nu ($self) generate ($id) ($secrets_dir) ($images_dir) ($wifi_arg)"
+    let wifi_arg = if ($wifi_host | is-empty) { "" } else { $" --wifi-from ($wifi_host)" }
+    let command = $"nu ($self) generate ($id) ($secrets_dir) ($images_dir)($wifi_arg)"
+    let temp = mktemp -t
+    print $temp
+    $command | save -f $temp
+    chmod 700 $temp
     print $"Executing '($command)'."
-    gum spin $command
+    gum spin nu $temp --title "Please wait for `generate` to finish..." --show-error
+    ^rm -f $temp
     print ""
 
     print $"Host successfully generated with the id: '($id)'."
@@ -278,8 +289,13 @@ def "main" [ ] {
 
     print "Starting the `write` command now."
     let command = $"nu ($self) write ($image) ($destination)"
+    let temp = mktemp -t
+    print $temp
+    $command | save -f $temp
+    chmod 700 $temp
     print $"Executing '($command)'."
-    gum spin $command
+    gum spin nu $temp --title "Please wait for `write` to finish..." --show-output --show-error
+    ^rm -f $temp
     print ""
 
     print $"Image ($image) successfully written to ($destination)."
