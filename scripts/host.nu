@@ -4,6 +4,7 @@ use std
 use ./static.nu *
 let root = $env.FILE_PWD | path dirname
 let hosts_dir = [ $root "src" "flake" "host" ] | path join
+let self = [ $root "scripts" "host.nu" ] | path join
 
 # host configuration, secret, image generation script
 #
@@ -15,24 +16,41 @@ let hosts_dir = [ $root "src" "flake" "host" ] | path join
 # NOTE: any generated secret will not trump
 # a previously generated secret
 def "main" [ ] {
+  let hosts = ls $hosts_dir
+    | where $it.type == "dir"
+    | get name
+    | path basename
+    | parse "pidgeon-{id}"
+    | get id
+
   print $"Hello, ($env.USER)!"
   print ""
   print "You are using the pidgeon host CLI."
-  print "Please select the command to execute."
   print ""
-  print "Start with the `create` command if you're starting from scratch."
-  print "When adding new secrets for hosts use the `generate` command."
-  print "When writing images to disks use the `write` command."
-  print ""
-  print "NOTE: the `write` command requires root privileges"
-  let command = (gum choose
-    --header "Command:"
-    create generate write)
+
+  mut command = "create"
+  if (($hosts | length) > 0) {
+    print "Please select the command to execute."
+    print ""
+    print "When creating a new host use the `create` command."
+    print "When adding new secrets for hosts use the `generate` command."
+    print "When writing images to disks use the `write` command."
+    print ""
+    print "NOTE: the `write` command requires root privileges"
+    $command = (gum choose
+      --header "Command:"
+      create generate write)
+  } else {
+    print "It seems you have not used this CLI yet."
+    print "To use all functionality of this CLI you will need to create your first host."
+  }
   print ""
 
   if $command == "create" {
-    print "You selected the `create` command."
-    print ""
+    if (($hosts | length) > 0) {
+      print "You selected the `create` command."
+      print ""
+    }
 
     mut secrets_dir = ""
     if ("secrets" | path exists) {
@@ -66,12 +84,6 @@ def "main" [ ] {
     print $"You selected the '($images_dir)' directory for images."
     print ""
 
-    let hosts = ls $hosts_dir
-      | where $it.type == "dir"
-      | get name
-      | path basename
-      | parse "pidgeon-{id}"
-      | get id
     mut wifi_host = ""
     if (($hosts | length) > 0) {
       try {
@@ -123,7 +135,7 @@ def "main" [ ] {
     }
     print ""
 
-    let id = main create $secrets_dir $images_dir --wifi-from $wifi_host --id $id
+    gum spin nu -c $"($self) create ($secrets_dir) ($images_dir) --wifi-from ($wifi_host) --id ($id)"
     print ""
 
     print "Starting the `create` command now."
@@ -165,13 +177,6 @@ def "main" [ ] {
     print $"You selected the '($images_dir)' directory for images."
     print ""
 
-    let hosts = ls $hosts_dir
-      | where $it.type == "dir"
-      | get name
-      | path basename
-      | parse "pidgeon-{id}"
-      | get id
-
     mut wifi_host = ""
     if (($hosts | length) > 1) {
       try {
@@ -210,7 +215,7 @@ def "main" [ ] {
     print ""
 
     print "Starting the `generate` command now."
-    main generate $id $secrets_dir $images_dir --wifi-from $wifi_host
+    gum spin nu -c $"($self) generate ($id) ($secrets_dir) ($images_dir) --wifi-from ($wifi_host)"
     print ""
 
     print $"Host successfully generated with the id: '($id)'."
@@ -262,7 +267,8 @@ def "main" [ ] {
       print ""
       exit 1
     }
-    main write $image $destination
+
+    gum spin nu -c $"($self) write ($image) ($destination)"
     print ""
 
     print $"Image ($image) successfully written to ($destination)."
@@ -460,7 +466,7 @@ def "main secrets generate" [id: string, --wifi-from: string]: nothing -> string
   git add $"($host_dir)/secrets.yaml"
   cd $pwd
 
-  $"($id).scrt.key"
+  $"(pwd)/($id).scrt.key"
 }
 
 # generate a specified hosts' image
@@ -478,7 +484,7 @@ def "main image generate" [id: string]: nothing -> string {
   ^mv -f  $"./($id)-temp.img" $"./($id).img" 
   chmod 644 $"./($id).img"
   ^rm -f result
-  $"./($id).img"
+  $"(pwd)/($id).img"
 }
 
 # inject secrets key into a host image
