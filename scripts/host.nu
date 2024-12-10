@@ -221,7 +221,7 @@ def "main image generate" [id: string] {
     | path join "sd-image")
     | get name
     | first
-  unzstd $compressed $"./($id)-temp.img"
+  unzstd $compressed -o $"./($id)-temp.img"
   mv -f  $"./($id)-temp.img" $"./($id).img" 
   ^rm -f result
   print $"./($id).img"
