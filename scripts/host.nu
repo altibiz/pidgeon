@@ -202,7 +202,7 @@ def "main" [ ] {
     mut renew = false;
     try {
       gum confirm "Would you like to renew VPN and database certificates?"
-      renew = true;
+      $renew = true;
     }
     if $renew {
       print "You chose to renew VPN and database certificates."
@@ -515,6 +515,9 @@ def "main secrets generate" [
 
   main secrets scrt val $id
 
+  cp -f $"($id).scrt.val.pub" ../
+  cp -f $"($id).scrt.val" ../
+
   cd ../
   cd ../
 
@@ -577,7 +580,7 @@ exit"
 #   ./name.scrt.key
 def "main secrets scrt key" [name: string]: nothing -> nothing {
   age-keygen err> (std null-device) out> $"($name)-temp.scrt.key"
-  try { mv -n $"($name)-temp.scrt.key" $"($name).scrt.val" }
+  try { mv -n $"($name)-temp.scrt.key" $"($name).scrt.key" }
   rm -f $"($name)-temp.scrt.key"
   chmod 600 $"($name).scrt.key"
 
@@ -791,8 +794,8 @@ def "main secrets db key" [
     -subj $"/CN=($name)")
   (openssl x509 -req
     -in $"($name)-temp.db.key.req"
-    -CA $"($ca)-temp.db.ca.pub"
-    -CAkey $"($ca)-temp.db.ca"
+    -CA $"($ca).db.ca.pub"
+    -CAkey $"($ca).db.ca"
     -CAcreateserial
     -out $"($name)-temp.db.key.pub"
     -days 3650) err>| ignore
