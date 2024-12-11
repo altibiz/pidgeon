@@ -138,7 +138,6 @@ def "main" [ ] {
     let wifi_arg = if ($wifi_host | is-empty) { "" } else { $" --wifi-from ($wifi_host)" }
     let command = $"($self) create ($secrets_dir) ($images_dir)($wifi_arg) --id ($id)"
     print "\n"
-    # nu -c $command
     spin "create" $command
     print "\n"
 
@@ -222,7 +221,6 @@ def "main" [ ] {
     let wifi_arg = if ($wifi_host | is-empty) { "" } else { $" --wifi-from ($wifi_host)" }
     let command = $"nu ($self) generate ($id) ($secrets_dir) ($images_dir)($wifi_arg)"
     print "\n"
-    # nu -c $command
     spin "generate" $command
     print "\n"
 
@@ -280,8 +278,7 @@ def "main" [ ] {
     print "Starting the `write` command now."
     let command = $"nu ($self) write ($image) ($destination)"
     print "\n"
-    # nu -c $command
-    spin "write" $command
+    nu -c $command
     print "\n"
 
     print $"Image ($image) successfully written to ($destination)."
@@ -356,7 +353,7 @@ def "main generate" [
 #
 # basically a sane wrapper over the `dd` and `sync` commands
 def "main write" [image: string, destination: string]: nothing -> nothing {
-  sudo dd $"if=($image)" $"of=($destination)" bs=4M conv=sync,noerror oflag=direct
+  sudo dd $"if=($image)" $"of=($destination)" bs=4M conv=sync,noerror status=progress oflag=direct
   sync
 }
 
