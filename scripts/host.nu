@@ -137,10 +137,10 @@ def "main" [ ] {
     print "Starting the `create` command now."
     let wifi_arg = if ($wifi_host | is-empty) { "" } else { $" --wifi-from ($wifi_host)" }
     let command = $"($self) create ($secrets_dir) ($images_dir)($wifi_arg) --id ($id)"
-    print ""
-    nu -c $command
-    # spin "create" $command
-    print ""
+    print "\n"
+    # nu -c $command
+    spin "create" $command
+    print "\n"
 
     print $"Host successfully created with the id: '($id)'."
     print ""
@@ -221,10 +221,10 @@ def "main" [ ] {
     print "Starting the `generate` command now."
     let wifi_arg = if ($wifi_host | is-empty) { "" } else { $" --wifi-from ($wifi_host)" }
     let command = $"nu ($self) generate ($id) ($secrets_dir) ($images_dir)($wifi_arg)"
-    print ""
-    nu -c $command
-    # spin "generate" $command
-    print ""
+    print "\n"
+    # nu -c $command
+    spin "generate" $command
+    print "\n"
 
     print $"Host successfully generated with the id: '($id)'."
     print ""
@@ -279,10 +279,10 @@ def "main" [ ] {
 
     print "Starting the `write` command now."
     let command = $"nu ($self) write ($image) ($destination)"
-    print ""
-    nu -c $command
-    # spin "write" $command
-    print ""
+    print "\n"
+    # nu -c $command
+    spin "generate" $command
+    print "\n"
 
     print $"Image ($image) successfully written to ($destination)."
   }
