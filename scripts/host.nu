@@ -779,7 +779,7 @@ def "main secrets wifi env" [name: string]: nothing -> nothing {
   $pass | try { save $"($name).wifi.pass" }
   chmod 600 $"($name).wifi.pass"
 
-  let admin = random chars --length 32
+  let admin = random chars --length 8
   $admin | try { save $"($name).wifi.admin" }
   chmod 600 $"($name).wifi.admin"
 
