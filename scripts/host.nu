@@ -446,12 +446,12 @@ def "main secrets generate" [id: string, --wifi-from: string]: nothing -> string
   } else {
     glob $"../($wifi_from)/($wifi_from).wifi.*"
       | each { |x|
-          let suffix = $x.name
+          let suffix = $x
             | path basename
             | parse "{id}.wifi.{suffix}"
             | get suffix
             | first
-          try { cp $x.name $"($id).wifi.($suffix)" }
+          try { cp $x $"($id).wifi.($suffix)" }
         }
   }
   main secrets pidgeon env $id
