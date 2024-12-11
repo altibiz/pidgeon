@@ -112,7 +112,12 @@ pkgs.mkShell {
     i2c-tools
     nebula
     nixos-generators
-    libguestfs-with-appliance
     gum
+  ] ++ pkgs.lib.optionals
+    (
+      pkgs.stdenv.hostPlatform.isLinux
+        && pkgs.stdenv.hostPlatform.isx86_64
+    ) [
+    libguestfs-with-appliance
   ];
 }

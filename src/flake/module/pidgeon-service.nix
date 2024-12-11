@@ -9,9 +9,6 @@ let
     name = "pidgeon-service";
     runtimeInputs = [ package ];
     text = ''
-      #shellcheck disable=SC1091
-      #shellcheck disable=SC2046
-      eval export $(cat '${cfg.envPath}')
       echo "Starting: $PIDGEON_CLOUD_ID"
       ${package}/bin/pidgeon --config '${cfg.configPath}'
     '';
@@ -59,6 +56,7 @@ in
         after = [ "network.target" ];
         wantedBy = [ "multi-user.target" ];
         serviceConfig = {
+          EnvironmentFile = cfg.envPath;
           ExecStart = "${service}/bin/pidgeon-service";
           Restart = "always";
           User = "pidgeon";
