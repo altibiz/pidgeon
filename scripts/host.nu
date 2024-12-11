@@ -232,7 +232,7 @@ def "main" [ ] {
     print "Starting the `generate` command now."
     let wifi_arg = if ($wifi_host | is-empty) { "" } else { $" --wifi-from ($wifi_host)" }
     let renew_arg = if $renew { " --renew" } else { "" }
-    let command = $"nu ($self) generate ($id) ($secrets_dir) ($images_dir)($wifi_arg)($renew)"
+    let command = $"nu ($self) generate ($id) ($secrets_dir) ($images_dir)($wifi_arg)($renew_arg)"
     print "\n"
     spin "generate" $command
     print "\n"
