@@ -380,22 +380,22 @@ def "main init" [--id: string]: nothing -> string {
         | get vpn.ip
         | each { |x| 
             let p = $x
-              | parse "{3}.{2}.{1}.{0}"
+              | parse "{a}.{b}.{c}.{d}"
               | each { |x|
                   {
-                    0: ($x.0 | into int),
-                    1: ($x.1 | into int),
-                    2: ($x.2 | into int),
-                    3: ($x.3 | into int)
+                    d: ($x.d | into int),
+                    c: ($x.c | into int),
+                    b: ($x.b | into int),
+                    a: ($x.a | into int)
                    }
                 }
               | first
             {
               parsed: $p
-              sum: ($p.0 * 2 ** 0
-                + $p.1 * 2 ** 1
-                + $p.2 * 2 ** 2
-                + $p.3 * 2 ** 3)
+              sum: ($p.d * 2 ** 0
+                + $p.c * 2 ** 1
+                + $p.b * 2 ** 2
+                + $p.a * 2 ** 3)
               ip: $x
             }
           }
@@ -405,10 +405,10 @@ def "main init" [--id: string]: nothing -> string {
 
   let next_ip = if ($last_ip == null) {
     "10.8.0.10"
-  } else if ($last_ip.parsed.0 == 254) {
-    $"($last_ip.parsed.3).($last_ip.parsed.2).($last_ip.parsed.1 + 1).(0)"
+  } else if ($last_ip.parsed.d == 254) {
+    $"($last_ip.parsed.a).($last_ip.parsed.b).($last_ip.parsed.c + 1).(0)"
   } else {
-    $"($last_ip.parsed.3).($last_ip.parsed.2).($last_ip.parsed.1).($last_ip.parsed.0 + 1)"
+    $"($last_ip.parsed.a).($last_ip.parsed.b).($last_ip.parsed.c).($last_ip.parsed.d + 1)"
   }
 
   echo '{ }' | try { save $"($host_dir)/config.nix" }
