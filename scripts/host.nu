@@ -891,7 +891,7 @@ def "main secrets wifi env" [name: string]: nothing -> nothing {
 
   let wifi_env = $"WIFI_SSID=\"(open --raw $"($name).wifi.ssid.pub")\"
 WIFI_PASS=\"(open --raw $"($name).wifi.pass")\""
-  $wifi_env | try { save $"($name).wifi.env" }
+  $wifi_env | save -f $"($name).wifi.env"
   chmod 600 $"($name).wifi.env"
 }
 
@@ -930,19 +930,19 @@ def "main secrets pidgeon env" [name: string] -> {
     | get 0
 
 
-  let pidgeon_env = $"PIDGEON_DB_DOMAIN = \"localhost\";
-PIDGEON_DB_PORT = \"($port)\";
-PIDGEON_DB_USER = \"pidgeon\";
-PIDGEON_DB_PASSWORD = \"(open --raw $"($name).pidgeon.db.user")\";
-PIDGEON_DB_NAME = \"pidgeon\";
+  let pidgeon_env = $"PIDGEON_DB_DOMAIN=\"localhost\"
+PIDGEON_DB_PORT=\"($port)\"
+PIDGEON_DB_USER=\"pidgeon\"
+PIDGEON_DB_PASSWORD=\"(open --raw $"($name).pidgeon.db.user")\"
+PIDGEON_DB_NAME=\"pidgeon\"
 
-PIDGEON_CLOUD_DOMAIN = \"($cloud_domain)\";
-PIDGEON_CLOUD_API_KEY = \"(open --raw $"($name).key")\";
-PIDGEON_CLOUD_ID = \"pidgeon-($name)\";
+PIDGEON_CLOUD_DOMAIN=\"($cloud_domain)\"
+PIDGEON_CLOUD_API_KEY=\"(open --raw $"($name).key")\"
+PIDGEON_CLOUD_ID=\"pidgeon-($name)\"
 
-PIDGEON_NETWORK_IP_RANGE_START = \"($network_ip_range_start)\";
-PIDGEON_NETWORK_IP_RANGE_END = \"($network_ip_range_end)\""
-  $pidgeon_env | try { save $"($name).pidgeon.env" }
+PIDGEON_NETWORK_IP_RANGE_START=\"($network_ip_range_start)\"
+PIDGEON_NETWORK_IP_RANGE_END=\"($network_ip_range_end)\""
+  $pidgeon_env | save -f $"($name).pidgeon.env"
   chmod 600 $"($name).pidgeon.env"
 }
 
