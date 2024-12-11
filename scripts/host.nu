@@ -444,7 +444,7 @@ def "main secrets generate" [id: string, --wifi-from: string]: nothing -> string
   if ($wifi_from | is-empty) {
     main secrets wifi env $id
   } else {
-    glob $"../($id)/($id).wifi.*"
+    glob $"../($wifi_from)/($wifi_from).wifi.*"
       | each { |x|
           let suffix = $x.name
             | path basename
