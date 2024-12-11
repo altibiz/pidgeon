@@ -137,15 +137,11 @@ def "main" [ ] {
     print "Starting the `create` command now."
     let wifi_arg = if ($wifi_host | is-empty) { "" } else { $" --wifi-from ($wifi_host)" }
     let command = $"($self) create ($secrets_dir) ($images_dir)($wifi_arg) --id ($id)"
-    let temp = mktemp -t
-    $command | save -f $temp
-    chmod 700 $temp
     print ""
-    gum spin nu $temp --title "Please wait for `create` to finish..." --show-error
-    ^rm -f $temp
+    nu $command
+    # spin "create" $command
     print ""
 
-    print "Starting the `create` command now."
     print $"Host successfully created with the id: '($id)'."
     print ""
   } else if $command == "generate" {
@@ -225,12 +221,9 @@ def "main" [ ] {
     print "Starting the `generate` command now."
     let wifi_arg = if ($wifi_host | is-empty) { "" } else { $" --wifi-from ($wifi_host)" }
     let command = $"nu ($self) generate ($id) ($secrets_dir) ($images_dir)($wifi_arg)"
-    let temp = mktemp -t
-    $command | save -f $temp
-    chmod 700 $temp
     print ""
-    gum spin nu $temp --title "Please wait for `generate` to finish..." --show-error
-    ^rm -f $temp
+    nu $command
+    # spin "generate" $command
     print ""
 
     print $"Host successfully generated with the id: '($id)'."
@@ -286,16 +279,21 @@ def "main" [ ] {
 
     print "Starting the `write` command now."
     let command = $"nu ($self) write ($image) ($destination)"
-    let temp = mktemp -t
-    $command | save -f $temp
-    chmod 700 $temp
     print ""
-    gum spin nu $temp --title "Please wait for `write` to finish..." --show-output --show-error
-    ^rm -f $temp
+    nu $command
+    # spin "write" $command
     print ""
 
     print $"Image ($image) successfully written to ($destination)."
   }
+}
+
+def spin [name: string, command: string]: nothing -> nothing {
+  let temp = mktemp -t
+  $command | save -f $temp
+  chmod 700 $temp
+  gum spin nu $temp --title $"Please wait for `($name)` to finish..." --show-error
+  ^rm -f $temp
 }
 
 # create host configuration, secrets and image
