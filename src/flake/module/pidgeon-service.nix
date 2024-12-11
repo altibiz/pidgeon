@@ -10,7 +10,7 @@ let
     runtimeInputs = [ package ];
     text = ''
       echo "Starting: $PIDGEON_CLOUD_ID"
-      ${package}/bin/pidgeon --config '${cfg.configPath}'
+      pidgeon-cli --config '${cfg.configPath}'
     '';
   };
 in
