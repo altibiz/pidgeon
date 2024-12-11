@@ -199,6 +199,18 @@ def "main" [ ] {
     print $"You chose the '($id)' host."
     print ""
 
+    mut renew = false;
+    try {
+      gum confirm "Would you like to renew VPN and database certificates?"
+      renew = true;
+    }
+    if $renew {
+      print "You chose to renew VPN and database certificates."
+    } else {
+      print "You chose not to renew VPN and database certificates."
+    }
+    print ""
+
     print "I am ready to start the `generate` command now."
     print ""
     print $"I will generate new secrets for host in the '($secrets_dir)/($id)'"
@@ -219,7 +231,8 @@ def "main" [ ] {
 
     print "Starting the `generate` command now."
     let wifi_arg = if ($wifi_host | is-empty) { "" } else { $" --wifi-from ($wifi_host)" }
-    let command = $"nu ($self) generate ($id) ($secrets_dir) ($images_dir)($wifi_arg)"
+    let renew_arg = if $renew { " --renew" } else { "" }
+    let command = $"nu ($self) generate ($id) ($secrets_dir) ($images_dir)($wifi_arg)($renew)"
     print "\n"
     spin "generate" $command
     print "\n"
@@ -289,8 +302,11 @@ def spin [name: string, command: string]: nothing -> nothing {
   let temp = mktemp -t
   $command | save -f $temp
   chmod 700 $temp
-  gum spin nu $temp --title $"Please wait for `($name)` to finish..." --show-error
-  ^rm -f $temp
+  (gum spin nu
+    $temp
+    --title $"Please wait for `($name)` to finish..."
+    --show-error)
+  rm -f $temp
 }
 
 # create host configuration, secrets and image
@@ -311,7 +327,12 @@ def "main create" [
   let id = main init --id $id
 
   cd $secrets_dir
-  let secrets = main secrets generate $id --wifi-from $wifi_from
+  let secrets = (main
+    secrets
+    generate
+    $id
+    --wifi-from
+    $wifi_from)
   cd $pwd
 
   cd $images_dir
@@ -334,12 +355,17 @@ def "main generate" [
   # directory in which to generate image
   images_dir: string,
   # id of host to borrow wifi secrets from
-  --wifi-from: string
+  --wifi-from: string,
+  # renew certificates
+  --renew
 ]: nothing -> nothing {
   let pwd = pwd
 
   cd $secrets_dir
-  let secrets = main secrets generate $id --wifi-from $wifi_from
+  let secrets = (main secrets generate
+    $id
+    --wifi-from $wifi_from
+    --renew)
   cd $pwd
 
   cd $images_dir
@@ -352,8 +378,17 @@ def "main generate" [
 # write image to specified destination
 #
 # basically a sane wrapper over the `dd` and `sync` commands
-def "main write" [image: string, destination: string]: nothing -> nothing {
-  sudo dd $"if=($image)" $"of=($destination)" bs=4M conv=sync,noerror status=progress oflag=direct
+def "main write" [
+  image: string,
+  destination: string
+]: nothing -> nothing {
+  (sudo dd
+    $"if=($image)"
+    $"of=($destination)"
+    bs=4M
+    conv=sync,noerror
+    status=progress
+    oflag=direct)
   sync
 }
 
@@ -421,7 +456,11 @@ def "main init" [--id: string]: nothing -> string {
 }
 
 # generate secrets for a specified host
-def "main secrets generate" [id: string, --wifi-from: string]: nothing -> string {
+def "main secrets generate" [
+  id: string,
+  --wifi-from: string,
+  --renew
+]: nothing -> string {
   let host_dir = $"($hosts_dir)/pidgeon-($id)"
   mkdir $host_dir
   let secrets_dir = $"($id)"
@@ -435,8 +474,13 @@ def "main secrets generate" [id: string, --wifi-from: string]: nothing -> string
   main secrets pass $id
   main secrets ssh key $id
   main secrets key $id
-  main secrets vpn key $id ../shared
-  main secrets db key $id ../shared
+  if $renew {
+    main secrets vpn key $id ../shared --renew
+    main secrets db key $id ../shared --renew
+  } else {
+    main secrets vpn key $id ../shared
+    main secrets db key $id ../shared
+  }
   main secrets db sql $id
   if ($wifi_from | is-empty) {
     main secrets wifi env $id
@@ -448,7 +492,7 @@ def "main secrets generate" [id: string, --wifi-from: string]: nothing -> string
             | parse "{id}.wifi.{suffix}"
             | get suffix
             | first
-          try { cp $x $"($id).wifi.($suffix)" }
+          try { cp -n $x $"($id).wifi.($suffix)" }
         }
   }
   main secrets pidgeon env $id
@@ -457,25 +501,25 @@ def "main secrets generate" [id: string, --wifi-from: string]: nothing -> string
   mkdir val
   cd val
 
-  try { cp $"../($id).ssh.key.pub" altibiz.ssh.pub }
-  try { cp $"../($id).pass.pub" altibiz.pass.pub }
-  try { cp $"../($id).pidgeon.env" pidgeon.env }
-  try { cp $"../($id).db.key" postgres.crt }
-  try { cp $"../($id).db.key.pub" postgres.crt.pub }
-  try { cp $"../($id).db.sql" postgres.sql }
-  try { cp $"../($id).wifi.env" wifi.env }
-  try { cp ../../shared.vpn.ca.pub nebula.ca.pub }
-  try { cp $"../($id).vpn.key" nebula.crt }
-  try { cp $"../($id).vpn.key.pub" nebula.crt.pub }
-  try { cp $"../($id).scrt.key.pub" . }
+  cp -f $"../($id).ssh.key.pub" altibiz.ssh.pub
+  cp -f $"../($id).pass.pub" altibiz.pass.pub
+  cp -f $"../($id).pidgeon.env" pidgeon.env
+  cp -f $"../($id).db.key" postgres.crt
+  cp -f $"../($id).db.key.pub" postgres.crt.pub
+  cp -f $"../($id).db.sql" postgres.sql
+  cp -f $"../($id).wifi.env" wifi.env
+  cp -f ../../shared.vpn.ca.pub nebula.ca.pub
+  cp -f $"../($id).vpn.key" nebula.crt
+  cp -f $"../($id).vpn.key.pub" nebula.crt.pub
+  cp -f $"../($id).scrt.key.pub" .
 
   main secrets scrt val $id
 
   cd ../
   cd ../
 
-  try { cp $"($secrets_dir)/($id).scrt.key.pub" . }
-  try { cp $"($secrets_dir)/($id).scrt.key" . }
+  try { cp -n $"($secrets_dir)/($id).scrt.key.pub" . }
+  try { cp -n $"($secrets_dir)/($id).scrt.key" . }
   cp -f $"($secrets_dir)/val/($id).scrt.val.pub" .
   cp -f $"($secrets_dir)/val/($id).scrt.val" .
   cp -f $"($id).scrt.val.pub" $"($host_dir)/secrets.yaml"
@@ -500,16 +544,19 @@ def "main image generate" [id: string]: nothing -> string {
     | get name
     | first
   unzstd $compressed -o $"./($id)-temp.img"
-  ^mv -f  $"./($id)-temp.img" $"./($id).img" 
+  mv -f  $"./($id)-temp.img" $"./($id).img" 
   chmod 644 $"./($id).img"
-  ^rm -f result
+  rm -f result
   $"(pwd)/($id).img"
 }
 
 # inject secrets key into a host image
 #
 # uses libguestfs
-def "main image inject" [secrets_key: string, image: string]: nothing -> nothing {
+def "main image inject" [
+  secrets_key: string,
+  image: string
+]: nothing -> nothing {
   let commands = $"run
 mount /dev/sda2 /
 mkdir /root
@@ -529,13 +576,16 @@ exit"
 #   ./name.scrt.key.pub
 #   ./name.scrt.key
 def "main secrets scrt key" [name: string]: nothing -> nothing {
-  age-keygen err> (std null-device) out> $"($name).scrt.key"
+  age-keygen err> (std null-device) out> $"($name)-temp.scrt.key"
+  try { mv -n $"($name)-temp.scrt.key" $"($name).scrt.val" }
+  rm -f $"($name)-temp.scrt.key"
   chmod 600 $"($name).scrt.key"
 
   open --raw $"($name).scrt.key"
     | (age-keygen -y
       err> (std null-device)
-      out> $"($name).scrt.key.pub")
+      out> $"($name)-temp.scrt.key.pub")
+  mv -f $"($name)-temp.scrt.key.pub" $"($name).scrt.key.pub"
   chmod 644 $"($name).scrt.key.pub"
 }
 
@@ -555,7 +605,7 @@ def "main secrets scrt key" [name: string]: nothing -> nothing {
 #   ./name.scrt.val.pub
 #   ./name.scrt.val
 def "main secrets scrt val" [name: string]: nothing -> nothing {
-  ls $env.PWD
+  let vals = ls $env.PWD
     | where { |x| $x.type == "file" }
     | where { |x| 
         let basename = $x.name | path basename
@@ -573,7 +623,7 @@ def "main secrets scrt val" [name: string]: nothing -> nothing {
         return $"($x.name | path basename): |\n  ($content)" 
       }
     | str join "\n"
-    | save -f $"($name).scrt.val"
+  $vals | save -f $"($name).scrt.val"
   chmod 600 $"($name).scrt.val"
 
   let keys = ls $env.PWD
@@ -590,8 +640,10 @@ def "main secrets scrt val" [name: string]: nothing -> nothing {
   (sops encrypt $"($name).scrt.val"
     --input-type yaml
     --age $keys
-    --output $"($name).scrt.val.pub"
+    --output $"($name)-temp.scrt.val.pub"
     --output-type yaml)
+
+  mv -f $"($name)-temp.scrt.val.pub" $"($name).scrt.val.pub"
   chmod 644 $"($name).scrt.val.pub"
 }
 
@@ -605,10 +657,12 @@ def "main secrets scrt val" [name: string]: nothing -> nothing {
 def "main secrets ssh key" [name: string]: nothing -> nothing {
   ssh-keygen -q -a 100 -t ed25519 -N "" -C $name -f $"($name)-temp.ssh.key"
 
-  try { mv $"($name)-temp.ssh.key.pub" $"($name).ssh.key.pub" }
+  try { mv -n $"($name)-temp.ssh.key.pub" $"($name).ssh.key.pub" }
+  rm -f $"($name)-temp.ssh.key.pub"
   chmod 644 $"($name).ssh.key.pub"
 
-  try { mv $"($name)-temp.ssh.key" $"($name).ssh.key" }
+  try { mv -n $"($name)-temp.ssh.key" $"($name).ssh.key" }
+  rm -f $"($name)-temp.ssh.key"
   chmod 600 $"($name).ssh.key"
 }
 
@@ -624,10 +678,12 @@ def "main secrets vpn ca" [name: string]: nothing -> nothing {
     -out-crt $"($name)-temp.vpn.ca.pub"
     -out-key $"($name)-temp.vpn.ca")
 
-  try { mv $"($name)-temp.vpn.ca.pub" $"($name).vpn.ca.pub" }
+  try { mv -n $"($name)-temp.vpn.ca.pub" $"($name).vpn.ca.pub" }
+  rm -f $"($name)-temp.vpn.ca.pub"
   chmod 644 $"($name).vpn.ca.pub"
 
-  try { mv $"($name)-temp.vpn.ca" $"($name).vpn.ca" }
+  try { mv -n $"($name)-temp.vpn.ca" $"($name).vpn.ca" }
+  rm -f $"($name)-temp.vpn.ca"
   chmod 600 $"($name).vpn.ca"
 }
 
@@ -640,7 +696,11 @@ def "main secrets vpn ca" [name: string]: nothing -> nothing {
 # outputs:
 #   ./name.vpn.key.pub
 #   ./name.vpn.key
-def "main secrets vpn key" [name: string, ca: path]: nothing -> nothing {
+def "main secrets vpn key" [
+  name: string,
+  ca: path,
+  --renew
+]: nothing -> nothing {
   let $hosts = static hosts $hosts_dir
 
   let ip_key = $"VPN_($name | str upcase)_IP"
@@ -662,10 +722,20 @@ def "main secrets vpn key" [name: string, ca: path]: nothing -> nothing {
     -out-crt $"($name)-temp.vpn.key.pub"
     -out-key $"($name)-temp.vpn.key")
 
-  try { mv $"($name)-temp.vpn.key.pub" $"($name).vpn.key.pub" }
+  if $renew {
+    mv -f $"($name)-temp.vpn.key.pub" $"($name).vpn.key.pub"
+  } else {
+    try { mv -n $"($name)-temp.vpn.key.pub" $"($name).vpn.key.pub" }
+    rm -f $"($name)-temp.vpn.key.pub"
+  }
   chmod 644 $"($name).vpn.key.pub"
 
-  try { mv $"($name)-temp.vpn.key" $"($name).vpn.key" }
+  if $renew {
+    mv -f $"($name)-temp.vpn.key" $"($name).vpn.key"
+  } else {
+    try { mv -n $"($name)-temp.vpn.key" $"($name).vpn.key" }
+    rm -f $"($name)-temp.vpn.key"
+  }
   chmod 600 $"($name).vpn.key"
 }
 
@@ -678,15 +748,25 @@ def "main secrets vpn key" [name: string, ca: path]: nothing -> nothing {
 #   ./name.db.ca
 def "main secrets db ca" [name: string]: nothing -> nothing {
   (openssl genpkey -algorithm ED25519
-    -out $"($name).db.ca")
-  chmod 600 $"($name).db.ca"
+    -out $"($name)-temp.db.ca")
 
   (openssl req -x509
-    -key $"($name).db.ca"
-    -out $"($name).db.ca.pub"
+    -key $"($name)-temp.db.ca"
+    -out $"($name)-temp.db.ca.pub"
     -subj $"/CN=($name)"
     -days 3650)
+
+  try { mv -n $"($name)-temp.db.ca.pub" $"($name).db.ca.pub" }
+  rm -f $"($name)-temp.db.ca.pub"
   chmod 644 $"($name).db.ca.pub"
+
+  try { mv -n $"($name)-temp.db.ca.srl" $"($name).db.ca.srl" }
+  rm -f $"($name)-temp.db.ca.srl"
+  chmod 644 $"($name).db.ca.srl"
+
+  try { mv -n $"($name)-temp.db.ca" $"($name).db.ca" }
+  rm -f $"($name)-temp.db.ca"
+  chmod 600 $"($name).db.ca"
 }
 
 # create database ssl keys
@@ -697,23 +777,42 @@ def "main secrets db ca" [name: string]: nothing -> nothing {
 # outputs:
 #   ./name.db.key.pub
 #   ./name.db.key
-def "main secrets db key" [name: string, ca: path]: nothing -> nothing {
+def "main secrets db key" [
+  name: string,
+  ca: path,
+  --renew
+]: nothing -> nothing {
   (openssl genpkey -algorithm ED25519
-    -out $"($name).db.key")
-  chmod 600 $"($name).db.key"
+    -out $"($name)-temp.db.key")
 
   (openssl req -new
-    -key $"($name).db.key"
-    -out $"($name).db.key.req"
+    -key $"($name)-temp.db.key"
+    -out $"($name)-temp.db.key.req"
     -subj $"/CN=($name)")
   (openssl x509 -req
-    -in $"($name).db.key.req"
-    -CA $"($ca).db.ca.pub"
-    -CAkey $"($ca).db.ca"
+    -in $"($name)-temp.db.key.req"
+    -CA $"($ca)-temp.db.ca.pub"
+    -CAkey $"($ca)-temp.db.ca"
     -CAcreateserial
-    -out $"($name).db.key.pub"
+    -out $"($name)-temp.db.key.pub"
     -days 3650) err>| ignore
-  rm -f $"($name).db.key.req"
+
+  rm -f $"($name)-temp.db.key.req"
+
+  if $renew {
+    mv -f $"($name)-temp.db.key" $"($name).db.key" 
+  } else {
+    try { mv -n $"($name)-temp.db.key" $"($name).db.key" }
+    rm -f $"($name)-temp.db.key"
+  }
+  chmod 600 $"($name).db.key"
+
+  if $renew {
+    mv -f $"($name)-temp.db.key.pub" $"($name).db.key.pub"
+  } else {
+    try { mv -n $"($name)-temp.db.key.pub" $"($name).db.key.pub" }
+    rm -f $"($name)-temp.db.key.pub"
+  }
   chmod 644 $"($name).db.key.pub"
 }
 
@@ -736,7 +835,7 @@ def "main secrets db sql" [name: string]: nothing -> nothing {
   #   ./name.db.user
   def "db user" [name: string]: nothing -> nothing {
     let key = random chars --length 32
-    $key | save -f $"($name).db.user"
+    $key | try { save  $"($name).db.user" }
     chmod 600 $"($name).db.user"
   }
 
