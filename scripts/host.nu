@@ -248,7 +248,7 @@ def "main" [ ] {
         ...(ls).name)
     }
     print "Please select the origin image."
-    $image = (gum choose --header "Image:" ...(ls $images_dir))
+    $image = (gum choose --header "Image:" ...(ls $images_dir).name)
     print $"You selected the '($image)' image for the original image."
     print ""
 
@@ -281,7 +281,7 @@ def "main" [ ] {
     let command = $"nu ($self) write ($image) ($destination)"
     print "\n"
     # nu -c $command
-    spin "generate" $command
+    spin "write" $command
     print "\n"
 
     print $"Image ($image) successfully written to ($destination)."
