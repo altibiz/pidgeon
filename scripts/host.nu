@@ -376,6 +376,7 @@ def "main init" [--id: string]: nothing -> string {
       null
     } else {
       $hosts
+        | values
         | get vpn.ip
         | each { |x| 
             let p = $x
