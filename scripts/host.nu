@@ -240,7 +240,7 @@ def "main" [ ] {
     print $"Host successfully generated with the id: '($id)'."
     print ""
   } else if $command == "write" {
-    print "You selected the `generate` command."
+    print "You selected the `write` command."
     print "This command requires root privileges."
     print ""
 
