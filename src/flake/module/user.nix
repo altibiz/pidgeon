@@ -22,6 +22,7 @@
       pkgs.helix
       pkgs.yazi
       pkgs.lazygit
+      pkgs.nushell
     ];
   };
 }
