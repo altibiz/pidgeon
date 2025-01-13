@@ -502,6 +502,7 @@ def --wrapped "main connect" [
   (ssh
     $"altibiz@($host.vpn.ip)"
     -i $key
+    -t nu
     ...($args))
 }
 
