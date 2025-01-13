@@ -114,6 +114,7 @@ pkgs.mkShell {
     nixos-generators
     gum
     deploy-rs
+    sshpass
   ] ++ pkgs.lib.optionals
     (
       pkgs.stdenv.hostPlatform.isLinux

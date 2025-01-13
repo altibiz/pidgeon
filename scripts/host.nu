@@ -516,8 +516,7 @@ def --wrapped "main deploy" [
   pass: string,
   ...args
 ]: nothing -> nothing {
-  $"(open --raw $pass)\ny\n" | (deploy
-    --interactive
+  (sshpass -p $"(open --raw $pass)" deploy
     ...($args)
     --ssh-opts $"-i ($key)"
     --
