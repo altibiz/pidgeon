@@ -115,6 +115,7 @@ pkgs.mkShell {
     gum
     deploy-rs
     sshpass
+    mkpasswd
   ] ++ pkgs.lib.optionals
     (
       pkgs.stdenv.hostPlatform.isLinux
