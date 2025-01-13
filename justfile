@@ -11,9 +11,6 @@ artifacts := absolute_path('artifacts')
 target := absolute_path('target')
 docs := absolute_path('docs')
 isready := absolute_path('scripts/isready.nu')
-mksecrets-script := absolute_path('scripts/mksecrets.sh')
-image-script := absolute_path('scripts/image.sh')
-inject-script := absolute_path('scripts/inject.sh')
 host-script := absolute_path('scripts/host.nu')
 
 default:
@@ -78,12 +75,3 @@ rebuild *args:
 
 host *args:
     {{ host-script }} {{ args }}
-
-mksecrets *args:
-    {{ mksecrets-script }} {{ args }}
-
-image *args:
-    {{ image-script }} {{ args }}
-
-inject *args:
-    {{ inject-script }} {{ args }}
