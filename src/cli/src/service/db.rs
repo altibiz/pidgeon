@@ -139,7 +139,10 @@ impl Service {
         let migration_retries = migration_retries.checked_add(1usize).unwrap();
         migration_retries
       };
-      tracing::warn!("Migration unsuccessful - retrying in 1 second...");
+      tracing::warn!(
+        "Migration unsuccessful because\n{:?}\nRetrying in 1 second...",
+        migration_result
+      );
       tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
     }
     migration_result?;
