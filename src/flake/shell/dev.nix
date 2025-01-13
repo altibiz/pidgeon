@@ -113,6 +113,7 @@ pkgs.mkShell {
     nebula
     nixos-generators
     gum
+    deploy-rs
   ] ++ pkgs.lib.optionals
     (
       pkgs.stdenv.hostPlatform.isLinux
