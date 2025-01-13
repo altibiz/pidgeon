@@ -517,8 +517,10 @@ def --wrapped "main deploy" [
   ...args
 ]: nothing -> nothing {
   (sshpass -p $"(open --raw $pass)" deploy
+    --skip-checks
     ...($args)
     --ssh-opts $"-i ($key)"
+    --interactive-sudo "true"
     --
     $"($root)#pidgeon-($id)-aarch64-linux")
 }
