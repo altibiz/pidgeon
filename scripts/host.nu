@@ -381,7 +381,9 @@ def "main" [ ] {
     }
 
     print "Starting the `deploy` command now."
-    let command = $"nu ($self) deploy ($id) ($secrets_dir)/($id)/($id).ssh.key"
+    let command = ($"nu ($self) deploy ($id)"
+      + $" ($secrets_dir)/($id)/($id).ssh.key"
+      + $" ($secrets_dir)/($id)/($id).pass")
     print "\n"
     nu -c $command
     print "\n"
@@ -511,9 +513,10 @@ def --wrapped "main connect" [
 def --wrapped "main deploy" [
   id: string,
   key: string,
+  pass: string,
   ...args
 ]: nothing -> nothing {
-  (deploy
+  open --raw $pass | (deploy
     --interactive
     ...($args)
     --ssh-opts $"-i ($key)"

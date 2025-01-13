@@ -24,7 +24,9 @@
     {
       hostname = host.static.vpn.ip;
       sshUser = host.user;
+      user = "root";
       remoteBuild = false;
+      interactiveSudo = true;
       profiles.system = {
         path =
           deployPkgs.deploy-rs.lib.activate.nixos
