@@ -1,60 +1,5 @@
-{ self, pkgs, config, host, lib, ... }:
+{ self, pkgs, ... }:
 
-let
-  path = "${config.xdg.dataHome}/dot";
-
-  ensure = ''
-    if [ ! -d "${path}/.git" ]; then
-      ${pkgs.git}/bin/git clone \
-        -c user.name=haras \
-        -c user.email=social@haras.anonaddy.me \
-        https://github.com/haras-unicorn/dot \
-        "${path}"
-    fi
-  '';
-
-  rebuild = pkgs.writeShellApplication {
-    name = "rebuild";
-    runtimeInputs = [ ];
-    text = ''
-      ${ensure}
-
-      sudo nixos-rebuild switch \
-        --flake "${path}#${host.name}-${host.system}" \
-        "$@"
-    '';
-  };
-
-  rebuild-wip = pkgs.writeShellApplication {
-    name = "rebuild-wip";
-    runtimeInputs = [ ];
-    text = ''
-      ${ensure}
-
-      cd "${path}" && ${pkgs.git}/bin/git add "${path}"
-      cd "${path}" && ${pkgs.git}/bin/git commit -m WIP
-      cd "${path}" && ${pkgs.git}/bin/git push
-
-      sudo nixos-rebuild switch \
-        --flake "${path}#${host.name}-${host.system}" \
-        "$@"
-    '';
-  };
-
-  rebuild-trace = pkgs.writeShellApplication {
-    name = "rebuild-trace";
-    runtimeInputs = [ ];
-    text = ''
-      ${ensure}
-
-      sudo nixos-rebuild switch \
-        --flake "${path}#${host.name}-${host.system}" \
-        --show-trace \
-        --option eval-cache false \
-        "$@"
-    '';
-  };
-in
 {
   shared = {
     nix.extraOptions = "experimental-features = nix-command flakes";
@@ -91,13 +36,5 @@ in
 
     time.timeZone = "Etc/UTC";
     i18n.defaultLocale = "en_US.UTF-8";
-  };
-
-  home = {
-    home.packages = [ rebuild rebuild-wip rebuild-trace ];
-
-    home.activation = {
-      ensurePulledAction = lib.hm.dag.entryAfter [ "writeBoundary" ] ensure;
-    };
   };
 }
