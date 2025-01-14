@@ -36,12 +36,13 @@ def "main" [ ] {
     print "When adding new secrets for hosts use the `generate` command."
     print "When writing images to disks use the `write` command."
     print "When connecting to hosts use the `connect` command."
+    print "If you want to connect to the host database use the `db` command."
     print "When deploying to hosts use the `deploy` command."
     print ""
     print "NOTE: the `write` command requires root privileges"
     $command = (gum choose
       --header "Command:"
-      create generate write connect deploy)
+      create generate write connect db deploy)
   } else {
     print "It seems you have not used this CLI yet."
     print "To use all functionality of this CLI you will need to create your first host."
@@ -342,6 +343,51 @@ def "main" [ ] {
     print "\n"
 
     print $"Disconnected from host '($id)'"
+  } else if $command == "db" {
+    print "You selected the `db` command."
+    print ""
+
+    mut secrets_dir = ""
+    if ("secrets" | path exists) {
+      try {
+        gum confirm "Is it okay if I use the secrets directory to get secrets from?"
+        $secrets_dir = "secrets"
+      }
+    }
+    if ($secrets_dir == "") {
+      print "Please select the secrets directory."
+      $secrets_dir = (gum choose 
+        --header "Secrets directory:"
+        ...(ls).name)
+    }
+    print $"You selected the '($secrets_dir)' directory for secrets."
+    print ""
+
+    print "Please pick an existing host id."
+    let id = (gum choose --header "Id:" ...($hosts))
+    print $"You chose the '($id)' host."
+    print ""
+
+    print "I am ready to start the `db` command now."
+    print ""
+    print $"I will connect to database of host '($id)'."
+    try {
+      gum confirm "Are you ready to connect to the host database?"
+    } catch {
+      print ""
+      print "You were not ready to start the command."
+      print "Exiting..."
+      print ""
+      exit 1
+    }
+
+    print "Starting the `db` command now."
+    let command = $"nu ($self) db ($id) ($secrets_dir)/($id)/($id).altibiz.db.user"
+    print "\n"
+    nu -c $command
+    print "\n"
+
+    print $"Disconnected from database of host '($id)'"
   } else if $command == "deploy" {
     print "You selected the `deploy` command."
     print ""
@@ -524,6 +570,27 @@ def --wrapped "main deploy" [
     --interactive-sudo "true"
     --
     $"($root)#pidgeon-($id)-aarch64-linux")
+}
+
+# connect to database of specified host
+#
+# basically a wrapper over `usql` command
+#
+# assumes a vpn connection is running
+def --wrapped "main db" [
+  id: string,
+  pass: string,
+  ...args
+]: nothing -> nothing {
+  let $hosts = static hosts $hosts_dir
+  let $host = $hosts | get $"pidgeon-($id)"
+
+  let auth = $"altibiz:(open --raw $pass)"
+  let conn = $"($host.vpn.ip):5433"
+
+  (usql
+    $"postgres://($auth)@($conn)/pidgeon?sslmode=disable"
+    ...($args))
 }
 
 
