@@ -589,7 +589,7 @@ def --wrapped "main db" [
   let conn = $"($host.vpn.ip):5433"
 
   (usql
-    $"postgres://($auth)@($conn)/pidgeon?sslmode=disable"
+    $"postgres://($auth)@($conn)/pidgeon"
     ...($args))
 }
 
