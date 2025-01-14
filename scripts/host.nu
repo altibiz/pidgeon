@@ -382,7 +382,7 @@ def "main" [ ] {
     }
 
     print "Starting the `db` command now."
-    let command = $"nu ($self) db ($id) ($secrets_dir)/($id)/($id).altibiz.db.user"
+    let command = $"nu ($self) db ($id) pidgeon ($secrets_dir)/($id)/($id).pidgeon.db.user"
     print "\n"
     nu -c $command
     print "\n"
@@ -579,13 +579,14 @@ def --wrapped "main deploy" [
 # assumes a vpn connection is running
 def --wrapped "main db" [
   id: string,
+  user: string,
   pass: string,
   ...args
 ]: nothing -> nothing {
   let $hosts = static hosts $hosts_dir
   let $host = $hosts | get $"pidgeon-($id)"
 
-  let auth = $"altibiz:(open --raw $pass)"
+  let auth = $"($user):(open --raw $pass)"
   let conn = $"($host.vpn.ip):5433"
 
   (usql
