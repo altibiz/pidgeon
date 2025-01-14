@@ -1,5 +1,7 @@
 #!/usr/bin/env nu
 
+# TODO: fix altibiz privileges on pidgeon database
+
 use std
 use ./static.nu *
 let root = $env.FILE_PWD | path dirname
