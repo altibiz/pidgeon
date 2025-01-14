@@ -93,12 +93,13 @@ pkgs.mkShell {
 
     # tools
     (pkgs.writeShellApplication {
-      name = "usql";
+      name = "usqll";
       runtimeInputs = [ pkgs.usql ];
       text = ''
         usql ${databaseUrl} "$@"
       '';
     })
+    usql
     postgresql_14
     openssh
     age
