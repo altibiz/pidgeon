@@ -117,6 +117,7 @@ pub(crate) struct Modbus {
   pub(crate) time_timeout: Option<u32>,
   pub(crate) inactive_timeout: Option<u32>,
   pub(crate) discovery_timeout: Option<u32>,
+  pub(crate) max_slave: Option<u8>,
   pub(crate) devices: HashMap<String, Device>,
 }
 

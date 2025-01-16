@@ -69,6 +69,7 @@ pub(crate) struct Modbus {
   pub(crate) time_timeout: chrono::Duration,
   pub(crate) inactive_timeout: chrono::Duration,
   pub(crate) discovery_timeout: chrono::Duration,
+  pub(crate) max_slave: u8,
   pub(crate) devices: HashMap<String, Device>,
 }
 
@@ -336,6 +337,7 @@ impl Manager {
         discovery_timeout: file::milliseconds_to_chrono(
           config.from_file.modbus.discovery_timeout.unwrap_or(30_000),
         ),
+        max_slave: config.from_file.modbus.max_slave.unwrap_or(30),
         devices: config
           .from_file
           .modbus

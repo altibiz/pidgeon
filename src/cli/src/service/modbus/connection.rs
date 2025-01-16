@@ -43,15 +43,18 @@ pub(crate) struct Destination {
 impl Destination {
   pub(crate) fn slaves_for(
     device: Device,
+    max_slave: Option<u8>,
   ) -> impl Iterator<Item = Destination> {
     let device = device.clone();
-    (Slave::min_device().0..Slave::max_device().0).map(move |slave| {
-      let device = device.clone();
-      Destination {
-        device,
-        slave: Some(slave),
-      }
-    })
+    (Slave::min_device().0..(max_slave.unwrap_or(Slave::max_device().0))).map(
+      move |slave| {
+        let device = device.clone();
+        Destination {
+          device,
+          slave: Some(slave),
+        }
+      },
+    )
   }
 
   pub(crate) fn standalone_for(device: Device) -> Destination {
