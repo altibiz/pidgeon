@@ -39,16 +39,8 @@ Dijagram za vizualni prikaz ovih komponenti i njihovih interakcija:
 left to right direction
 
 cloud "Lokacija" {
-  node "Abb B2x mjeritelj" as abb {
-    portin "RS-485" as abb_rs485
-  }
-
   node "Schneider iEM3xxx mjeritelj" as schneider {
     portin "RS-485" as schneider_rs485
-  }
-
-  node "Gateway" as gateway {
-    portin "502" as gateway_502
   }
 
   node "Raspberry PI" as rpi {
@@ -92,12 +84,9 @@ cloud "Azure" as azure {
   }
 }
 
-gateway --> abb_rs485 : "Modbus RTU"
-gateway --> schneider_rs485 : "Modbus RTU"
-
 config_manager --> rpi : "Datotečni sustav"
 
-modbus_service --> gateway_502 : "Modbus TCP"
+modbus_service --> schneider_rs485 : "Modbus RTU"
 database_service --> postgres_5432 : "SQL"
 hardware_service --> rpi : "Datotečni sustav"
 network_service --> gateway_502 : "TCP"
