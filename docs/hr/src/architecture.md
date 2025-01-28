@@ -39,8 +39,8 @@ Dijagram za vizualni prikaz ovih komponenti i njihovih interakcija:
 left to right direction
 
 cloud "Lokacija" {
-  node "Schneider iEM3xxx mjeritelj" as schneider {
-    portin "RS-485" as schneider_rs485
+  node "Mjeritelj" as meter {
+    portin "RS-485" as meter_rs485
   }
 
   node "Raspberry PI" as rpi {
@@ -88,7 +88,7 @@ cloud "Cloud" as cloud {
 
 config_manager --> filesystem
 
-modbus_service --> schneider_rs485 : "Modbus RTU"
+modbus_service --> meter_rs485 : "Modbus RTU"
 database_service --> dbPort : "SQL"
 hardware_service --> filesystem
 cloud_service --> server_push : "HTTP"
