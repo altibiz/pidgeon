@@ -163,7 +163,7 @@ impl Container {
     // add_job!(self, config, scheduler, time);
     if !config.local {
       add_job!(self, config, scheduler, push);
-      add_job!(self, config, scheduler, update);
+      // add_job!(self, config, scheduler, update);
       // add_job!(self, config, scheduler, health);
     }
 

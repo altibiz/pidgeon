@@ -157,6 +157,7 @@ impl Process {
 
     let merged_devices = db_devices
       .into_iter()
+      .filter(|device| device.status == db::DeviceStatus::Healthy)
       .filter_map(|device| {
         config
           .modbus
