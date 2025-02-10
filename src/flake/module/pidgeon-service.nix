@@ -3,7 +3,7 @@
 let
   cfg = config.services.pidgeon;
 
-  package = self.packages.${pkgs.system}.default;
+  package = self.packages.${pkgs.system}.cli;
 
   service = pkgs.writeShellApplication {
     name = "pidgeon-service";
