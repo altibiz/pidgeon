@@ -10,13 +10,25 @@ let
     runtimeInputs = [ package ];
     text = ''
       echo "Starting: $PIDGEON_CLOUD_ID"
-      pidgeon-cli --config '${cfg.configPath}'
+      ${if cfg.debug
+        then ''
+          pidgeon-cli --debug --config '${cfg.configPath}'
+        ''
+        else ''
+          pidgeon-cli --config '${cfg.configPath}'
+        ''}
     '';
   };
 in
 {
   options.services.pidgeon = {
     enable = lib.mkEnableOption "pidgeon";
+
+    debug = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Set log level to DEBUG";
+    };
 
     configPath = lib.mkOption {
       type = lib.types.str;

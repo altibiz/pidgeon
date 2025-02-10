@@ -17,8 +17,7 @@ use tokio_cron_scheduler::{Job, JobScheduler, JobSchedulerError};
 
 use crate::{config, service};
 
-// OPTIMIZE: all processes by removing unnecessary cloning at least
-// TODO: on startup run discovery to populate modbus device registry
+// FIXME: remove warnings about dead code for unused processes
 
 pub(crate) trait Process {
   fn process_name(&self) -> &'static str {
@@ -159,13 +158,13 @@ impl Container {
     run_add_job!(self, config, scheduler, discover);
     run_add_job!(self, config, scheduler, ping);
     run_add_job!(self, config, scheduler, measure);
+    // add_job!(self, config, scheduler, daily);
+    // add_job!(self, config, scheduler, nightly);
+    // add_job!(self, config, scheduler, time);
     if !config.local {
       add_job!(self, config, scheduler, push);
       add_job!(self, config, scheduler, update);
-      add_job!(self, config, scheduler, health);
-      add_job!(self, config, scheduler, daily);
-      add_job!(self, config, scheduler, nightly);
-      add_job!(self, config, scheduler, time);
+      // add_job!(self, config, scheduler, health);
     }
 
     if let Err(error) = scheduler.start().await {

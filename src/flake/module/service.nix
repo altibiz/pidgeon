@@ -3,6 +3,7 @@
 {
   system = {
     services.pidgeon.enable = true;
+    services.pidgeon.debug = true;
 
     services.pidgeon.configPath = "/etc/pidgeon/config.toml";
     environment.etc."pidgeon/config.toml" = {
