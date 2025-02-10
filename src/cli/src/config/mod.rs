@@ -207,11 +207,11 @@ impl Manager {
       schedule: Schedule {
         discover: file::string_to_cron(
           &config.from_file.schedule.discover,
-          "0 */5 * * * * *", // NOTE: every 5 minutes
+          "0 0 * * * * *", // NOTE: every hour
         ),
         ping: file::string_to_cron(
           &config.from_file.schedule.ping,
-          "0 */5 * * * * *", // NOTE: every 5 minutes
+          "0 0 * * * * *", // NOTE: every hour
         ),
         measure: file::string_to_cron(
           &config.from_file.schedule.measure,
@@ -239,7 +239,7 @@ impl Manager {
         ),
         time: file::string_to_cron(
           &config.from_file.schedule.time,
-          "0 0 0 1 * * *", // NOTE: at start of every month
+          "0 0 0 1 * * *", // NOTE: every month
         ),
         poll: file::string_to_cron(
           &config.from_file.schedule.poll,
