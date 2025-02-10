@@ -337,7 +337,7 @@ impl Manager {
         discovery_timeout: file::milliseconds_to_chrono(
           config.from_file.modbus.discovery_timeout.unwrap_or(30_000),
         ),
-        max_slave: config.from_file.modbus.max_slave.unwrap_or(30),
+        max_slave: config.from_file.modbus.max_slave.unwrap_or(25),
         devices: config
           .from_file
           .modbus
