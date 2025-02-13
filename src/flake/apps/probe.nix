@@ -1,3 +1,1 @@
-{ self, pkgs, ... }:
-
-self.lib.poetry.mkApp pkgs
+import ../packages/probe.nix
