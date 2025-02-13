@@ -1,6 +1,6 @@
-{ pkgs, ... }:
+{ mkShell, pkgs, ... }:
 
-pkgs.mkShell {
+mkShell {
   packages = with pkgs; [
     # scripts
     nushell

@@ -6,6 +6,10 @@
 
     nixpkgs.url = "github:nixos/nixpkgs/release-24.11";
 
+    perch.url = "git+file:/home/haras/src/altibiz/perch";
+    perch.inputs.nixpkgs.follows = "nixpkgs";
+    perch.inputs.flake-utils.follows = "flake-utils";
+
     deploy-rs.url = "github:serokell/deploy-rs";
     deploy-rs.inputs.nixpkgs.follows = "nixpkgs";
     deploy-rs.inputs.utils.follows = "flake-utils";

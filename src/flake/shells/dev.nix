@@ -1,4 +1,10 @@
-{ pkgs, self, ... }:
+{ mkShell
+, writeShellApplication
+, lib
+, pkgs
+, self
+, ...
+}:
 
 let
   postgres = self.lib.docker.mkDockerComposePostgres pkgs;
@@ -11,7 +17,7 @@ let
     in
     "postgres://${auth}@${conn}/${db}?sslmode=disable";
 in
-pkgs.mkShell {
+mkShell {
   RUST_BACKTRACE = "full";
 
   DATABASE_URL = databaseUrl;
@@ -92,9 +98,9 @@ pkgs.mkShell {
     systemd
 
     # tools
-    (pkgs.writeShellApplication {
+    (writeShellApplication {
       name = "usqll";
-      runtimeInputs = [ pkgs.usql ];
+      runtimeInputs = [ usql ];
       text = ''
         usql ${databaseUrl} "$@"
       '';
@@ -117,7 +123,7 @@ pkgs.mkShell {
     deploy-rs
     sshpass
     mkpasswd
-  ] ++ pkgs.lib.optionals
+  ] ++ lib.optionals
     (
       pkgs.stdenv.hostPlatform.isLinux
         && pkgs.stdenv.hostPlatform.isx86_64

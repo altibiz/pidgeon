@@ -1,6 +1,6 @@
-{ pkgs, self, ... }:
+{ pkgs, mkShell, self, ... }:
 
-pkgs.mkShell {
+mkShell {
   packages = with pkgs; [
     # Python - first because DVC python gets first in path
     poetry

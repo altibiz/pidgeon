@@ -181,6 +181,29 @@
         "type": "github"
       }
     },
+    "perch": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1739454892,
+        "narHash": "sha256-LiEjhjpbCLyBQidj26yo++8yUMfXs1db13udiZf9kc0=",
+        "ref": "refs/heads/flake",
+        "rev": "096bb694c8c78ca63ad34ab3dba498f9997acb1a",
+        "revCount": 23,
+        "type": "git",
+        "url": "file:/home/haras/src/altibiz/perch"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:/home/haras/src/altibiz/perch"
+      }
+    },
     "poetry2nix": {
       "inputs": {
         "flake-utils": "flake-utils_2",
@@ -211,6 +234,7 @@
         "home-manager": "home-manager",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs",
+        "perch": "perch",
         "poetry2nix": "poetry2nix",
         "sops-nix": "sops-nix"
       }
