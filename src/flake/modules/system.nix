@@ -1,4 +1,4 @@
-{ self, pkgs, ... }:
+{ pkgs, ... }:
 
 {
   shared = {
@@ -12,7 +12,6 @@
     nixpkgs.config = {
       allowUnfree = true;
     };
-    nixpkgs.overlays = [ self.overlays.default ];
   };
 
   system = {
