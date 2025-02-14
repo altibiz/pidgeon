@@ -648,13 +648,11 @@ def "main init" [--id: string]: nothing -> string {
     $"($last_ip.parsed.a).($last_ip.parsed.b).($last_ip.parsed.c).($last_ip.parsed.d + 1)"
   }
 
-  echo '{ }' | try { save $"($host_dir)/config.nix" }
-  { vpn: { ip: $next_ip } } | to json | try { save $"($host_dir)/static.json" }
+  $"{ vpn.ip = ($next_ip); }" | try { save $"($host_dir)/default.nix" }
 
   let pwd = pwd
   cd $root
-  git add $"($host_dir)/config.nix"
-  git add $"($host_dir)/static.json"
+  git add $"($host_dir)/default.nix"
   cd $pwd
 
   $id
