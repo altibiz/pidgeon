@@ -7,6 +7,6 @@ in
   systems = [ "aarch64-linux" ];
 
   system = {
-    vpn.ip = ip;
+    pidgeon.vpn.ip = ip;
   };
 }

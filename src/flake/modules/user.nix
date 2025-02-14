@@ -1,7 +1,10 @@
 { pkgs, config, ... }:
 
 let
-  firstUser = builtins.head config.users.users;
+  firstUser =
+    builtins.head
+      (builtins.attrValues
+        config.users.users);
 in
 {
   system = {
