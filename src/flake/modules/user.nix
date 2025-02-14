@@ -1,5 +1,8 @@
-{ pkgs, config, host, ... }:
+{ pkgs, config, ... }:
 
+let
+  firstUser = builtins.head config.users.users;
+in
 {
   system = {
     services.openssh.enable = true;
@@ -8,10 +11,20 @@
     programs.direnv.enable = true;
     programs.direnv.nix-direnv.enable = true;
 
-    sops.secrets."${host.user}.ssh.pub" = {
-      path = "/home/${host.user}/.ssh/authorized_keys";
-      owner = config.users.users.${host.user}.name;
-      group = config.users.users.${host.user}.group;
+    users.mutableUsers = false;
+    users.users.${firstUser.name} = {
+      uid = 1000;
+      gid = 100;
+      hashedPasswordFile =
+        config.sops.secrets."${firstUser.name}.pass.pub".path;
+      extraGroups = [ "wheel" "dialout" ];
+      useDefaultShell = true;
+    };
+
+    sops.secrets."${firstUser.name}.ssh.pub" = {
+      path = "${firstUser.home}/.ssh/authorized_keys";
+      owner = config.users.users.${firstUser.name}.name;
+      group = config.users.users.${firstUser.name}.group;
     };
   };
 

@@ -36,5 +36,11 @@
 
     time.timeZone = "Etc/UTC";
     i18n.defaultLocale = "en_US.UTF-8";
+
+    system.stateVersion = "24.11";
+  };
+
+  home = {
+    home.stateVersion = "24.11";
   };
 }

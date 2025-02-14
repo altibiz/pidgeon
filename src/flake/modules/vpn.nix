@@ -5,6 +5,18 @@
     pidgeon.vpn.ip = lib.mkOption {
       type = lib.types.str;
     };
+    pidgeon.vpn.subnet.ip = lib.mkOption {
+      type = lib.types.str;
+      default = "10.8.0.0/16";
+    };
+    pidgeon.vpn.subnet.bits = lib.mkOption {
+      type = lib.types.str;
+      default = "16";
+    };
+    pidgeon.vpn.subnet.mask = lib.mkOption {
+      type = lib.types.str;
+      default = "255.255.255.0";
+    };
   };
 
   system = {
