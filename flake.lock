@@ -3,9 +3,7 @@
     "deploy-rs": {
       "inputs": {
         "flake-compat": "flake-compat",
-        "nixpkgs": [
-          "nixpkgs"
-        ],
+        "nixpkgs": ["nixpkgs"],
         "utils": "utils"
       },
       "locked": {
@@ -40,9 +38,7 @@
     },
     "home-manager": {
       "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
+        "nixpkgs": ["nixpkgs"]
       },
       "locked": {
         "lastModified": 1733572789,
@@ -123,9 +119,7 @@
     },
     "perch": {
       "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
+        "nixpkgs": ["nixpkgs"]
       },
       "locked": {
         "lastModified": 1740583563,
@@ -144,15 +138,9 @@
     },
     "pyproject-build-systems": {
       "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "pyproject-nix": [
-          "pyproject-nix"
-        ],
-        "uv2nix": [
-          "uv2nix"
-        ]
+        "nixpkgs": ["nixpkgs"],
+        "pyproject-nix": ["pyproject-nix"],
+        "uv2nix": ["uv2nix"]
       },
       "locked": {
         "lastModified": 1740362541,
@@ -170,9 +158,7 @@
     },
     "pyproject-nix": {
       "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
+        "nixpkgs": ["nixpkgs"]
       },
       "locked": {
         "lastModified": 1739758351,
@@ -205,12 +191,8 @@
     },
     "rumor": {
       "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "perch": [
-          "perch"
-        ]
+        "nixpkgs": ["nixpkgs"],
+        "perch": ["perch"]
       },
       "locked": {
         "lastModified": 1740629695,
@@ -229,9 +211,7 @@
     },
     "sops-nix": {
       "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
+        "nixpkgs": ["nixpkgs"]
       },
       "locked": {
         "lastModified": 1733128155,
@@ -282,12 +262,8 @@
     },
     "uv2nix": {
       "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "pyproject-nix": [
-          "pyproject-nix"
-        ]
+        "nixpkgs": ["nixpkgs"],
+        "pyproject-nix": ["pyproject-nix"]
       },
       "locked": {
         "lastModified": 1740497536,
