@@ -6,9 +6,8 @@
 
     nixpkgs.url = "github:nixos/nixpkgs/release-24.11";
 
-    perch.url = "git+file:/home/haras/repos/altibiz/perch";
+    perch.url = "github:altibiz/perch/refs/tags/2.0.1";
     perch.inputs.nixpkgs.follows = "nixpkgs";
-    perch.inputs.flake-utils.follows = "flake-utils";
 
     deploy-rs.url = "github:serokell/deploy-rs";
     deploy-rs.inputs.nixpkgs.follows = "nixpkgs";
@@ -25,11 +24,16 @@
     poetry2nix.url = "github:nix-community/poetry2nix";
 
     crane.url = "github:ipetkov/crane";
+
+    rumor.url = "github:altibiz/rumor/refs/tags/1.1.3";
+    rumor.inputs.nixpkgs.follows = "nixpkgs";
+    rumor.inputs.perch.follows = "perch";
   };
 
-  outputs = { self, perch, ... } @inputs:
-    perch.lib.flake.mkFlake {
+  outputs = { perch, ... } @inputs:
+    perch.lib.flake.make {
       inherit inputs;
-      dir = ./src/flake;
+      root = ./.;
+      prefix = "src/flake";
     };
 }
