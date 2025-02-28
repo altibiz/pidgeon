@@ -2,8 +2,6 @@
   description = "Pidgeon - Raspberry Pi message broker.";
 
   inputs = {
-    flake-utils.url = "github:numtide/flake-utils";
-
     nixpkgs.url = "github:nixos/nixpkgs/release-24.11";
 
     perch.url = "github:altibiz/perch/refs/tags/2.0.1";
@@ -11,7 +9,6 @@
 
     deploy-rs.url = "github:serokell/deploy-rs";
     deploy-rs.inputs.nixpkgs.follows = "nixpkgs";
-    deploy-rs.inputs.utils.follows = "flake-utils";
 
     home-manager.url = "github:nix-community/home-manager/release-24.11";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
