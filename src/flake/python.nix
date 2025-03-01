@@ -15,7 +15,28 @@ let
       sourcePreference = "wheel";
     };
 
-    pyprojectOverrides = _final: _prev: { };
+    pyprojectOverrides = final: prev: {
+      numpy = prev.numpy.overridePythonAttrs (old: {
+        buildInputs = (old.buildInputs or [ ]) ++ (with pkgs; [
+          libgcc
+        ]);
+      });
+
+      pyright = prev.pyright.overridePythonAttrs (old: {
+        postInstall = (old.postInstall or "") + ''
+          wrapProgram $out/bin/pyright \
+            --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.nodejs ]}
+          wrapProgram $out/bin/pyright-langserver \
+            --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.nodejs ]}
+        '';
+      });
+
+      smbus = prev.smbus.overridePythonAttrs (old: {
+        buildInputs = (old.buildInputs or [ ]) ++ (with prev; [
+          setuptools
+        ]);
+      });
+    };
 
     python = pkgs.python312;
 
