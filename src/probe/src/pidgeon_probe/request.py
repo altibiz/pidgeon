@@ -1,5 +1,5 @@
 from typing import Any, NamedTuple, Callable, Union
-from probe.client import Client
+from pidgeon_probe.client import Client
 
 # TODO: from config
 

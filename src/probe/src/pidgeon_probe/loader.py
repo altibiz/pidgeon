@@ -6,8 +6,8 @@ import asyncio
 from datetime import datetime, timezone
 from dataclasses import dataclass
 from typing import Any
-from probe.log import log
-from probe.device import DeviceType
+from pidgeon_probe.log import log
+from pidgeon_probe.device import DeviceType
 
 # TODO: tariffs - mby not here
 # TODO: meter id from command line

@@ -1,8 +1,8 @@
 import re
 from typing import Callable
 from argparse import ArgumentParser
-from probe.device import DeviceType
-from probe.func import compose
+from pidgeon_probe.device import DeviceType
+from pidgeon_probe.func import compose
 
 
 class Args:
