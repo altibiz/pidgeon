@@ -21,51 +21,49 @@ let
   };
 in
 {
-  branch.nisoxModule.nixosModule = {
-    options = {
-      enable = lib.mkEnableOption "pidgeon";
+  options = {
+    enable = lib.mkEnableOption "pidgeon";
 
-      debug = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = "Set log level to DEBUG";
-      };
-
-      configPath = lib.mkOption {
-        type = lib.types.str;
-        default = "";
-        description = "Path to config. This config will be overwritten in memory"
-          + " when pidgeon successfully polls the server";
-      };
-
-      envPath = lib.mkOption {
-        type = lib.types.str;
-        description = "Path to environment variables file."
-          + " This file will be sourced before pidgeon is ran.";
-      };
+    debug = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Set log level to DEBUG";
     };
 
-    config = {
-      users.groups.pidgeon = { };
+    configPath = lib.mkOption {
+      type = lib.types.str;
+      default = "";
+      description = "Path to config. This config will be overwritten in memory"
+        + " when pidgeon successfully polls the server";
+    };
 
-      users.users.pidgeon = {
-        isSystemUser = true;
-        description = "Pidgeon service user";
-        group = "pidgeon";
-        extraGroups = [ "dialout" ];
-      };
+    envPath = lib.mkOption {
+      type = lib.types.str;
+      description = "Path to environment variables file."
+        + " This file will be sourced before pidgeon is ran.";
+    };
+  };
 
-      systemd.services.pidgeon = {
-        description = "Pidgeon - Raspberry Pi message broker.";
-        after = [ "network.target" ];
-        wantedBy = [ "multi-user.target" ];
-        serviceConfig = {
-          EnvironmentFile = cfg.envPath;
-          ExecStart = "${service}/bin/pidgeon-service";
-          Restart = "always";
-          User = "pidgeon";
-          Group = "pidgeon";
-        };
+  config = {
+    users.groups.pidgeon = { };
+
+    users.users.pidgeon = {
+      isSystemUser = true;
+      description = "Pidgeon service user";
+      group = "pidgeon";
+      extraGroups = [ "dialout" ];
+    };
+
+    systemd.services.pidgeon = {
+      description = "Pidgeon - Raspberry Pi message broker.";
+      after = [ "network.target" ];
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        EnvironmentFile = cfg.envPath;
+        ExecStart = "${service}/bin/pidgeon-service";
+        Restart = "always";
+        User = "pidgeon";
+        Group = "pidgeon";
       };
     };
   };

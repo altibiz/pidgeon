@@ -7,35 +7,33 @@ let
         config.users.users);
 in
 {
-  branch.nixosModule.nixosModule = {
-    services.openssh.enable = true;
-    services.openssh.settings.PasswordAuthentication = false;
+  services.openssh.enable = true;
+  services.openssh.settings.PasswordAuthentication = false;
 
-    programs.direnv.enable = true;
-    programs.direnv.nix-direnv.enable = true;
+  programs.direnv.enable = true;
+  programs.direnv.nix-direnv.enable = true;
 
-    users.mutableUsers = false;
-    users.users.${firstUser.name} = {
-      uid = 1000;
-      gid = 100;
-      hashedPasswordFile =
-        config.sops.secrets."${firstUser.name}.pass.pub".path;
-      extraGroups = [ "wheel" "dialout" ];
-      useDefaultShell = true;
-      packages = [
-        pkgs.kitty
-        pkgs.git
-        pkgs.helix
-        pkgs.yazi
-        pkgs.lazygit
-        pkgs.nushell
-      ];
-    };
+  users.mutableUsers = false;
+  users.users.${firstUser.name} = {
+    uid = 1000;
+    gid = 100;
+    hashedPasswordFile =
+      config.sops.secrets."${firstUser.name}.pass.pub".path;
+    extraGroups = [ "wheel" "dialout" ];
+    useDefaultShell = true;
+    packages = [
+      pkgs.kitty
+      pkgs.git
+      pkgs.helix
+      pkgs.yazi
+      pkgs.lazygit
+      pkgs.nushell
+    ];
+  };
 
-    sops.secrets."${firstUser.name}.ssh.pub" = {
-      path = "${firstUser.home}/.ssh/authorized_keys";
-      owner = config.users.users.${firstUser.name}.name;
-      group = config.users.users.${firstUser.name}.group;
-    };
+  sops.secrets."${firstUser.name}.ssh.pub" = {
+    path = "${firstUser.home}/.ssh/authorized_keys";
+    owner = config.users.users.${firstUser.name}.name;
+    group = config.users.users.${firstUser.name}.group;
   };
 }
