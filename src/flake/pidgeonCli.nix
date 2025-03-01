@@ -19,7 +19,8 @@ let
     '';
   };
 in
-pkgs.dockerTools.buildImage {
+pkgs.dockerTools.buildImage
+{
   name = "altibiz/pidgeon";
   tag = "latest";
   created = "now";
@@ -33,3 +34,12 @@ pkgs.dockerTools.buildImage {
     Cmd = [ "pidgeon-docker" ];
   };
 }
+
+  self.lib.cargo.mkPackage
+  pkgs
+  ../../../src/cli
+  "pidgeon-cli"
+  [
+    ../../../src/cli/.sqlx
+    ../../../src/cli/migrations
+  ]

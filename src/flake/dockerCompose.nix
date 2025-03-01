@@ -15,9 +15,7 @@ let
       (builtins.readFile "${package}/result");
 in
 {
-  inherit mkDockerCompose;
-
-  mkDockerComposePostgres = pkgs:
+  flake.lib.dockerCompose.mkDockerComposePostgres = pkgs:
     let
       dockerCompose = mkDockerCompose pkgs;
 

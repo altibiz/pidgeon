@@ -4,7 +4,7 @@
 }:
 
 {
-  flake.lib.rust.package = pkgs:
+  flake.lib.rust.mkPackage = pkgs:
     let
       naersk' = pkgs.callPackage naersk { };
     in

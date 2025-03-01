@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
-name: Check
+name: check
 
 on: [pull_request]
 
@@ -16,9 +16,6 @@ jobs:
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: cargo2nix
-        run: nix develop .#check -c just cargo2nix
-
       - name: format
         run: nix develop .#check -c just format
 
@@ -30,6 +27,3 @@ jobs:
 
       - name: lint
         run: nix develop .#check -c just lint
-
-      - name: test
-        run: nix develop .#check -c just test

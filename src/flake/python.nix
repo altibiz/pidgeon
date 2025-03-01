@@ -38,7 +38,7 @@ let
       });
     };
 
-    python = pkgs.python312;
+    python = pkgs.python311;
 
     pythonSet =
       (pkgs.callPackage pyproject-nix.build.packages {
@@ -51,22 +51,93 @@ let
             pyprojectOverrides
           ]
         );
+
+    editableOverlay = workspace.mkEditablePyprojectOverlay {
+      root = "$REPO_ROOT";
+      members = [ "pidgeon-probe" ];
+    };
+
+    editablePythonSet = pythonSet.overrideScope (
+      lib.composeManyExtensions [
+        editableOverlay
+
+        (final: prev: {
+          pidgeon-probe = prev.pidgeon-probe.overrideAttrs (old: {
+            src = lib.fileset.toSource {
+              root = old.src;
+              fileset = lib.fileset.unions [
+                (old.src + "/pyproject.toml")
+                (old.src + "/README.md")
+                (old.src + "/src/probe/pyproject.toml")
+                (old.src + "/src/probe/README.md")
+                (old.src + "/src/probe/src/**/*.py")
+              ];
+            };
+
+            # NOTE: hatchling requirement
+            nativeBuildInputs =
+              old.nativeBuildInputs
+              ++ final.resolveBuildSystem {
+                editables = [ ];
+              };
+          });
+
+        })
+      ]
+    );
   };
 in
 {
-  flake.lib.python.env = pkgs:
+  flake.lib.python.mkPackage = pkgs: name:
     let
       uv = mkUv pkgs;
-    in
-    uv.pythonSet.mkVirtualEnv
-      "hello-world-env"
-      uv.workspace.deps.default;
 
-  flake.lib.python.devShell = pkgs:
+      venv =
+        uv.pythonSet.mkVirtualEnv
+          "pidgeon-env"
+          uv.workspace.deps.default;
+    in
+    venv.${name};
+
+  flake.lib.python.mkApp = pkgs: bin:
     let
       uv = mkUv pkgs;
+
+      venv =
+        uv.pythonSet.mkVirtualEnv
+          "pidgeon-env"
+          uv.workspace.deps.default;
     in
-    uv.pythonSet.mkVirtualEnv
-      "hello-world-env"
-      uv.workspace.deps.default;
+    {
+      type = "app";
+      program = "${venv}/bin/${bin}";
+    };
+
+  flake.lib.python.mkDevShell = pkgs:
+    let
+      uv = mkUv pkgs;
+
+      venv =
+        uv.editablePythonSet.mkVirtualEnv
+          "pidgeon-dev-env"
+          uv.workspace.deps.all;
+    in
+    pkgs.mkShell {
+      packages = [
+        venv
+        pkgs.uv
+        pkgs.git
+      ];
+
+      env = {
+        UV_NO_SYNC = "1";
+        UV_PYTHON = "${venv}/bin/python";
+        UV_PYTHON_DOWNLOADS = "never";
+      };
+
+      shellHook = ''
+        unset PYTHONPATH
+        export REPO_ROOT=$(git rev-parse --show-toplevel)
+      '';
+    };
 }

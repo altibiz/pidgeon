@@ -1,7 +1,7 @@
 { ... }:
 
 {
-  mkBaseDockerImage = pkgs:
+  flake.lib.gns3.mkBaseDockerImage = pkgs:
     pkgs.dockerTools.buildImage {
       name = "altibiz/gns3-base";
       tag = "latest";

@@ -20,7 +20,8 @@ let
     '';
   };
 in
-pkgs.dockerTools.buildImage {
+pkgs.dockerTools.buildImage
+{
   name = "altibiz/pidgeon-probe";
   tag = "latest";
   created = "now";
@@ -34,3 +35,5 @@ pkgs.dockerTools.buildImage {
     Cmd = [ "pidgeon-probe-docker" ];
   };
 }
+  self.lib.poetry.mkApp
+  pkgs
