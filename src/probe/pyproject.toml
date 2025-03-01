@@ -1,27 +1,18 @@
-[tool.poetry]
-name = "probe"
+[project]
+name = "pidgeon-probe"
 version = "0.1.0"
-description = "Pidgeon probe"
-authors = ["Hrvoje Jurić <hrvoje@altibiz.com>"]
-license = "MIT"
-readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "pymodbus >=3.5.0"
+  "pandas >=2.2.2"
+  "pandas-stubs >=2.2.2.240603"
+  "pyserial >=3.5"
+  "smbus >=1.1.post2"
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry.scripts]
-pidgeon-probe = "probe.main:main"
-
-[tool.poetry.dependencies]
-python = "^3.11"
-pymodbus = "^3.5.0"
-pandas = "^2.2.2"
-pandas-stubs = "^2.2.2.240603"
-pyserial = "^3.5"
-smbus = "^1.1.post2"
-
-[tool.poetry.group.dev.dependencies]
-yapf = "^0.40.2"
-pyright = "^1.1.334"
-ruff = "^0.1.4"
+[project.scripts]
+pidgeon-probe = "pidgeon.probe.main:main"
