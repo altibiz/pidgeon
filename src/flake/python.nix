@@ -1,4 +1,5 @@
-{ pyproject-nix
+{ self
+, pyproject-nix
 , pyproject-build-systems
 , uv2nix
 , lib
@@ -8,7 +9,7 @@
 let
   mkUv = pkgs: rec {
     workspace = uv2nix.lib.workspace.loadWorkspace {
-      workspaceRoot = ./.;
+      workspaceRoot = builtins.toString self;
     };
 
     overlay = workspace.mkPyprojectOverlay {
@@ -62,7 +63,7 @@ let
         editableOverlay
 
         (final: prev: {
-          pidgeon-probe = prev.pidgeon-probe.overrideAttrs (old: {
+          pidgeon_probe = prev.pidgeon_probe.overrideAttrs (old: {
             src = lib.fileset.toSource {
               root = old.src;
               fileset = lib.fileset.unions [
@@ -97,7 +98,7 @@ in
           "pidgeon-env"
           uv.workspace.deps.default;
     in
-    venv."pidgeon-probe";
+    venv."pidgeon_probe";
 
   flake.lib.python.mkDevShell = pkgs:
     let
