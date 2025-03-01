@@ -5,11 +5,7 @@ requires-python = ">=3.11"
 dependencies = ["pidgeon-probe"]
 
 [dependency-groups]
-dev = [
-  "yapf >=0.40.2"
-  "pyright >=1.1.334"
-  "ruff >=0.1.4"
-]
+dev = ["yapf >=0.40.2", "pyright >=1.1.334", "ruff >=0.1.4"]
 
 [tool.uv.sources]
 pidgeon-probe = { workspace = true }
@@ -20,6 +16,9 @@ members = ["src/probe"]
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[project.scripts]
+pidgeon-probe = "pidgeon_probe:main"
 
 [tool.yapf]
 based_on_style = "pep8"

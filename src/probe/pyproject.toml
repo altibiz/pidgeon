@@ -3,11 +3,11 @@ name = "pidgeon-probe"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
-  "pymodbus >=3.5.0"
-  "pandas >=2.2.2"
-  "pandas-stubs >=2.2.2.240603"
-  "pyserial >=3.5"
-  "smbus >=1.1.post2"
+  "pymodbus >=3.5.0",
+  "pandas >=2.2.2",
+  "pandas-stubs >=2.2.2.240603",
+  "pyserial >=3.5",
+  "smbus >=1.1.post2",
 ]
 
 [build-system]
@@ -15,4 +15,4 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project.scripts]
-pidgeon-probe = "pidgeon.probe.main:main"
+pidgeon-probe = "pidgeon_probe:main"
