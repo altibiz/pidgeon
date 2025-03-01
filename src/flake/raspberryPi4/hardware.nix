@@ -4,7 +4,7 @@
 }:
 
 {
-  system = {
+  branch.nisoxModule.nixosModule = {
     imports = [
       nixos-hardware.nixosModules.raspberry-pi-4
     ];

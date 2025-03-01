@@ -1,9 +1,9 @@
 { ... }:
 
-{
-  disabled = true;
+# TODO: disable
 
-  system = {
+{
+  branch.nixosModule.nixosModule = {
     services.grafana.enable = true;
     services.grafana.settings = {
       server = {

@@ -7,7 +7,7 @@ let
         config.users.users);
 in
 {
-  system = {
+  branch.nixosModule.nixosModule = {
     services.openssh.enable = true;
     services.openssh.settings.PasswordAuthentication = false;
 
@@ -22,6 +22,14 @@ in
         config.sops.secrets."${firstUser.name}.pass.pub".path;
       extraGroups = [ "wheel" "dialout" ];
       useDefaultShell = true;
+      packages = [
+        pkgs.kitty
+        pkgs.git
+        pkgs.helix
+        pkgs.yazi
+        pkgs.lazygit
+        pkgs.nushell
+      ];
     };
 
     sops.secrets."${firstUser.name}.ssh.pub" = {
@@ -29,16 +37,5 @@ in
       owner = config.users.users.${firstUser.name}.name;
       group = config.users.users.${firstUser.name}.group;
     };
-  };
-
-  home = {
-    home.packages = [
-      pkgs.kitty
-      pkgs.git
-      pkgs.helix
-      pkgs.yazi
-      pkgs.lazygit
-      pkgs.nushell
-    ];
   };
 }

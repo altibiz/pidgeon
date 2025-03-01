@@ -1,7 +1,7 @@
 { pkgs, config, ... }:
 
 {
-  system = {
+  branch.nisoxModule.nixosModule = {
     services.postgresql.enable = true;
     services.postgresql.package = pkgs.postgresql_16;
     services.postgresql.extensions = with config.services.postgresql.package.pkgs; [

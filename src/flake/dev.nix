@@ -16,12 +16,14 @@ let
     "postgres://${auth}@${conn}/${db}?sslmode=disable";
 in
 {
+  seal.defaults.overlay = "dev";
   seal.overlays.dev = [
     (final: prev: {
       nodejs = prev.nodejs_20;
     })
   ];
 
+  seal.defaults.devShell = "dev";
   integrate.devShell.devShell = pkgs.mkShell {
     RUST_BACKTRACE = "full";
 

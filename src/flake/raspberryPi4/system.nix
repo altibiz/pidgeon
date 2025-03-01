@@ -1,7 +1,7 @@
 { pkgs, ... }:
 
 {
-  shared = {
+  branch.nixosModule.nixosModule = {
     nix.extraOptions = "experimental-features = nix-command flakes";
     nix.gc.automatic = true;
     nix.gc.options = "--delete-older-than 30d";
@@ -12,9 +12,6 @@
     nixpkgs.config = {
       allowUnfree = true;
     };
-  };
-
-  system = {
     nix.package = pkgs.nixVersions.stable;
 
     fileSystems."/firmware" = {
@@ -37,9 +34,5 @@
     i18n.defaultLocale = "en_US.UTF-8";
 
     system.stateVersion = "24.11";
-  };
-
-  home = {
-    home.stateVersion = "24.11";
   };
 }

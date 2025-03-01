@@ -1,7 +1,7 @@
 { self, config, ... }:
 
 {
-  system = {
+  branch.nixosModule.nixosModule = {
     services.pidgeon.enable = true;
     services.pidgeon.debug = true;
 

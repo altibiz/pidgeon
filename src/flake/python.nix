@@ -88,7 +88,7 @@ let
   };
 in
 {
-  flake.lib.python.mkPackage = pkgs: name:
+  flake.lib.python.mkPackage = pkgs:
     let
       uv = mkUv pkgs;
 
@@ -97,21 +97,7 @@ in
           "pidgeon-env"
           uv.workspace.deps.default;
     in
-    venv.${name};
-
-  flake.lib.python.mkApp = pkgs: bin:
-    let
-      uv = mkUv pkgs;
-
-      venv =
-        uv.pythonSet.mkVirtualEnv
-          "pidgeon-env"
-          uv.workspace.deps.default;
-    in
-    {
-      type = "app";
-      program = "${venv}/bin/${bin}";
-    };
+    venv."pidgeon-probe";
 
   flake.lib.python.mkDevShell = pkgs:
     let
