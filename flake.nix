@@ -1,6 +1,4 @@
 {
-  description = "Pidgeon - Raspberry Pi message broker.";
-
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/release-24.11";
 
