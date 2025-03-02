@@ -125,7 +125,7 @@ wheels = [
 [[package]]
 name = "pidgeon"
 version = "0.1.0"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "pidgeon-probe" },
 ]
@@ -138,7 +138,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pidgeon-probe", editable = "src/probe" }]
+requires-dist = [{ name = "pidgeon-probe", editable = "scripts/probe" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -150,7 +150,7 @@ dev = [
 [[package]]
 name = "pidgeon-probe"
 version = "0.1.0"
-source = { editable = "src/probe" }
+source = { editable = "scripts/probe" }
 dependencies = [
     { name = "pandas" },
     { name = "pandas-stubs" },
