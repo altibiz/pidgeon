@@ -99,7 +99,9 @@ in
     let
       uv = mkUv pkgs;
     in
-    uv.editablePythonSet.pidgeon-probe;
+    uv.editablePythonSet.pidgeon-probe.override {
+      pyprojectHook = uv.editablePythonSet.pyprojectDistHook;
+    };
 
   flake.lib.python.mkDevShell = pkgs:
     let
