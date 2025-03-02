@@ -11,7 +11,7 @@ dev = ["yapf >=0.40.2", "pyright >=1.1.334", "ruff >=0.1.4"]
 pidgeon-probe = { workspace = true }
 
 [tool.uv.workspace]
-members = ["src/probe"]
+members = ["scripts/probe"]
 
 [project.scripts]
 pidgeon-probe = "pidgeon_probe:main"
