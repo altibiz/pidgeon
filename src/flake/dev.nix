@@ -4,17 +4,6 @@
 , ...
 }:
 
-let
-  postgres = self.lib.dockerCompose.mkDockerComposePostgres pkgs;
-
-  databaseUrl =
-    let
-      auth = "${postgres.user}:${postgres.password}";
-      conn = "${postgres.host}:${postgres.port}";
-      db = postgres.database;
-    in
-    "postgres://${auth}@${conn}/${db}?sslmode=disable";
-in
 {
   seal.defaults.overlay = "dev";
   seal.overlays.dev = (final: prev: {
@@ -23,26 +12,9 @@ in
 
   seal.defaults.devShell = "dev";
   integrate.devShell.devShell = pkgs.mkShell {
-    RUST_BACKTRACE = "full";
-
-    DATABASE_URL = databaseUrl;
-
-    PIDGEON_DB_DOMAIN = postgres.host;
-    PIDGEON_DB_PORT = postgres.port;
-    PIDGEON_DB_USER = postgres.user;
-    PIDGEON_DB_PASSWORD = postgres.password;
-    PIDGEON_DB_NAME = postgres.database;
-
-    PIDGEON_CLOUD_DOMAIN = "localhost:5000";
-    PIDGEON_CLOUD_API_KEY = "messenger";
-    PIDGEON_CLOUD_ID = "messenger";
-
-    PIDGEON_NETWORK_IP_RANGE_START = "127.0.0.1";
-    PIDGEON_NETWORK_IP_RANGE_END = "127.0.0.1";
-    PIDGEON_MODBUS_PORT = "5020";
-
     inputsFrom = [
       (self.lib.python.mkDevShell pkgs)
+      (self.lib.rust.mkDevShell pkgs)
     ];
 
     packages = with pkgs; [
@@ -81,22 +53,6 @@ in
       # nix
       nil
       nixpkgs-fmt
-
-      # rust
-      llvmPackages.clangNoLibcxx
-      lldb
-      rustc
-      cargo
-      clippy
-      rustfmt
-      rust-analyzer
-      cargo-edit
-      evcxr
-
-      # build inputs
-      pkg-config
-      openssl
-      systemd
 
       # tools
       (writeShellApplication {

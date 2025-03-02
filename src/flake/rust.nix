@@ -1,6 +1,8 @@
 { self
-, naersk ? null
-, crane ? null
+, root
+, lib
+, naersk
+, crane
 , ...
 }:
 
@@ -11,11 +13,11 @@ let
     lib = crane.mkLib pkgs;
 
     src = pkgs.lib.fileset.toSource {
-      root = ../../..;
+      inherit root;
       fileset = pkgs.lib.fileset.unions [
-        (lib.fileset.commonCargoSources ../../..)
-        ../../../src/cli/.sqlx
-        ../../../src/cli/migrations
+        (lib.fileset.commonCargoSources root)
+        (pkgs.lib.path.append root "src/cli/.sqlx")
+        (pkgs.lib.path.append root "src/cli/migrations")
       ];
     };
 
@@ -26,6 +28,7 @@ let
       nativeBuildInputs = [
         pkgs.pkg-config
       ];
+
       buildInputs = [
         pkgs.openssl
         pkgs.systemd
@@ -40,10 +43,10 @@ let
     };
 
     mkCrateSrc = crate: extra: pkgs.lib.fileset.toSource {
-      root = ../../..;
+      inherit root;
       fileset = pkgs.lib.fileset.unions ([
-        ../../../Cargo.toml
-        ../../../Cargo.lock
+        (pkgs.lib.path.append root "Cargo.toml")
+        (pkgs.lib.path.append root "Cargo.lock")
         (lib.fileset.commonCargoSources crate)
       ] ++ extra);
     };
@@ -66,10 +69,14 @@ in
       pname = "pidgeon-cli";
       version = "0.1.0";
       src = self;
-      buildInputs = with pkgs; [
-        pkg-config
-        openssl
-        systemd
+
+      nativeBuildInputs = [
+        pkgs.pkg-config
+      ];
+
+      buildInputs = [
+        pkgs.openssl
+        pkgs.systemd
       ];
     };
 
@@ -78,11 +85,58 @@ in
       craneLib = mkCraneLib pkgs;
     in
     craneLib.mkPackage
-      ../../../src/cli
+      (lib.path.append root "src/cli")
       "pidgeon-cli"
       [
-        ../../../src/cli/.sqlx
-        ../../../src/cli/migrations
+        (lib.path.append root "src/cli/.sqlx")
+        (lib.path.append root "src/cli/migrations")
       ];
+
+  flake.lib.rust.mkShell = pkgs:
+    let
+      package = self.lib.rust.mkPackage pkgs;
+
+      postgres = self.lib.dockerCompose.mkDockerComposePostgres pkgs;
+
+      databaseUrl =
+        let
+          auth = "${postgres.user}:${postgres.password}";
+          conn = "${postgres.host}:${postgres.port}";
+          db = postgres.database;
+        in
+        "postgres://${auth}@${conn}/${db}?sslmode=disable";
+    in
+    pkgs.mkShell {
+      RUST_BACKTRACE = "full";
+
+      DATABASE_URL = databaseUrl;
+
+      PIDGEON_DB_DOMAIN = postgres.host;
+      PIDGEON_DB_PORT = postgres.port;
+      PIDGEON_DB_USER = postgres.user;
+      PIDGEON_DB_PASSWORD = postgres.password;
+      PIDGEON_DB_NAME = postgres.database;
+
+      PIDGEON_CLOUD_DOMAIN = "localhost:5000";
+      PIDGEON_CLOUD_API_KEY = "messenger";
+      PIDGEON_CLOUD_ID = "messenger";
+
+      PIDGEON_NETWORK_IP_RANGE_START = "127.0.0.1";
+      PIDGEON_NETWORK_IP_RANGE_END = "127.0.0.1";
+      PIDGEON_MODBUS_PORT = "5020";
+
+      packages = with pkgs; [
+        llvmPackages.clangNoLibcxx
+        lldb
+        rustc
+        cargo
+        clippy
+        rustfmt
+        rust-analyzer
+        cargo-edit
+        evcxr
+        package
+      ];
+    };
 }
 
