@@ -11,6 +11,18 @@ in
         (x // { allowMissing = true; });
     });
 
+  seal.deploy.nodes =
+    builtins.listToAttrs
+      (builtins.map
+        (pidgeon: {
+          name = "pidgeon-${pidgeon.id}";
+          value = {
+            hostname = pidgeon.ip;
+            sshUser = "altibiz";
+          };
+        })
+        pidgeons);
+
   flake.nixosModules = rec {
     default = pidgeon;
     pidgeon = import ./pidgeon.nix;
