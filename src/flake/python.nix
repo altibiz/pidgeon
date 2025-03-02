@@ -67,16 +67,7 @@ let
 
         (final: prev: {
           pidgeon-probe = prev.pidgeon-probe.overrideAttrs (old: {
-            src = lib.sources.sourceByRegex old.src [
-              "^pyproject.toml$"
-              "^.*\\.py$"
-            ];
-
-            postPatch = ''
-              ls .
-              cat fixup.py
-              exit 1
-            '';
+            src = lib.cleanSource old.src;
 
             # NOTE: hatchling requirement
             nativeBuildInputs =
