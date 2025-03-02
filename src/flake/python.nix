@@ -17,13 +17,16 @@ let
     };
 
     pyprojectOverrides = final: prev: {
-      numpy = prev.numpy.overridePythonAttrs (old: {
+      numpy = prev.numpy.overrideAttrs (old: {
         buildInputs = (old.buildInputs or [ ]) ++ (with pkgs; [
           libgcc
         ]);
       });
 
-      pyright = prev.pyright.overridePythonAttrs (old: {
+      pyright = prev.pyright.overrideAttrs (old: {
+        nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
+          pkgs.makeWrapper
+        ];
         postInstall = (old.postInstall or "") + ''
           wrapProgram $out/bin/pyright \
             --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.nodejs ]}
@@ -32,7 +35,7 @@ let
         '';
       });
 
-      smbus = prev.smbus.overridePythonAttrs (old: {
+      smbus = prev.smbus.overrideAttrs (old: {
         buildInputs = (old.buildInputs or [ ]) ++ (with prev; [
           setuptools
         ]);

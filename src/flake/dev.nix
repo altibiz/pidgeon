@@ -41,15 +41,11 @@ in
     PIDGEON_NETWORK_IP_RANGE_END = "127.0.0.1";
     PIDGEON_MODBUS_PORT = "5020";
 
-    packages = with pkgs; [
-      # python - first because dvc python gets first in path
-      poetry
-      (self.lib.poetry.mkEnvWrapper pkgs "pyright")
-      (self.lib.poetry.mkEnvWrapper pkgs "pyright-langserver")
-      (self.lib.poetry.mkEnvWrapper pkgs "yapf")
-      (self.lib.poetry.mkEnvWrapper pkgs "python")
-      (self.lib.poetry.mkEnv pkgs)
+    inputsFrom = [
+      (self.lib.python.mkDevShell pkgs)
+    ];
 
+    packages = with pkgs; [
       # version control
       git
       dvc-with-remotes
