@@ -44,6 +44,11 @@ let
 
     python = pkgs.python311;
 
+    buildUtil =
+      pkgs.callPackages
+        pyproject-nix.build.util
+        { };
+
     pythonSet =
       (pkgs.callPackage pyproject-nix.build.packages {
         inherit python;
@@ -98,9 +103,15 @@ in
   flake.lib.python.mkPackage = pkgs:
     let
       uv = mkUv pkgs;
+
+      venv =
+        uv.editablePythonSet.mkVirtualEnv
+          "pidgeon-env"
+          uv.workspace.deps.default;
     in
-    uv.editablePythonSet.pidgeon-probe.override {
-      pyprojectHook = uv.editablePythonSet.pyprojectDistHook;
+    uv.buildUtil.mkApplication {
+      venv = venv;
+      package = uv.editablePythonSet.pidgeon-probe;
     };
 
   flake.lib.python.mkDevShell = pkgs:
