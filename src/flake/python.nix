@@ -7,7 +7,7 @@
 }:
 
 let
-  mkUv = pkgs: rec {
+  mkUvLib = pkgs: rec {
     workspace = uv2nix.lib.workspace.loadWorkspace {
       workspaceRoot = "${self}";
     };
@@ -89,7 +89,7 @@ in
 {
   flake.lib.python.mkApp = pkgs:
     let
-      uv = mkUv pkgs;
+      uv = mkUvLib pkgs;
       venv =
         uv.editablePythonSet.mkVirtualEnv
           "pidgeon-env"
@@ -102,7 +102,7 @@ in
 
   flake.lib.python.mkPackage = pkgs:
     let
-      uv = mkUv pkgs;
+      uv = mkUvLib pkgs;
 
       venv =
         uv.editablePythonSet.mkVirtualEnv
@@ -116,7 +116,7 @@ in
 
   flake.lib.python.mkDevShell = pkgs:
     let
-      uv = mkUv pkgs;
+      uv = mkUvLib pkgs;
 
       venv =
         uv.editablePythonSet.mkVirtualEnv

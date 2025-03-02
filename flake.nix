@@ -17,6 +17,8 @@
 
     naersk.url = "github:nix-community/naersk";
 
+    crane.url = "github:ipetkov/crane";
+
     pyproject-nix.url = "github:pyproject-nix/pyproject.nix";
     pyproject-nix.inputs.nixpkgs.follows = "nixpkgs";
 
