@@ -40,6 +40,6 @@
     perch.lib.flake.make {
       inherit inputs;
       root = ./.;
-      prefix = "src/flake";
+      prefix = "scripts/flake";
     };
 }
