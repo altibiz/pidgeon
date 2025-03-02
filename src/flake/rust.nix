@@ -92,7 +92,7 @@ in
         (lib.path.append root "src/cli/migrations")
       ];
 
-  flake.lib.rust.mkShell = pkgs:
+  flake.lib.rust.mkDevShell = pkgs:
     let
       package = self.lib.rust.mkPackage pkgs;
 
