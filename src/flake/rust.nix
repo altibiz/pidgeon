@@ -13,7 +13,7 @@ let
     src = pkgs.lib.fileset.toSource {
       root = ../../..;
       fileset = pkgs.lib.fileset.unions [
-        ((mkCraneLib pkgs).fileset.commonCargoSources ../../..)
+        (lib.fileset.commonCargoSources ../../..)
         ../../../src/cli/.sqlx
         ../../../src/cli/migrations
       ];
@@ -32,11 +32,11 @@ let
       ];
     };
 
-    artifacts = (mkCraneLib pkgs).buildDepsOnly common;
+    artifacts = lib.buildDepsOnly common;
 
     individual = common // {
       cargoArtifacts = artifacts;
-      inherit ((mkCraneLib pkgs).crateNameFromCargoToml { inherit src; }) version;
+      inherit (lib.crateNameFromCargoToml { inherit src; }) version;
     };
 
     mkCrateSrc = crate: extra: pkgs.lib.fileset.toSource {
@@ -57,22 +57,32 @@ let
   };
 in
 {
-  # flake.lib.rust.mkPackage = pkgs:
-  #   let
-  #     naerskLib = mkNaerskLib pkgs;
-  #   in
-  #   naerskLib.buildPackage {
-  #     name = "pidgeon-cli";
-  #     pname = "pidgeon-cli";
-  #     version = "0.1.0";
-  #     src = self;
-  #     buildInputs = with pkgs; [
-  #       pkg-config
-  #       openssl
-  #       systemd
-  #     ];
-  #   };
+  flake.lib.rust.mkNaerskPackage = pkgs:
+    let
+      naerskLib = mkNaerskLib pkgs;
+    in
+    naerskLib.buildPackage {
+      name = "pidgeon-cli";
+      pname = "pidgeon-cli";
+      version = "0.1.0";
+      src = self;
+      buildInputs = with pkgs; [
+        pkg-config
+        openssl
+        systemd
+      ];
+    };
 
   flake.lib.rust.mkPackage = pkgs:
-    }
+    let
+      craneLib = mkCraneLib pkgs;
+    in
+    craneLib.mkPackage
+      ../../../src/cli
+      "pidgeon-cli"
+      [
+        ../../../src/cli/.sqlx
+        ../../../src/cli/migrations
+      ];
+}
 
