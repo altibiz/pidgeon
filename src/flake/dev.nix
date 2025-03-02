@@ -4,6 +4,17 @@
 , ...
 }:
 
+let
+  postgres = self.lib.dockerCompose.mkDockerComposePostgres pkgs;
+
+  databaseUrl =
+    let
+      auth = "${postgres.user}:${postgres.password}";
+      conn = "${postgres.host}:${postgres.port}";
+      db = postgres.database;
+    in
+    "postgres://${auth}@${conn}/${db}?sslmode=disable";
+in
 {
   seal.defaults.overlay = "dev";
   seal.overlays.dev = (final: prev: {
