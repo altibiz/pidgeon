@@ -9,7 +9,7 @@
 let
   mkUv = pkgs: rec {
     workspace = uv2nix.lib.workspace.loadWorkspace {
-      workspaceRoot = builtins.toString self;
+      workspaceRoot = "${self}";
     };
 
     overlay = workspace.mkPyprojectOverlay {
@@ -66,17 +66,17 @@ let
         editableOverlay
 
         (final: prev: {
-          pidgeon_probe = prev.pidgeon_probe.overrideAttrs (old: {
-            src = lib.fileset.toSource {
-              root = old.src;
-              fileset = lib.fileset.unions [
-                (old.src + "/pyproject.toml")
-                (old.src + "/README.md")
-                (old.src + "/src/probe/pyproject.toml")
-                (old.src + "/src/probe/README.md")
-                (old.src + "/src/probe/src/**/*.py")
-              ];
-            };
+          pidgeon-probe = prev.pidgeon-probe.overrideAttrs (old: {
+            src = lib.sources.sourceByRegex old.src [
+              "^pyproject.toml$"
+              "^.*\\.py$"
+            ];
+
+            postPatch = ''
+              ls .
+              cat fixup.py
+              exit 1
+            '';
 
             # NOTE: hatchling requirement
             nativeBuildInputs =
@@ -85,7 +85,6 @@ let
                 editables = [ ];
               };
           });
-
         })
       ]
     );
