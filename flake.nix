@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/release-24.11";
 
-    perch.url = "github:altibiz/perch/refs/tags/2.0.1";
+    perch.url = "github:altibiz/perch/refs/tags/2.1.1";
     perch.inputs.nixpkgs.follows = "nixpkgs";
 
     deploy-rs.url = "github:serokell/deploy-rs";
