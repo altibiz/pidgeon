@@ -2,10 +2,9 @@ useGitignore: true
 version: "0.2"
 language: en
 ignorePaths:
-  - "target/**/*"
+  - "target"
   - pyproject.toml
-  - "scripts/flake/**/*"
-  - "assets/**/*"
+  - "scripts/flake"
   - justfile
   - Cargo.toml
   - flake.nix
@@ -13,11 +12,10 @@ ignorePaths:
   - cspell.yaml
   - "docs/**/book.toml"
   - "docs/**/book"
-  # TODO: hr language
-  - "docs/hr/**/*"
+  - "docs/hr"
   - "docs/index.html"
-  - "test/stress"
-  - "assets/**/*"
+  - "test/e2e"
+  - "assets"
   - "Cargo.nix"
 words:
   - pidgeon
