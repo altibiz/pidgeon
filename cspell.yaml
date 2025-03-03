@@ -4,10 +4,10 @@ language: en
 ignorePaths:
   - "target/**/*"
   - pyproject.toml
-  - "src/flake/**/*"
+  - "scripts/flake/**/*"
+  - "assets/**/*"
   - justfile
   - Cargo.toml
-  - "scripts/*"
   - flake.nix
   - docker-compose.yml
   - cspell.yaml
