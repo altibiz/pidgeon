@@ -20,8 +20,10 @@ let
       (builtins.map
         (pidgeon:
           let
-            secrets = rec {
-              filePrefix = "assets/secrets/${pidgeon.id}.yaml";
+            filePrefix = "assets/secrets/${pidgeon.id}.yaml";
+
+            secrets = {
+              inherit filePrefix;
               path = lib.path.append root filePrefix;
               ageKeyFile = "/root/host.scrt.key";
             };
