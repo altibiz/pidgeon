@@ -72,7 +72,6 @@ chmod 700 /root
 write /root/host.scrt.key \"($age)\"
 chmod 400 /root/host.scrt.key
 exit"
-  print $commands
 
   echo $commands | guestfish --rw -a image.img
 }
