@@ -62,30 +62,30 @@ let
               nebulaCaPublic = "nebula-ca-pub";
 
               # instance
-              postgresSslPrivate = "postgres-ssl-priv";
-              postgresSslPublic = "postgres-ssl-pub";
-              postgresPidgeonPassword = "postgres-pidgeon-pass";
-              postgresUserPassword = "postgres-user-pass";
-              postgresPassword = "postgres-pass";
-              postgresSql = "postgres-sql";
-              nebulaSslPrivate = "nebula-ssl-priv";
-              nebulaSslPublic = "nebula-ssl-pub";
-              userPasswordPrivate = "user-pass-priv";
-              userPasswordPublic = "user-pass-pub";
-              userSshPrivate = "user-ssh-priv";
-              userSshPublic = "user-ssh-pub";
-              wifiAdmin = "wifi-admin";
-              wifiWps = "wifi-wps";
-              wifiSsid = "wifi-ssid";
-              wifiSsidSuffix = "wifi-ssid-suffix";
-              wifiPassword = "wifi-pass";
-              wifiEnv = "wifi-env";
-              pidgeonApiKey = "pidgeon-api-key";
-              pidgeonEnv = "pidgeon-env";
-              agePublic = "age-pub";
-              agePrivate = "age-priv";
-              secretsPublic = "secrets-pub";
-              secretsPrivate = "secrets-priv";
+              postgresSslPrivate = "db.key";
+              postgresSslPublic = "db.key.pub";
+              postgresPidgeonPassword = "pidgeon.db.user";
+              postgresUserPassword = "altibiz.db.user";
+              postgresPassword = "postgres.db.user";
+              postgresSql = "db.sql";
+              nebulaSslPrivate = "vpn.key";
+              nebulaSslPublic = "vpn.key.pub";
+              userPasswordPrivate = "pass";
+              userPasswordPublic = "pass.pub";
+              userSshPrivate = "ssh.key";
+              userSshPublic = "ssh.key.pub";
+              wifiAdmin = "wifi.admin";
+              wifiWps = "wifi.wps";
+              wifiSsid = "wifi.ssid.pub";
+              wifiSsidSuffix = "wifi.ssid.suffix";
+              wifiPassword = "wifi.pass";
+              wifiEnv = "wifi.env";
+              pidgeonApiKey = "key";
+              pidgeonEnv = "pidgeon.env";
+              agePublic = "scrt.key.pub";
+              agePrivate = "scrt.key";
+              secretsPublic = "scrt.val.pub";
+              secretsPrivate = "scrt.val";
             };
 
             rumor.imports = [
