@@ -61,9 +61,9 @@ def "main image" [id?: string] {
   chmod 644 image.img
 
   let age = $pidgeon.secrets."scrt.key"
-    | str replace "\\" "\\\\"
-    | str replace "\n" "\\n"
-    | str replace "\"" "\\\""
+    | str replace -a "\\" "\\\\"
+    | str replace -a "\n" "\\n"
+    | str replace -a "\"" "\\\""
 
   let commands = $"run
 mount /dev/sda2 /
@@ -72,6 +72,7 @@ chmod 700 /root
 write /root/host.scrt.key \"($age)\"
 chmod 400 /root/host.scrt.key
 exit"
+  print $commands
 
   echo $commands | guestfish --rw -a image.img
 }
