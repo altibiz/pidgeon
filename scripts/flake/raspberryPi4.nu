@@ -86,7 +86,7 @@ def "main ssh" [id?: string] {
 
 def "main pass" [id?: string] {
   let pidgeon = (pick pidgeon $id)
-  $pidgeon.user-pass-priv
+  $pidgeon.secrets."pass"
 }
 
 def "main deploy" [id?: string] {
