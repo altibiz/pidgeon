@@ -10,7 +10,7 @@
     let
       cfg = config.services.pidgeon;
 
-      package = self.packages.${pkgs.system}.pidgeon-cli;
+      package = self.packages.${pkgs.system}.pidgeonCli;
 
       service = pkgs.writeShellApplication {
         name = "pidgeon-service";
