@@ -1,12 +1,13 @@
-{ pkgs, ... }:
+{ self, pkgs, ... }:
 
 {
   integrate.devShell.devShell = pkgs.mkShell {
-    packages = with pkgs; [
-      # scripts
-      nushell
-      just
+    inputsFrom = [
+      (self.lib.vcs.mkDevShell pkgs)
+      (self.lib.scripts.mkDevShell pkgs)
+    ];
 
+    packages = with pkgs; [
       # documentation
       mdbook
       mdbook-plantuml

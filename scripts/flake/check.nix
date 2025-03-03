@@ -1,32 +1,12 @@
-{ pkgs, ... }:
+{ self, pkgs, ... }:
 
 {
   integrate.devShell.devShell = pkgs.mkShell {
-    packages = with pkgs; [
-      # python
-      uv
-
-      # scripts
-      nushell
-      just
-
-      # spelling
-      nodePackages.cspell
-
-      # misc
-      nodePackages.prettier
-
-      # shell
-      shfmt
-      shellcheck
-
-      # nix
-      nixpkgs-fmt
-
-      # rust
-      cargo
-      clippy
-      rustfmt
+    inputsFrom = [
+      (self.lib.vcs.mkDevShell pkgs)
+      (self.lib.scripts.mkDevShell pkgs)
+      (self.lib.lint.mkDevShell pkgs)
+      (self.lib.format.mkDevShell pkgs)
     ];
   };
 }
