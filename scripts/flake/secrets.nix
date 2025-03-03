@@ -63,8 +63,6 @@ let
               postgresCaSerial = "postgres-ca-srl";
               nebulaCaPrivate = "nebula-ca-priv";
               nebulaCaPublic = "nebula-ca-pub";
-              wifiSsid = "wifi-ssid";
-              wifiPassword = "wifi-pass";
 
               # instance
               postgresSslPrivate = "postgres-ssl-priv";
@@ -79,6 +77,11 @@ let
               userPasswordPublic = "user-pass-pub";
               userSshPrivate = "user-ssh-priv";
               userSshPublic = "user-ssh-pub";
+              wifiAdmin = "wifi-admin";
+              wifiWps = "wifi-wps";
+              wifiSsid = "wifi-ssid";
+              wifiSsidSuffix = "wifi-ssid-suffix";
+              wifiPassword = "wifi-pass";
               wifiEnv = "wifi-env";
               pidgeonApiKey = "pidgeon-api-key";
               pidgeonEnv = "pidgeon-env";
@@ -206,6 +209,45 @@ let
                     GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO altibiz;
                   '';
                   renew = true;
+                };
+              }
+              {
+                generator = "key";
+                arguments = {
+                  name = files.wifiAdmin;
+                  length = 7;
+                };
+              }
+              {
+                generator = "key";
+                arguments = {
+                  name = files.wifiPassword;
+                  length = 32;
+                };
+              }
+              {
+                generator = "key";
+                arguments = {
+                  name = files.wifiSsidSuffix;
+                  length = 16;
+                };
+              }
+              {
+                generator = "moustache";
+                arguments = {
+                  name = files.wifiSsid;
+                  variables = {
+                    WIFI_SSID_SUFFIX = files.wifiSsidSuffix;
+                  };
+                  template = ''pidgeon-{{WIFI_SSID_SUFFIX}}'';
+                  renew = true;
+                };
+              }
+              {
+                generator = "pin";
+                arguments = {
+                  name = files.wifiWps;
+                  length = 4;
                 };
               }
               {
