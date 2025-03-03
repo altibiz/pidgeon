@@ -4,6 +4,10 @@ let
   pidgeons =
     builtins.map
       (pidgeon: pidgeon // {
+        name =
+          if pidgeon ? name
+          then pidgeon.name
+          else "Unnamed ${pidgeon.id}";
         wifi =
           if pidgeon ? wifi
           then pidgeon.wifi
@@ -302,7 +306,11 @@ let
                     PIDGEON_DB_PASSWORD = files.postgresPidgeonPassword;
                     PIDGEON_DB_NAME = "pidgeon";
 
-                    PIDGEON_CLOUD_DOMAIN = "ozds.altibiz.com";
+                    PIDGEON_CLOUD_DOMAIN =
+                      # NOTE: staging
+                      if lib.strings.hasPrefix "HELB-TEST" pidgeon.name
+                      then "10.8.250.1"
+                      else "ozds.altibiz.com";
                     PIDGEON_CLOUD_API_KEY = files.pidgeonApiKey;
                     PIDGEON_CLOUD_ID = "pidgeon-${pidgeon.id}";
 

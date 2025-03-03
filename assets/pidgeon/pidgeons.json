@@ -25,6 +25,7 @@
     "ip": "10.8.0.16"
   },
   {
+    "name": "HELB-TEST 1",
     "id": "K2iADfcQngJoZvssNxiZDvbErFq0w3jn",
     "ip": "10.8.0.17"
   },
