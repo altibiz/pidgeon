@@ -4,27 +4,28 @@ let dir = $env.FILE_PWD
 let self = [ $dir "raspberryPi4.nu" ] | path join
 let root = $dir | path dirname | path dirname
 let artifacts = [ $root "artifacts" ] | path join
+let pidgeons = [ $root "assets" "pidgeon" "pidgeons.json" ] | path join
 let flake = $"git+file:($root)"
 let system = "aarch64-linux"
 let format = "sd-aarch64"
-let configuration = $"raspberryPi4-($system)"
-let uri = $"($flake)#($configuration)"
 
 def "main" [] {
   nu $self --help
 }
 
-def "main secrets" [] {
+def "main secrets" [id?: string] {
+  let pidgeon = (pick pidgeon $id)
+
   rm -rf $artifacts
   mkdir $artifacts
   cd $artifacts
 
-  let expr = $"\(builtins.getFlake \"($flake)\"\).lib.rumor.\"($configuration)\""
-  let spec = nix eval --json --impure --expr $expr
-  $spec | rumor stdin json --stay
+  $pidgeon.spec | rumor stdin json --stay
 }
 
-def "main image" [] {
+def "main image" [id?: string] {
+  let pidgeon = (pick pidgeon $id)
+
   rm -rf $artifacts
   mkdir $artifacts
   cd $artifacts
@@ -32,7 +33,7 @@ def "main image" [] {
   let raw = (nixos-generate
     --system $system
     --format $format
-    --flake $configuration)
+    --flake $pidgeon.configuration)
 
   let compressed = ls ($raw
     | path dirname --num-levels 2
@@ -42,9 +43,7 @@ def "main image" [] {
   unzstd $compressed -o image.img
   chmod 644 image.img
 
-  let age = vault kv get -format=json kv/ozds/ozds/test/current
-    | from json
-    | get data.data.age-priv
+  let age = $pidgeon.secrets."scrt.key"
     | str replace "\\" "\\\\"
     | str replace "\n" "\\n"
     | str replace "\"" "\\\""
@@ -60,67 +59,70 @@ exit"
   echo $commands | guestfish --rw -a image.img
 }
 
-def "main ssh" [] {
-  let key = vault kv get -format=json kv/ozds/ozds/test/current
-    | from json
-    | get data.data.user-ssh-priv
-    | str trim
+def "main ssh" [id?: string] {
+  let pidgeon = (pick pidgeon $id)
 
-  ssh-agent bash -c $"echo '($key)' \\
+  ssh-agent bash -c $"echo '($pidgeon.secrets."ssh.key")' \\
     | ssh-add - \\
-    && ssh altibiz@192.168.1.69"
+    && ssh altibiz@($pidgeon.ip)"
 }
 
-def "main pass" [] {
-  vault kv get -format=json kv/ozds/ozds/test/current
-    | from json
-    | get data.data.user-pass-priv
-    | str trim
+def "main pass" [id?: string] {
+  let pidgeon = (pick pidgeon $id)
+  $pidgeon.user-pass-priv
 }
 
-def "main deploy" [] {
-  let key = vault kv get -format=json kv/ozds/ozds/test/current
-    | from json
-    | get data.data.user-ssh-priv
-    | str trim
-
-  let pass = vault kv get -format=json kv/ozds/ozds/test/current
-    | from json
-    | get data.data.user-pass-priv
-    | str trim
-
-  ssh-agent bash -c $"echo '($key)' \\
+def "main deploy" [id?: string] {
+  let pidgeon = (pick pidgeon $id)
+  ssh-agent bash -c $"echo '($pidgeon.secrets."ssh.key")' \\
     | ssh-add - \\
-    && export SSHPASS='($pass)' \\
+    && export SSHPASS='($pidgeon.secrets."pass")' \\
     && sshpass -e deploy \\
       --remote-build \\
       --skip-checks \\
       --interactive-sudo true \\
-      --hostname 192.168.1.69 \\
+      --hostname ($pidgeon.ip) \\
       -- \\
-      '($root)#($configuration)'"
+      '($root)#($pidgeon.configuration)'"
 }
 
-def "main db user" [] {
-  let pass = vault kv get -format=json kv/ozds/ozds/test/current
-    | from json
-    | get data.data.postgres-user-pass
-    | str trim
+def "main db user" [id?: string] {
+  let pidgeon = (pick pidgeon $id)
 
-  let auth = $"altibiz:($pass)"
-  let conn = $"192.168.1.69:5432"
+  let auth = $"altibiz:($pidgeon.secrets."altibiz.db.user")"
+  let conn = $"($pidgeon.ip):5433"
 
   usql $"postgres://($auth)@($conn)/ozds"
 }
 
-def "main db admin" [] {
-  let pass = vault kv get -format=json kv/ozds/ozds/test/current
-    | from json
-    | get data.data.postgres-pass
-    | str trim
+def "main db admin" [id?: string] {
+  let pidgeon = (pick pidgeon $id)
 
-  let auth = $"postgres:($pass)"
-  let conn = $"192.168.1.69:5432"
+  let auth = $"postgres:($pidgeon.secrets."postgres.db.user")"
+  let conn = $"($pidgeon.ip):5433"
 
   usql $"postgres://($auth)@($conn)/postgres"
+}
+
+def "pick pidgeon" [id?: string] {
+  let pidgeons = (open --raw $pidgeons) | from json
+
+  if $id == null {
+    let ids = $pidgeons | get id
+    $id = (gum choose --header "Pick pidgeon id:" ...($ids))
+  }
+
+  let pidgeon = $pidgeons
+    | where $it.id == $id
+    | first
+  let secrets = vault kv get -format=json $"kv/ozds/pidgeon/($id)/current"
+    | from json
+    | get data.data
+  let configuration = $"pidgeon-($id)-raspberryPi4-($system)"
+  let expr = $"\(builtins.getFlake \"($flake)\"\).lib.rumor.\"($configuration)\""
+  let spec = nix eval --json --impure --expr $expr
+  $pidgeon
+    | insert secrets $secrets
+    | insert configuration $configuration
+    | insert spec $spec
 }
