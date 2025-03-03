@@ -20,11 +20,8 @@ let
       (builtins.map
         (pidgeon:
           let
-            filePrefix = "assets/secrets/${pidgeon.id}.yaml";
-
             secrets = {
-              inherit filePrefix;
-              path = lib.path.append root filePrefix;
+              sopsFile = lib.path.append root "assets/secrets/${pidgeon.id}.yaml";
               ageKeyFile = "/root/host.scrt.key";
             };
 
@@ -147,7 +144,7 @@ let
               {
                 exporter = "copy";
                 arguments.from = files.secretsPublic;
-                arguments.to = secrets.path;
+                arguments.to = secrets.sopsFile;
               }
             ];
 

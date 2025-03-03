@@ -88,7 +88,7 @@ in
     nix.settings.trusted-users = [ "@wheel" ];
     nix.package = pkgs.nixVersions.stable;
 
-    sops.defaultSopsFile = "${self}/${secrets.filePrefix}";
+    sops.defaultSopsFile = secrets.sopsFile;
     sops.age.keyFile = secrets.ageKeyFile;
 
     networking.hostName = config.pidgeon.hostName;
