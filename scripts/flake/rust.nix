@@ -31,7 +31,7 @@ let
 
       buildInputs = [
         pkgs.openssl
-        pkgs.systemd
+        pkgs.systemdLibs
       ];
     };
 
@@ -76,7 +76,7 @@ in
 
       buildInputs = [
         pkgs.openssl
-        pkgs.systemd
+        pkgs.systemdLibs
       ];
     };
 
