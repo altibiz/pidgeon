@@ -50,7 +50,7 @@ def "main image" [id?: string] {
   let raw = (nixos-generate
     --system $system
     --format $format
-    --flake $pidgeon.configuration)
+    --flake $"($root)#($pidgeon.configuration)")
 
   let compressed = ls ($raw
     | path dirname --num-levels 2
