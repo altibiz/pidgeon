@@ -144,11 +144,7 @@ let
               {
                 exporter = "copy";
                 arguments.from = files.secretsPublic;
-                arguments.to =
-                  builtins.toString
-                    (lib.path.append
-                      root
-                      instanceSecrets.sopsFilePrefix);
+                arguments.to = "../${instanceSecrets.sopsFilePrefix}";
               }
             ];
 
