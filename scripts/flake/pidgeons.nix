@@ -10,7 +10,8 @@
           else pidgeon.id;
       })
       (builtins.fromJSON
-        (lib.path.append
-          root
-          "assets/pidgeon/pidgeons.json"));
+        (builtins.readFile
+          (lib.path.append
+            root
+            "assets/pidgeon/pidgeons.json")));
 }
