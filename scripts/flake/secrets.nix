@@ -51,7 +51,7 @@ let
           let
             name = "pidgeon-${pidgeon.id}-raspberryPi4-aarch64-linux";
 
-            secrets = secrets.${name};
+            instanceSecrets = secrets.${name};
 
             files = {
               # shared
@@ -144,7 +144,7 @@ let
               {
                 exporter = "copy";
                 arguments.from = files.secretsPublic;
-                arguments.to = secrets.sopsFile;
+                arguments.to = instanceSecrets.sopsFile;
               }
             ];
 
@@ -155,7 +155,7 @@ let
                   ca_private = files.postgresCaPrivate;
                   ca_public = files.postgresCaPublic;
                   serial = files.postgresCaSerial;
-                  name = secrets.hostName;
+                  name = instanceSecrets.hostName;
                   private = files.postgresSslPrivate;
                   public = files.postgresSslPublic;
                 };
@@ -263,8 +263,8 @@ let
                 arguments = {
                   ca_private = files.nebulaCaPrivate;
                   ca_public = files.nebulaCaPublic;
-                  name = secrets.hostName;
-                  ip = "${secrets.ip}/16";
+                  name = instanceSecrets.hostName;
+                  ip = "${instanceSecrets.ip}/16";
                   private = files.nebulaSslPrivate;
                   public = files.nebulaSslPublic;
                 };
@@ -279,7 +279,7 @@ let
               {
                 generator = "ssh-keygen";
                 arguments = {
-                  name = secrets.hostName;
+                  name = instanceSecrets.hostName;
                   public = files.userSshPublic;
                   private = files.userSshPrivate;
                 };
@@ -326,16 +326,16 @@ let
                   private = files.secretsPrivate;
                   public = files.secretsPublic;
                   secrets = {
-                    ${secrets.keys.postgresSslKeyFile} = files.postgresSslPrivate;
-                    ${secrets.keys.postgresSslCertFile} = files.postgresSslPublic;
-                    ${secrets.keys.postgresInitialScript} = files.postgresSql;
-                    ${secrets.keys.networkManagerEnvironmentFile} = files.wifiEnv;
-                    ${secrets.keys.nebulaKey} = files.nebulaSslPrivate;
-                    ${secrets.keys.nebulaCert} = files.nebulaSslPublic;
-                    ${secrets.keys.nebulaCa} = files.nebulaCaPublic;
-                    ${secrets.keys.userHashedPasswordFile} = files.userPasswordPublic;
-                    ${secrets.keys.userAuthorizedKeys} = files.userSshPublic;
-                    ${secrets.keys.pidgeonEnv} = files.pidgeonEnv;
+                    ${instanceSecrets.keys.postgresSslKeyFile} = files.postgresSslPrivate;
+                    ${instanceSecrets.keys.postgresSslCertFile} = files.postgresSslPublic;
+                    ${instanceSecrets.keys.postgresInitialScript} = files.postgresSql;
+                    ${instanceSecrets.keys.networkManagerEnvironmentFile} = files.wifiEnv;
+                    ${instanceSecrets.keys.nebulaKey} = files.nebulaSslPrivate;
+                    ${instanceSecrets.keys.nebulaCert} = files.nebulaSslPublic;
+                    ${instanceSecrets.keys.nebulaCa} = files.nebulaCaPublic;
+                    ${instanceSecrets.keys.userHashedPasswordFile} = files.userPasswordPublic;
+                    ${instanceSecrets.keys.userAuthorizedKeys} = files.userSshPublic;
+                    ${instanceSecrets.keys.pidgeonEnv} = files.pidgeonEnv;
                   };
                   renew = true;
                 };
