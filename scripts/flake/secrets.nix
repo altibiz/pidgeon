@@ -144,7 +144,7 @@ let
               {
                 exporter = "copy";
                 arguments.from = files.secretsPublic;
-                arguments.to = instanceSecrets.sopsFile;
+                arguments.to = builtins.toString instanceSecrets.sopsFile;
               }
             ];
 
@@ -155,7 +155,7 @@ let
                   ca_private = files.postgresCaPrivate;
                   ca_public = files.postgresCaPublic;
                   serial = files.postgresCaSerial;
-                  name = instanceSecrets.hostName;
+                  name = pidgeon.ip;
                   private = files.postgresSslPrivate;
                   public = files.postgresSslPublic;
                 };
@@ -263,8 +263,8 @@ let
                 arguments = {
                   ca_private = files.nebulaCaPrivate;
                   ca_public = files.nebulaCaPublic;
-                  name = instanceSecrets.hostName;
-                  ip = "${instanceSecrets.ip}/16";
+                  name = pidgeon.ip;
+                  ip = "${pidgeon.ip}/16";
                   private = files.nebulaSslPrivate;
                   public = files.nebulaSslPublic;
                 };
@@ -279,7 +279,7 @@ let
               {
                 generator = "ssh-keygen";
                 arguments = {
-                  name = instanceSecrets.hostName;
+                  name = pidgeon.ip;
                   public = files.userSshPublic;
                   private = files.userSshPrivate;
                 };
