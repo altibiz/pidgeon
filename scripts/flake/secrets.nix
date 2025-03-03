@@ -1,10 +1,24 @@
-{ self, root, lib, ... }:
+{ root, lib, ... }:
 
-{
-  flake.lib.secrets =
+let
+  pidgeons =
+    builtins.map
+      (pidgeon: pidgeon // {
+        wifi =
+          if pidgeon ? wifi
+          then pidgeon.wifi
+          else pidgeon.id;
+      })
+      (builtins.fromJSON
+        (builtins.readFile
+          (lib.path.append
+            root
+            "assets/pidgeon/pidgeons.json")));
+
+  secrets =
     builtins.listToAttrs
       (builtins.map
-        (_: pidgeon:
+        (pidgeon:
           let
             secrets = rec {
               filePrefix = "assets/secrets/${pidgeon.id}.yaml";
@@ -29,16 +43,16 @@
             name = "pidgeon-${pidgeon.id}-raspberryPi4-aarch64-linux";
             value = secrets;
           })
-        self.lib.pidgeons);
+        pidgeons);
 
-  flake.lib.rumor =
+  rumor =
     builtins.listToAttrs
       (builtins.map
-        (_: pidgeon:
+        (pidgeon:
           let
             name = "pidgeon-${pidgeon.id}-raspberryPi4-aarch64-linux";
 
-            secrets = self.lib.secrets.${name};
+            secrets = secrets.${name};
 
             files = {
               # shared
@@ -271,5 +285,10 @@
             inherit name;
             value = rumor;
           })
-        self.lib.pidgeons);
+        pidgeons);
+in
+{
+  flake.lib.pidgeons = pidgeons;
+  flake.lib.secrets = secrets;
+  flake.lib.rumor = rumor;
 }

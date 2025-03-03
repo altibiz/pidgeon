@@ -20,6 +20,7 @@
       (self.lib.format.mkDevShell pkgs)
       (self.lib.lint.mkDevShell pkgs)
       (self.lib.tools.mkDevShell pkgs)
+      (self.lib.lsp.mkDevShell pkgs)
     ];
   };
 }
