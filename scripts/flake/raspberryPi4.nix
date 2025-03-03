@@ -114,13 +114,13 @@ in
     services.pidgeon.enable = true;
     services.pidgeon.debug = true;
     services.pidgeon.configPath = "/etc/pidgeon/config.toml";
-    services.pidgeon.envPath = config.sops.secrets."pidgeon.env".path;
+    services.pidgeon.envPath = config.sops.secrets.${secretKeys.pidgeonEnv}.path;
     environment.etc."pidgeon/config.toml" = {
       source = "${self}/assets/pidgeon/config.toml";
       user = config.systemd.services.pidgeon.serviceConfig.User;
       group = config.systemd.services.pidgeon.serviceConfig.Group;
     };
-    sops.secrets."pidgeon.env" = { };
+    sops.secrets.${secretKeys.pidgeonEnv} = { };
 
     # user
 
@@ -130,7 +130,7 @@ in
       group = "altibiz";
       isNormalUser = true;
       hashedPasswordFile =
-        config.sops.secrets."altibiz.pass.pub".path;
+        config.sops.secrets.${secretKeys.userHashedPasswordFile}.path;
       extraGroups = [ "wheel" "dialout" ];
       packages = [
         pkgs.kitty
@@ -141,12 +141,12 @@ in
         pkgs.nushell
       ];
     };
-    sops.secrets."altibiz.pass.pub".neededForUsers = true;
+    sops.secrets.${secretKeys.userHashedPasswordFile}.neededForUsers = true;
 
     services.openssh.enable = true;
     services.openssh.settings.PasswordAuthentication = false;
 
-    sops.secrets."altibiz.ssh.pub" = {
+    sops.secrets.${secretKeys.userAuthorizedKeys} = {
       path = "${config.users.user.altibiz.home}/.ssh/authorized_keys";
       owner = config.users.users.altibiz.name;
       group = config.users.users.altibiz.group;
@@ -174,18 +174,18 @@ in
     networking.firewall.allowedTCPPorts = [ 5433 ];
 
     services.postgresql.settings.ssl = "on";
-    services.postgresql.settings.ssl_cert_file = config.sops.secrets."postgres.crt.pub".path;
-    sops.secrets."postgres.crt.pub" = {
+    services.postgresql.settings.ssl_cert_file = config.sops.secrets.${secretKeys.postgresSslCertFile}.path;
+    sops.secrets.${secretKeys.postgresSslCertFile} = {
       owner = config.systemd.services.postgresql.serviceConfig.User;
       group = config.systemd.services.postgresql.serviceConfig.Group;
     };
-    services.postgresql.settings.ssl_key_file = config.sops.secrets."postgres.crt".path;
+    services.postgresql.settings.ssl_key_file = config.sops.secrets.${secretKeys.postgresSslKeyFile}.path;
     sops.secrets."postgres.crt" = {
       owner = config.systemd.services.postgresql.serviceConfig.User;
       group = config.systemd.services.postgresql.serviceConfig.Group;
     };
-    services.postgresql.initialScript = config.sops.secrets."postgres.sql".path;
-    sops.secrets."postgres.sql" = {
+    services.postgresql.initialScript = config.sops.secrets.${secretKeys.postgresInitialScript}.path;
+    sops.secrets.${secretKeys.postgresInitialScript} = {
       owner = config.systemd.services.postgresql.serviceConfig.User;
       group = config.systemd.services.postgresql.serviceConfig.Group;
     };
@@ -200,9 +200,9 @@ in
 
     services.nebula.networks.ozds-vpn = {
       enable = true;
-      cert = config.sops.secrets."nebula.crt.pub".path;
-      key = config.sops.secrets."nebula.crt".path;
-      ca = config.sops.secrets."nebula.ca.pub".path;
+      cert = config.sops.secrets.${secretKeys.nebulaCert}.path;
+      key = config.sops.secrets.${secretKeys.nebulaKey}.path;
+      ca = config.sops.secrets.${secretKeys.nebulaCa}.path;
       firewall.inbound = [
         {
           host = "any";
@@ -245,15 +245,15 @@ in
         };
       };
     };
-    sops.secrets."nebula.crt.pub" = {
+    sops.secrets.${secretKeys.nebulaCert} = {
       owner = config.systemd.services."nebula@ozds-vpn".serviceConfig.User;
       group = config.systemd.services."nebula@ozds-vpn".serviceConfig.Group;
     };
-    sops.secrets."nebula.crt" = {
+    sops.secrets.${secretKeys.nebulaKey} = {
       owner = config.systemd.services."nebula@ozds-vpn".serviceConfig.User;
       group = config.systemd.services."nebula@ozds-vpn".serviceConfig.Group;
     };
-    sops.secrets."nebula.ca.pub" = {
+    sops.secrets.${secretKeys.nebulaCa} = {
       owner = config.systemd.services."nebula@ozds-vpn".serviceConfig.User;
       group = config.systemd.services."nebula@ozds-vpn".serviceConfig.Group;
     };
@@ -296,9 +296,9 @@ in
     };
 
     networking.networkmanager.ensureProfiles.environmentFiles = [
-      config.sops.secrets."wifi.env".path
+      config.sops.secrets.${secretKeys.networkManagerEnvironmentFile}.path
     ];
-    sops.secrets."wifi.env" = { };
+    sops.secrets.${secretKeys.networkManagerEnvironmentFile} = { };
 
     # hardware
 
