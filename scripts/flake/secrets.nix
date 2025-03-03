@@ -21,7 +21,7 @@ let
         (pidgeon:
           let
             secrets = {
-              sopsFile = lib.path.append root "assets/secrets/${pidgeon.id}.yaml";
+              sopsFilePrefix = "assets/secrets/${pidgeon.id}.yaml";
               ageKeyFile = "/root/host.scrt.key";
             };
 
@@ -144,7 +144,11 @@ let
               {
                 exporter = "copy";
                 arguments.from = files.secretsPublic;
-                arguments.to = builtins.toString instanceSecrets.sopsFile;
+                arguments.to =
+                  builtins.toString
+                    (lib.path.append
+                      root
+                      instanceSecrets.sopsFilePrefix);
               }
             ];
 
