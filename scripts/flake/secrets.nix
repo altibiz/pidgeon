@@ -254,25 +254,24 @@ let
               }
               {
                 generator = "env";
-                arguments =
-                  {
-                    name = files.pidgeonEnv;
-                    variables = {
-                      PIDGEON_DB_DOMAIN = "localhost";
-                      PIDGEON_DB_PORT = "5433";
-                      PIDGEON_DB_USER = "pidgeon";
-                      PIDGEON_DB_PASSWORD = files.postgresPidgeonPassword;
-                      PIDGEON_DB_NAME = "pidgeon";
+                arguments = {
+                  name = files.pidgeonEnv;
+                  variables = {
+                    PIDGEON_DB_DOMAIN = "localhost";
+                    PIDGEON_DB_PORT = "5433";
+                    PIDGEON_DB_USER = "pidgeon";
+                    PIDGEON_DB_PASSWORD = files.postgresPidgeonPassword;
+                    PIDGEON_DB_NAME = "pidgeon";
 
-                      PIDGEON_CLOUD_DOMAIN = "ozds.altibiz.com";
-                      PIDGEON_CLOUD_API_KEY = files.pidgeonApiKey;
-                      PIDGEON_CLOUD_ID = "pidgeon-${pidgeon.id}";
+                    PIDGEON_CLOUD_DOMAIN = "ozds.altibiz.com";
+                    PIDGEON_CLOUD_API_KEY = files.pidgeonApiKey;
+                    PIDGEON_CLOUD_ID = "pidgeon-${pidgeon.id}";
 
-                      PIDGEON_NETWORK_IP_RANGE_START = "127.0.0.1";
-                      PIDGEON_NETWORK_IP_RANGE_END = "127.0.0.1";
-                    };
-                    renew = true;
+                    PIDGEON_NETWORK_IP_RANGE_START = "127.0.0.1";
+                    PIDGEON_NETWORK_IP_RANGE_END = "127.0.0.1";
                   };
+                  renew = true;
+                };
               }
               {
                 generator = "age";
