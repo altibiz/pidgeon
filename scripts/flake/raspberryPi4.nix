@@ -124,6 +124,7 @@ in
     services.pidgeon.envPath = config.sops.secrets."pidgeon.env".path;
     sops.secrets."pidgeon.env" = { };
 
+
     # user
 
     users.mutableUsers = false;
