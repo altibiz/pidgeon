@@ -1,4 +1,4 @@
-{ self, ... }:
+{ self, rumor, ... }:
 
 {
   flake.lib.tools.mkDevShell = pkgs:
@@ -42,6 +42,7 @@
         unzip
 
         # rpi
+        rumor.packages.${pkgs.system}.default
         vault
         vault-medusa
         zstd
