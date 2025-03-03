@@ -37,11 +37,18 @@ let
 
     artifacts = lib.buildDepsOnly common;
 
-    individual = cargoToml: common // (rec {
-      cargoArtifacts = artifacts;
-      inherit (lib.crateNameFromCargoToml { inherit cargoToml; }) pname version;
-      cargoExtraArgs = "-p ${pname}";
-    });
+    individual = cargoToml: common // (
+      let
+        crate = lib.crateNameFromCargoToml { inherit cargoToml; };
+      in
+      {
+        cargoArtifacts = artifacts;
+        pname = crate.pname;
+        version = crate.version;
+        name = crate.pname;
+        cargoExtraArgs = "-p ${crate.pname}";
+      }
+    );
 
     mkCrateSrc = crate: extra: pkgs.lib.fileset.toSource {
       inherit root;
@@ -52,10 +59,11 @@ let
       ] ++ extra);
     };
 
-    mkPackage = crate: cargoToml: extra: lib.buildPackage ((individual cargoToml) // {
-      cargoArtifacts = lib.buildDepsOnly common;
-      src = mkCrateSrc crate extra;
-    });
+    mkPackage = crate: extra:
+      lib.buildPackage ((individual (pkgs.lib.path.append crate "Cargo.toml")) // {
+        cargoArtifacts = lib.buildDepsOnly common;
+        src = mkCrateSrc crate extra;
+      });
   };
 in
 {
@@ -85,7 +93,6 @@ in
     in
     craneLib.mkPackage
       (lib.path.append root "src/cli")
-      (lib.path.append root "src/cli/Cargo.toml")
       [
         (lib.path.append root "src/cli/.sqlx")
         (lib.path.append root "src/cli/migrations")
