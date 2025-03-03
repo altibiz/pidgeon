@@ -52,19 +52,21 @@ probe *args:
 
 format:
     cd '{{ root }}'; just --unstable --fmt
+    prettier --write '{{ root }}'
     cd '{{ root }}'; cargo fmt --all
     yapf --recursive --in-place --parallel '{{ probe }}'
-    prettier --write '{{ root }}'
     shfmt --write '{{ root }}'
+    nixpkgs-fmt '{{ root }}'
 
 lint:
     cd '{{ root }}'; just --unstable --fmt --check
+    nixpkgs-fmt '{{ root }}' --check
     prettier --check '{{ root }}'
     cspell lint '{{ root }}' --no-progress
+    cd '{{ root }}'; cargo clippy -- -D warnings
     glob '{{ scripts }}/*.sh' | each { |i| shellcheck $i } | str join "\n"
     ruff check '{{ probe }}'
-    cd '{{ root }}'; cargo clippy -- -D warnings
-    cd '{{ probe }}'; pyright .
+    pyright '{{ root }}';
 
 test:
     cd '{{ root }}'; cargo test

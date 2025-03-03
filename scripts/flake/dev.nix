@@ -24,19 +24,15 @@ in
   seal.defaults.devShell = "dev";
   integrate.devShell.devShell = pkgs.mkShell {
     inputsFrom = [
+      (self.lib.vcs.mkDevShell pkgs)
+      (self.lib.scripts.mkDevShell pkgs)
+      (self.lib.format.mkDevShell pkgs)
+      (self.lib.lint.mkDevShell pkgs)
       (self.lib.python.mkDevShell pkgs)
       (self.lib.rust.mkDevShell pkgs)
     ];
 
     packages = with pkgs; [
-      # version control
-      git
-      dvc-with-remotes
-
-      # scripts
-      nushell
-      just
-
       # misc
       nodePackages.prettier
       nodePackages.yaml-language-server
