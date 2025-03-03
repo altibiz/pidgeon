@@ -35,33 +35,33 @@ in
 
   flake.nixosConfigurations =
     builtins.listToAttrs
-      builtins.map
-      (pidgeon:
-        {
-          name = "pidgeon-${pidgeon.id}-raspberryPi4-aarch64-linux";
-          value = lib.nixosSystem {
-            system = "aarch64-linux";
-            inherit specialArgs;
-            modules = [
-              self.nixosModules.raspberryPi4
-              {
-                options.pidgeon.id = lib.mkOption {
-                  type = lib.types.str;
-                  default = pidgeon.id;
-                };
-                options.pidgeon.ip = lib.mkOption {
-                  type = lib.types.str;
-                  default = pidgeon.ip;
-                };
-                options.pidgeon.hostName = lib.mkOption {
-                  type = lib.types.str;
-                  default = "pidgeon-${pidgeon.id}";
-                };
-              }
-            ];
-          };
-        })
-      pidgeons;
+      (builtins.map
+        (pidgeon:
+          {
+            name = "pidgeon-${pidgeon.id}-raspberryPi4-aarch64-linux";
+            value = lib.nixosSystem {
+              system = "aarch64-linux";
+              inherit specialArgs;
+              modules = [
+                self.nixosModules.raspberryPi4
+                {
+                  options.pidgeon.id = lib.mkOption {
+                    type = lib.types.str;
+                    default = pidgeon.id;
+                  };
+                  options.pidgeon.ip = lib.mkOption {
+                    type = lib.types.str;
+                    default = pidgeon.ip;
+                  };
+                  options.pidgeon.hostName = lib.mkOption {
+                    type = lib.types.str;
+                    default = "pidgeon-${pidgeon.id}";
+                  };
+                }
+              ];
+            };
+          })
+        pidgeons);
 
   branch.nixosModule.nixosModule = {
     nixpkgs.config = {
