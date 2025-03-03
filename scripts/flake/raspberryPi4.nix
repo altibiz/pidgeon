@@ -149,7 +149,7 @@
       services.openssh.settings.PasswordAuthentication = false;
 
       sops.secrets.${secretKeys.userAuthorizedKeys} = {
-        path = "${config.users.user.altibiz.home}/.ssh/authorized_keys";
+        path = "${config.users.users.altibiz.home}/.ssh/authorized_keys";
         owner = config.users.users.altibiz.name;
         group = config.users.users.altibiz.group;
       };
