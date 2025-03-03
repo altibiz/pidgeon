@@ -1,7 +1,7 @@
 let
   secrets = {
     filePrefix = "scripts/flake/raspberryPi4.yaml";
-    ageKeyFile = "/root/.sops.age";
+    ageKeyFile = "/root/host.scrt.key";
     hostName = "ozds-test";
     ip = "10.8.250.1";
   };

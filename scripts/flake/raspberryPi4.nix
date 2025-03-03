@@ -9,7 +9,9 @@
 }:
 
 let
-  pidgeons = builtins.fromJSON ./pidgeons.json;
+  pidgeons = self.lib.pidgeons;
+  secrets = self.lib.secrets;
+  secretKeys = secrets.keys;
 in
 {
   seal.overlays.raspberryPi4 =
@@ -36,11 +38,27 @@ in
       builtins.map
       (pidgeon:
         {
-          name = "pidgeon-${pidgeon.id}";
+          name = "pidgeon-${pidgeon.id}-raspberryPi4-aarch64-linux";
           value = lib.nixosSystem {
             system = "aarch64-linux";
             inherit specialArgs;
-            modules = self.nixosModules.raspberryPi4;
+            modules = [
+              self.nixosModules.raspberryPi4
+              {
+                options.pidgeon.id = lib.mkOption {
+                  type = lib.types.str;
+                  default = pidgeon.id;
+                };
+                options.pidgeon.ip = lib.mkOption {
+                  type = lib.types.str;
+                  default = pidgeon.ip;
+                };
+                options.pidgeon.hostName = lib.mkOption {
+                  type = lib.types.str;
+                  default = "pidgeon-${pidgeon.id}";
+                };
+              }
+            ];
           };
         })
       pidgeons;
@@ -63,17 +81,17 @@ in
 
     system.stateVersion = "24.11";
 
-    sops.defaultSopsFile = ./secrets + "${pidgeon.id}.yaml";
-    sops.age.keyFile = "/root/host.scrt.key";
-
     nix.extraOptions = "experimental-features = nix-command flakes";
     nix.gc.automatic = true;
     nix.gc.options = "--delete-older-than 30d";
     nix.settings.auto-optimise-store = true;
-    nix.settings.trusted-users = [
-      "@wheel"
-    ];
+    nix.settings.trusted-users = [ "@wheel" ];
     nix.package = pkgs.nixVersions.stable;
+
+    sops.defaultSopsFile = "${self}/${secrets.filePrefix}";
+    sops.age.keyFile = secrets.ageKeyFile;
+
+    networking.hostName = config.pidgeon.hostName;
 
     fileSystems."/firmware" = {
       device = "/dev/disk/by-label/FIRMWARE";
@@ -85,16 +103,26 @@ in
     };
 
     environment.systemPackages = with pkgs; [
-      man-pages
-      man-pages-posix
       libraspberrypi
       raspberrypi-eeprom
+      man-pages
+      man-pages-posix
     ];
 
-    environment.shells = [ "${pkgs.bashInteractive}/bin/bash" ];
+    # service
 
-    time.timeZone = "Etc/UTC";
-    i18n.defaultLocale = "en_US.UTF-8";
+    services.pidgeon.enable = true;
+    services.pidgeon.debug = true;
+    services.pidgeon.configPath = "/etc/pidgeon/config.toml";
+
+    environment.etc."pidgeon/config.toml" = {
+      source = "${self}/assets/pidgeon/config.toml";
+      user = config.systemd.services.pidgeon.serviceConfig.User;
+      group = config.systemd.services.pidgeon.serviceConfig.Group;
+    };
+
+    services.pidgeon.envPath = config.sops.secrets."pidgeon.env".path;
+    sops.secrets."pidgeon.env" = { };
 
     # user
 
@@ -126,20 +154,111 @@ in
       group = config.users.users.altibiz.group;
     };
 
-    # service
+    # database
 
-    services.pidgeon.enable = true;
-    services.pidgeon.debug = true;
+    services.postgresql.enable = true;
+    services.postgresql.package = pkgs.postgresql_16;
+    services.postgresql.extensions = with config.services.postgresql.package.pkgs; [
+      timescaledb
+    ];
+    services.postgresql.settings.shared_preload_libraries = "timescaledb";
 
-    services.pidgeon.configPath = "/etc/pidgeon/config.toml";
-    environment.etc."pidgeon/config.toml" = {
-      source = "${self}/assets/config.toml";
-      user = config.systemd.services.pidgeon.serviceConfig.User;
-      group = config.systemd.services.pidgeon.serviceConfig.Group;
+    services.postgresql.authentication = pkgs.lib.mkOverride 10 ''
+      # NOTE: do not remove local privileges because that breaks timescaledb
+      # TYPE    DATABASE    USER        ADDRESS         METHOD        OPTIONS
+      local     all         all                         trust
+      host      all         all         samehost        trust
+      hostssl   all         all         192.168.0.0/16  scram-sha-256
+      hostssl   all         all         10.8.0.0/16     scram-sha-256
+    '';
+    services.postgresql.enableTCPIP = true;
+    services.postgresql.settings.port = 5433;
+    networking.firewall.allowedTCPPorts = [ 5433 ];
+
+    services.postgresql.settings.ssl = "on";
+    services.postgresql.settings.ssl_cert_file = config.sops.secrets."postgres.crt.pub".path;
+    sops.secrets."postgres.crt.pub" = {
+      owner = config.systemd.services.postgresql.serviceConfig.User;
+      group = config.systemd.services.postgresql.serviceConfig.Group;
+    };
+    services.postgresql.settings.ssl_key_file = config.sops.secrets."postgres.crt".path;
+    sops.secrets."postgres.crt" = {
+      owner = config.systemd.services.postgresql.serviceConfig.User;
+      group = config.systemd.services.postgresql.serviceConfig.Group;
+    };
+    services.postgresql.initialScript = config.sops.secrets."postgres.sql".path;
+    sops.secrets."postgres.sql" = {
+      owner = config.systemd.services.postgresql.serviceConfig.User;
+      group = config.systemd.services.postgresql.serviceConfig.Group;
     };
 
-    services.pidgeon.envPath = config.sops.secrets."pidgeon.env".path;
-    sops.secrets."pidgeon.env" = { };
+    services.postgresql.settings = {
+      checkpoint_timeout = "30min";
+      checkpoint_completion_target = 0.9;
+      max_wal_size = "1GB";
+    };
+
+    # vpn
+
+    services.nebula.networks.ozds-vpn = {
+      enable = true;
+      cert = config.sops.secrets."nebula.crt.pub".path;
+      key = config.sops.secrets."nebula.crt".path;
+      ca = config.sops.secrets."nebula.ca.pub".path;
+      firewall.inbound = [
+        {
+          host = "any";
+          port = "any";
+          proto = "any";
+        }
+      ];
+      firewall.outbound = [
+        {
+          host = "any";
+          port = "any";
+          proto = "any";
+        }
+      ];
+      lighthouses = [ "10.8.0.1" ];
+      staticHostMap = {
+        "10.8.0.1" = [
+          "ozds-vpn.altibiz.com:4242"
+        ];
+      };
+      settings = {
+        relay = {
+          relays = [ "10.8.0.1" ];
+        };
+        punchy = {
+          punch = true;
+          delay = "1s";
+          respond = true;
+          respond_delay = "5s";
+        };
+        handshakes = {
+          try_interval = "1s";
+        };
+        static_map = {
+          cadence = "1m";
+          lookup_timeout = "10s";
+        };
+        logging = {
+          level = "debug";
+        };
+      };
+    };
+    sops.secrets."nebula.crt.pub" = {
+      owner = config.systemd.services."nebula@ozds-vpn".serviceConfig.User;
+      group = config.systemd.services."nebula@ozds-vpn".serviceConfig.Group;
+    };
+    sops.secrets."nebula.crt" = {
+      owner = config.systemd.services."nebula@ozds-vpn".serviceConfig.User;
+      group = config.systemd.services."nebula@ozds-vpn".serviceConfig.Group;
+    };
+    sops.secrets."nebula.ca.pub" = {
+      owner = config.systemd.services."nebula@ozds-vpn".serviceConfig.User;
+      group = config.systemd.services."nebula@ozds-vpn".serviceConfig.Group;
+    };
 
     # network
 
@@ -289,112 +408,6 @@ in
         '';
       }
     ];
-
-    # database
-
-    services.postgresql.enable = true;
-    services.postgresql.package = pkgs.postgresql_16;
-    services.postgresql.extensions = with config.services.postgresql.package.pkgs; [
-      timescaledb
-    ];
-    services.postgresql.settings.shared_preload_libraries = "timescaledb";
-
-    services.postgresql.authentication = pkgs.lib.mkOverride 10 ''
-      # NOTE: do not remove local privileges because that breaks timescaledb
-      # TYPE    DATABASE    USER        ADDRESS         METHOD        OPTIONS
-      local     all         all                         trust
-      host      all         all         samehost        trust
-      hostssl   all         all         192.168.0.0/16  scram-sha-256
-      hostssl   all         all         10.8.0.0/16     scram-sha-256
-    '';
-    services.postgresql.enableTCPIP = true;
-    services.postgresql.settings.port = 5433;
-    networking.firewall.allowedTCPPorts = [ 5433 ];
-
-    services.postgresql.settings.ssl = "on";
-    services.postgresql.settings.ssl_cert_file = config.sops.secrets."postgres.crt.pub".path;
-    sops.secrets."postgres.crt.pub" = {
-      owner = config.systemd.services.postgresql.serviceConfig.User;
-      group = config.systemd.services.postgresql.serviceConfig.Group;
-    };
-    services.postgresql.settings.ssl_key_file = config.sops.secrets."postgres.crt".path;
-    sops.secrets."postgres.crt" = {
-      owner = config.systemd.services.postgresql.serviceConfig.User;
-      group = config.systemd.services.postgresql.serviceConfig.Group;
-    };
-    services.postgresql.initialScript = config.sops.secrets."postgres.sql".path;
-    sops.secrets."postgres.sql" = {
-      owner = config.systemd.services.postgresql.serviceConfig.User;
-      group = config.systemd.services.postgresql.serviceConfig.Group;
-    };
-
-    services.postgresql.settings = {
-      checkpoint_timeout = "30min";
-      checkpoint_completion_target = 0.9;
-      max_wal_size = "1GB";
-    };
-
-    # vpn
-
-    services.nebula.networks.ozds-vpn = {
-      enable = true;
-      cert = config.sops.secrets."nebula.crt.pub".path;
-      key = config.sops.secrets."nebula.crt".path;
-      ca = config.sops.secrets."nebula.ca.pub".path;
-      firewall.inbound = [
-        {
-          host = "any";
-          port = "any";
-          proto = "any";
-        }
-      ];
-      firewall.outbound = [
-        {
-          host = "any";
-          port = "any";
-          proto = "any";
-        }
-      ];
-      lighthouses = [ "10.8.0.1" ];
-      staticHostMap = {
-        "10.8.0.1" = [
-          "ozds-vpn.altibiz.com:4242"
-        ];
-      };
-      settings = {
-        relay = {
-          relays = [ "10.8.0.1" ];
-        };
-        punchy = {
-          punch = true;
-          delay = "1s";
-          respond = true;
-          respond_delay = "5s";
-        };
-        handshakes = {
-          try_interval = "1s";
-        };
-        static_map = {
-          cadence = "1m";
-          lookup_timeout = "10s";
-        };
-        logging = {
-          level = "debug";
-        };
-      };
-    };
-    sops.secrets."nebula.crt.pub" = {
-      owner = config.systemd.services."nebula@ozds-vpn".serviceConfig.User;
-      group = config.systemd.services."nebula@ozds-vpn".serviceConfig.Group;
-    };
-    sops.secrets."nebula.crt" = {
-      owner = config.systemd.services."nebula@ozds-vpn".serviceConfig.User;
-      group = config.systemd.services."nebula@ozds-vpn".serviceConfig.Group;
-    };
-    sops.secrets."nebula.ca.pub" = {
-      owner = config.systemd.services."nebula@ozds-vpn".serviceConfig.User;
-      group = config.systemd.services."nebula@ozds-vpn".serviceConfig.Group;
-    };
 
     # visualization
 
