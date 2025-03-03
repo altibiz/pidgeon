@@ -13,6 +13,15 @@ def "main" [] {
   nu $self --help
 }
 
+def "main vpn" [] {
+  let host = open --raw /etc/hostname | str trim
+
+  let config = vault kv get -format=json "kv/ozds/vpn"
+    | from json
+    | get data.data
+    | get $host
+}
+
 def "main secrets" [id?: string] {
   let pidgeon = (pick pidgeon $id)
 
@@ -105,6 +114,8 @@ def "main db admin" [id?: string] {
 }
 
 def "pick pidgeon" [id?: string] {
+  mut id = $id
+
   let pidgeons = (open --raw $pidgeons) | from json
 
   if $id == null {

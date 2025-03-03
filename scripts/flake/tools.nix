@@ -42,6 +42,8 @@
         unzip
 
         # rpi
+        vault
+        vault-medusa
         zstd
         nixos-generators
         deploy-rs
@@ -52,13 +54,6 @@
             && pkgs.stdenv.hostPlatform.isx86_64
         ) [
         libguestfs-with-appliance
-      ] ++ [
-
-        # secrets
-        openssh
-        age
-        sops
-        mkpasswd
       ];
     };
 }

@@ -89,5 +89,5 @@ docs:
 rebuild *args:
     nixos-rebuild switch --flake $"{{ root }}#pidgeon-(open --raw /etc/id)-aarch64-linux" {{ args }}
 
-host *args:
-    {{ host-script }} {{ args }}
+raspberryPi4 *args:
+    {{ root }}/scripts/flake/raspberryPi4.nu {{ args }}
