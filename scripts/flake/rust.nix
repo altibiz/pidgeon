@@ -125,6 +125,15 @@ in
       PIDGEON_NETWORK_IP_RANGE_END = "127.0.0.1";
       PIDGEON_MODBUS_PORT = "5020";
 
+      nativeBuildInputs = [
+        pkgs.pkg-config
+      ];
+
+      buildInputs = [
+        pkgs.openssl
+        pkgs.systemd
+      ];
+
       packages = with pkgs; [
         llvmPackages.clangNoLibcxx
         lldb
