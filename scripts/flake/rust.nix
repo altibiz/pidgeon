@@ -37,10 +37,11 @@ let
 
     artifacts = lib.buildDepsOnly common;
 
-    individual = cargoToml: common // {
+    individual = cargoToml: common // (rec {
       cargoArtifacts = artifacts;
-      inherit (lib.crateNameFromCargoToml { inherit cargoToml; }) version;
-    };
+      inherit (lib.crateNameFromCargoToml { inherit cargoToml; }) pname version;
+      cargoExtraArgs = "-p ${pname}";
+    });
 
     mkCrateSrc = crate: extra: pkgs.lib.fileset.toSource {
       inherit root;
@@ -51,9 +52,7 @@ let
       ] ++ extra);
     };
 
-    mkPackage = crate: name: cargoToml: extra: lib.buildPackage ((individual cargoToml) // {
-      pname = name;
-      cargoExtraArgs = "-p ${name}";
+    mkPackage = crate: cargoToml: extra: lib.buildPackage ((individual cargoToml) // {
       cargoArtifacts = lib.buildDepsOnly common;
       src = mkCrateSrc crate extra;
     });
@@ -86,7 +85,6 @@ in
     in
     craneLib.mkPackage
       (lib.path.append root "src/cli")
-      "pidgeon-cli"
       (lib.path.append root "src/cli/Cargo.toml")
       [
         (lib.path.append root "src/cli/.sqlx")
