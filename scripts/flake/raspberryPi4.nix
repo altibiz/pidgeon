@@ -21,7 +21,7 @@
     builtins.listToAttrs
       (builtins.map
         (pidgeon: {
-          name = "pidgeon-${pidgeon.id}";
+          name = "pidgeon-${pidgeon.id}-raspberryPi4-aarch64-linux";
           value = {
             hostname = pidgeon.ip;
             sshUser = "altibiz";
