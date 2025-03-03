@@ -69,8 +69,8 @@ def "main image" [id?: string] {
 mount /dev/sda2 /
 mkdir-p /root
 chmod 700 /root
-write /root/.sops.age \"($age)\"
-chmod 400 /root/.sops.age
+write /root/host.scrt.key \"($age)\"
+chmod 400 /root/host.scrt.key
 exit"
 
   echo $commands | guestfish --rw -a image.img
