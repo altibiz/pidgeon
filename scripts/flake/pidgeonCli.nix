@@ -10,7 +10,7 @@
     let
       cfg = config.services.pidgeon;
 
-      package = self.packages.${pkgs.system}.cli;
+      package = self.packages.${pkgs.system}.pidgeon-cli;
 
       service = pkgs.writeShellApplication {
         name = "pidgeon-service";
@@ -28,7 +28,7 @@
       };
     in
     {
-      options = {
+      options.services.pidgeon = {
         enable = lib.mkEnableOption "pidgeon";
 
         debug = lib.mkOption {
