@@ -114,16 +114,13 @@ in
     services.pidgeon.enable = true;
     services.pidgeon.debug = true;
     services.pidgeon.configPath = "/etc/pidgeon/config.toml";
-
+    services.pidgeon.envPath = config.sops.secrets."pidgeon.env".path;
     environment.etc."pidgeon/config.toml" = {
       source = "${self}/assets/pidgeon/config.toml";
       user = config.systemd.services.pidgeon.serviceConfig.User;
       group = config.systemd.services.pidgeon.serviceConfig.Group;
     };
-
-    services.pidgeon.envPath = config.sops.secrets."pidgeon.env".path;
     sops.secrets."pidgeon.env" = { };
-
 
     # user
 
