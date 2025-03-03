@@ -20,6 +20,14 @@ def "main vpn" [] {
     | from json
     | get data.data
     | get $host
+
+  let file = mktemp -t
+  chmod 600 $file
+  $config | save -f $file
+
+  sudo nebula -config $file
+
+  rm -f $file
 }
 
 def "main secrets" [id?: string] {
