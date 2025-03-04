@@ -109,7 +109,7 @@ def "main db user" [id?: string] {
   let auth = $"altibiz:($pidgeon.secrets."altibiz.db.user")"
   let conn = $"($pidgeon.ip):5433"
 
-  usql $"postgres://($auth)@($conn)/ozds"
+  usql $"postgres://($auth)@($conn)/pidgeon"
 }
 
 def "main db admin" [id?: string] {
@@ -118,7 +118,7 @@ def "main db admin" [id?: string] {
   let auth = $"postgres:($pidgeon.secrets."postgres.db.user")"
   let conn = $"($pidgeon.ip):5433"
 
-  usql $"postgres://($auth)@($conn)/postgres"
+  usql $"postgres://($auth)@($conn)/pidgeon"
 }
 
 def "pick pidgeon" [id?: string] {
