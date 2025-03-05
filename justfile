@@ -55,8 +55,8 @@ lint:
     cspell lint '{{ root }}' --no-progress
     cd '{{ root }}'; cargo clippy -- -D warnings
     glob '{{ root }}/scripts/**/*.sh' | each { |i| shellcheck $i } | str join "\n"
-    ruff check '{{ probe }}'
-    pyright '{{ root }}';
+    ruff check '{{ root }}'
+    pyright '{{ root }}'
 
 test:
     cd '{{ root }}'; cargo test
