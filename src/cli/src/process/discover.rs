@@ -104,17 +104,17 @@ impl Process {
       return vec![device_match];
     }
 
-    let mut device_matches = Vec::new();
-    for destination in modbus::Destination::slaves_for(
-      modbus_device,
-      Some(config.modbus.max_slave),
-    ) {
-      if let Some(device_match) =
-        self.match_destination(config, destination).await
-      {
-        device_matches.push(device_match);
-      }
-    }
+    let device_matches = join_all(
+      modbus::Destination::slaves_for(
+        modbus_device,
+        Some(config.modbus.max_slave),
+      )
+      .map(|destination| self.match_destination(config, destination)),
+    )
+    .await
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>();
 
     device_matches
   }
