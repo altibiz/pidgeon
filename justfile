@@ -73,7 +73,7 @@ upgrade:
 docs:
     rm -rf '{{ root }}/artifacts'
     mkdir '{{ root }}/artifacts'
-    cd '{{ root }}'; cargo doc --no-deps
+    cd '{{ root }}'; $env.DATABASE_URL = null; cargo doc --no-deps
     cd '{{ root }}/docs/en'; mdbook build
     cd '{{ root }}/docs/hr'; mdbook build
     mv '{{ root }}/target/doc' '{{ root }}/artifacts/code'
