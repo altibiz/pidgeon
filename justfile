@@ -40,6 +40,9 @@ probe *args:
       $env.PIDGEON_PROBE_ENV = 'development'; \
       python -m probe.main {{ args }}
 
+test:
+    cd '{{ root }}'; cargo test
+
 format:
     cd '{{ root }}'; just --unstable --fmt
     prettier --write '{{ root }}'
@@ -58,9 +61,6 @@ lint:
     pyright '{{ root }}'
     cd '{{ root }}'; cargo clippy -- -D warnings
 
-test:
-    cd '{{ root }}'; cargo test
-
 upgrade:
     nix flake update
     cargo upgrade
@@ -75,9 +75,6 @@ docs:
     mv '{{ root }}/docs/en/book' '{{ root }}/artifacts/en'
     mv '{{ root }}/docs/hr/book' '{{ root }}/artifacts/hr'
     cp '{{ root }}/docs/index.html' '{{ root }}/artifacts'
-
-rebuild *args:
-    nixos-rebuild switch --flake $"{{ root }}#pidgeon-(open --raw /etc/id)-aarch64-linux" {{ args }}
 
 raspberryPi4 *args:
     {{ root }}/scripts/flake/raspberryPi4.nu {{ args }}
