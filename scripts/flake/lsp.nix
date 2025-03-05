@@ -5,6 +5,7 @@
       marksman
       taplo
       nodePackages.bash-language-server
+      vscode-langservers-extracted
       nil
       cargo
       rustc

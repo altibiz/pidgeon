@@ -12,6 +12,9 @@
       just
       nixpkgs-fmt
       shellcheck
+      markdownlint-cli
+      nodePackages.markdown-link-check
+      fd
     ];
   };
 }

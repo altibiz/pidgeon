@@ -61,6 +61,11 @@ lint:
     prettier --check '{{ root }}'
     cspell lint '{{ root }}' --no-progress
     nixpkgs-fmt '{{ root }}' --check
+    markdownlint --ignore-path .gitignore '{{ root }}'
+    markdown-link-check \
+      --config .markdown-link-check.json \
+      --quiet \
+      ...(fd '.*.md' | lines)
     glob '{{ root }}/scripts/**/*.sh' | each { |i| shellcheck $i } | str join "\n"
     ruff check '{{ root }}'
     pyright '{{ root }}'

@@ -18,10 +18,10 @@ uređaja, možete zapisati ISO sliku sljedećom naredbom:
 sudo dd if=<iso> of=<device> bs=4M status=progress && sync
 ```
 
-Zamijenite <iso> s putanjom do ISO slike i <device> s putanjom uređaja SSD-a.
-Ova naredba zapisuje ISO sliku na SSD blok po blok i prikazuje informacije o
-napretku. Naredba sync se koristi za osiguranje da su svi podaci ispravno
-zapisani na uređaj.
+Zamijenite `<iso>` s putanjom do ISO slike i `<device>` s putanjom uređaja
+SSD-a. Ova naredba zapisuje ISO sliku na SSD blok po blok i prikazuje
+informacije o napretku. Naredba sync se koristi za osiguranje da su svi podaci
+ispravno zapisani na uređaj.
 
 ### Windows
 

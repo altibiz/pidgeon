@@ -19,8 +19,8 @@ path, you can flash the ISO image with the following command:
 sudo dd if=<iso> of=<device> bs=4M status=progress && sync
 ```
 
-Replace <iso> with the path to the ISO image and <device> with the device path
-of the SSD. This command writes the ISO image to the SSD block by block and
+Replace `<iso>` with the path to the ISO image and `<device>` with the device
+path of the SSD. This command writes the ISO image to the SSD block by block and
 shows progress information. The sync command is used to ensure all data is
 flushed to the device.
 
