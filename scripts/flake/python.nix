@@ -30,8 +30,21 @@ let
         postInstall = (old.postInstall or "") + ''
           wrapProgram $out/bin/pyright \
             --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.nodejs ]}
+          wrapProgram $out/bin/pyright \
+            --prefix PYTHONPREFIX : ${final}
+          wrapProgram $out/bin/pyright \
+            --prefix PYTHONEXECUTABLE : ${final}/bin/python
+          wrapProgram $out/bin/pyright \
+            --prefix PYTHONPATH : ${final}/lib/**/site-packages
+
           wrapProgram $out/bin/pyright-langserver \
             --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.nodejs ]}
+          wrapProgram $out/bin/pyright-langserver \
+            --prefix PYTHONPREFIX : ${final}
+          wrapProgram $out/bin/pyright-langserver \
+            --prefix PYTHONEXECUTABLE : ${final}/bin/python
+          wrapProgram $out/bin/pyright-langserver \
+            --prefix PYTHONPATH : ${final}/lib/**/site-packages
         '';
       });
 
