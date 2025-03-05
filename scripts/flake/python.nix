@@ -23,31 +23,6 @@ let
         ]);
       });
 
-      pyright = prev.pyright.overrideAttrs (old: {
-        nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
-          pkgs.makeWrapper
-        ];
-        postInstall = (old.postInstall or "") + ''
-          wrapProgram $out/bin/pyright \
-            --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.nodejs ]}
-          wrapProgram $out/bin/pyright \
-            --prefix PYTHONPREFIX : ${final}
-          wrapProgram $out/bin/pyright \
-            --prefix PYTHONEXECUTABLE : ${final}/bin/python
-          wrapProgram $out/bin/pyright \
-            --prefix PYTHONPATH : ${final}/lib/**/site-packages
-
-          wrapProgram $out/bin/pyright-langserver \
-            --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.nodejs ]}
-          wrapProgram $out/bin/pyright-langserver \
-            --prefix PYTHONPREFIX : ${final}
-          wrapProgram $out/bin/pyright-langserver \
-            --prefix PYTHONEXECUTABLE : ${final}/bin/python
-          wrapProgram $out/bin/pyright-langserver \
-            --prefix PYTHONPATH : ${final}/lib/**/site-packages
-        '';
-      });
-
       smbus = prev.smbus.overrideAttrs (old: {
         buildInputs = (old.buildInputs or [ ]) ++ (with prev; [
           setuptools
@@ -65,22 +40,19 @@ let
     pythonSet =
       (pkgs.callPackage pyproject-nix.build.packages {
         inherit python;
-      }).overrideScope
-        (
-          lib.composeManyExtensions [
-            pyproject-build-systems.overlays.default
-            overlay
-            pyprojectOverrides
-          ]
-        );
+      }).overrideScope (lib.composeManyExtensions [
+        pyproject-build-systems.overlays.default
+        overlay
+        pyprojectOverrides
+      ]);
 
     editableOverlay = workspace.mkEditablePyprojectOverlay {
       root = "$REPO_ROOT";
       members = [ "pidgeon-probe" ];
     };
 
-    editablePythonSet = pythonSet.overrideScope (
-      lib.composeManyExtensions [
+    editablePythonSet = pythonSet.overrideScope
+      (lib.composeManyExtensions [
         editableOverlay
 
         (final: prev: {
@@ -95,8 +67,7 @@ let
               };
           });
         })
-      ]
-    );
+      ]);
   };
 in
 {
@@ -125,18 +96,40 @@ in
     in
     pkgs.mkShell {
       packages = [
+        (pkgs.writeShellApplication {
+          name = "pyright";
+          runtimeInputs = [ pkgs.nodejs venv ];
+          text = ''
+            export PYTHONPREFIX=${venv}
+            export PYTHONEXECUTABLE=${venv}/bin/python
+            # shellcheck disable=SC2125
+            export PYTHONPATH=${venv}/lib/**/site-packages
+
+            pyright "$@"
+          '';
+        })
+        (pkgs.writeShellApplication {
+          name = "pyright-langserver";
+          runtimeInputs = [ pkgs.nodejs venv ];
+          text = ''
+            export PYTHONPREFIX=${venv}
+            export PYTHONEXECUTABLE=${venv}/bin/python
+            # shellcheck disable=SC2125
+            export PYTHONPATH=${venv}/lib/**/site-packages
+
+            pyright-langserver "$@"
+          '';
+        })
         venv
         pkgs.uv
         pkgs.git
       ];
 
-      env = {
-        UV_NO_SYNC = "1";
-        UV_PYTHON = "${venv}/bin/python";
-        UV_PYTHON_DOWNLOADS = "never";
-      };
-
       shellHook = ''
+        export UV_NO_SYNC="1"
+        export UV_PYTHON="${venv}/bin/python"
+        export UV_PYTHON_DOWNLOADS="never"
+
         unset PYTHONPATH
         export REPO_ROOT=$(git rev-parse --show-toplevel)
       '';
