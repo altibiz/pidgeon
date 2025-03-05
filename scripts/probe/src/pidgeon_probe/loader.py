@@ -41,36 +41,29 @@ class Loader:
     config: str | None = None,
     measurements: str | None = None,
   ):
-    script_dir = os.path.dirname(os.path.realpath(__file__))
-    probe_dir = os.path.dirname(script_dir)
-    root_dir = os.path.dirname(os.path.dirname(probe_dir))
-    assets_dir = os.path.join(root_dir, "assets")
-
     self.__device_type = device_type
     self.__id = id
 
     if config is None:
-      config = os.path.join(assets_dir, "config.toml")
+      config = os.path.join(os.getcwd(), "config.toml")
 
     log.info(("Using config at", config))
     self.__config = Loader.__load_config(config)["modbus"]["devices"][str(
       device_type)]
 
-    if measurements is not None:
-      assets_dir = measurements
+    if measurements is None:
+      measurements = os.path.join(os.getcwd(), "measurements")
 
     if device_type == DeviceType.abb_b2x:
       measurements = os.path.join(
-        assets_dir,
+        measurements,
         "abb-B2x-measurements.csv",
       )
     elif device_type == DeviceType.schneider_iem3xxx:
       measurements = os.path.join(
-        assets_dir,
+        measurements,
         "schneider-iEM3xxx-measurements.csv",
       )
-    else:
-      raise ValueError("Device type unknown")
 
     log.info(("Using measurements at", measurements))
     self.__measurements = Loader.__load_measurements(measurements)

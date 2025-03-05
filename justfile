@@ -34,10 +34,16 @@ lfs:
 run *args:
     cd '{{ root }}/src/cli'; cargo run -- --config '{{ root }}/assets/pidgeon/config.toml' {{ args }}
 
-probe *args:
-    cd '{{ root }}/scripts/probe'; \
-      $env.PIDGEON_PROBE_ENV = 'development'; \
-      python -m probe.main {{ args }}
+probe-client *args:
+    pidgeon-probe client \
+      --config '{{ root }}/assets/pidgeon/config.toml' \
+      {{ args }}
+
+probe-server *args:
+    pidgeon-probe server \
+      --config '{{ root }}/assets/pidgeon/config.toml' \
+      --measurements '{{ root }}/assets/measurements' \
+      {{ args }}
 
 test:
     cd '{{ root }}'; cargo test
