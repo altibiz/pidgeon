@@ -35,18 +35,18 @@ prepare:
         continue \
       } \
     }
-    cd '{{ cli }}'; cargo sqlx migrate run
+    cd '{{ root }}/src/cli'; cargo sqlx migrate run
 
 lfs:
-    dvc add {{ assets }}/*.csv
-    dvc add {{ assets }}/*.sql
+    dvc add {{ root }}/assets/measurements/*.csv
+    dvc add {{ root }}/assets/measurements/*.sql
     dvc push
 
 run *args:
-    cd '{{ cli }}'; cargo run -- --config '{{ config }}' {{ args }}
+    cd '{{ root }}/src/cli'; cargo run -- --config '{{ root }}/assets/pidgeon/config.toml' {{ args }}
 
 probe *args:
-    cd '{{ probe }}'; \
+    cd '{{ root }}/scripts/probe'; \
       $env.PIDGEON_PROBE_ENV = 'development'; \
       python -m probe.main {{ args }}
 
@@ -54,7 +54,7 @@ format:
     cd '{{ root }}'; just --unstable --fmt
     prettier --write '{{ root }}'
     cd '{{ root }}'; cargo fmt --all
-    yapf --recursive --in-place --parallel '{{ probe }}'
+    yapf --recursive --in-place --parallel '{{ root }}'
     shfmt --write '{{ root }}'
     nixpkgs-fmt '{{ root }}'
 
@@ -76,15 +76,15 @@ upgrade:
     cargo upgrade
 
 docs:
-    rm -rf '{{ artifacts }}'
-    mkdir '{{ artifacts }}'
+    rm -rf '{{ root }}/artifacts'
+    mkdir '{{ root }}/artifacts'
     cd '{{ root }}'; cargo doc --no-deps
-    cd '{{ docs }}/en'; mdbook build
-    cd '{{ docs }}/hr'; mdbook build
-    mv '{{ target }}/doc' '{{ artifacts }}/code'
-    mv '{{ docs }}/en/book' '{{ artifacts }}/en'
-    mv '{{ docs }}/hr/book' '{{ artifacts }}/hr'
-    cp '{{ docs }}/index.html' '{{ artifacts }}'
+    cd '{{ root }}/docs/en'; mdbook build
+    cd '{{ root }}/docs/hr'; mdbook build
+    mv '{{ target }}/doc' '{{ root }}/artifacts/code'
+    mv '{{ root }}/docs/en/book' '{{ root }}/artifacts/en'
+    mv '{{ root }}/docs/hr/book' '{{ root }}/artifacts/hr'
+    cp '{{ root }}/docs/index.html' '{{ root }}/artifacts'
 
 rebuild *args:
     nixos-rebuild switch --flake $"{{ root }}#pidgeon-(open --raw /etc/id)-aarch64-linux" {{ args }}
