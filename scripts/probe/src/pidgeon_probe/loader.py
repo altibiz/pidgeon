@@ -188,7 +188,7 @@ class Loader:
     ))
 
     for i, register in enumerate(registers):
-      out[address + i] = register
+      out[address + i + 1] = register
 
   def __write_detect_register(self, out: dict[int, int]) -> None:
     start: int | None = None
@@ -209,7 +209,7 @@ class Loader:
       raise ValueError("Unsupported device type")
 
     for i, register in enumerate(registers):
-      out[start + i] = register
+      out[start + i + 1] = register
 
   @staticmethod
   def __load_config(file_name: str) -> dict[str, Any]:
