@@ -1,18 +1,6 @@
 set windows-shell := ["nu.exe", "-c"]
 set shell := ["nu", "-c"]
 
-root := absolute_path('')
-scripts := absolute_path('scripts')
-cli := absolute_path('src/cli')
-probe := absolute_path('src/probe')
-assets := absolute_path('assets')
-config := absolute_path('assets/config.toml')
-artifacts := absolute_path('artifacts')
-target := absolute_path('target')
-docs := absolute_path('docs')
-isready := absolute_path('scripts/isready.nu')
-host-script := absolute_path('scripts/host.nu')
-
 default:
     @just --choose
 
