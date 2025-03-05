@@ -54,7 +54,7 @@ lint:
     prettier --check '{{ root }}'
     cspell lint '{{ root }}' --no-progress
     cd '{{ root }}'; cargo clippy -- -D warnings
-    glob '{{ scripts }}/*.sh' | each { |i| shellcheck $i } | str join "\n"
+    glob '{{ root }}/scripts/**/*.sh' | each { |i| shellcheck $i } | str join "\n"
     ruff check '{{ probe }}'
     pyright '{{ root }}';
 
