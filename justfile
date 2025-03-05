@@ -81,7 +81,7 @@ docs:
     cd '{{ root }}'; cargo doc --no-deps
     cd '{{ root }}/docs/en'; mdbook build
     cd '{{ root }}/docs/hr'; mdbook build
-    mv '{{ target }}/doc' '{{ root }}/artifacts/code'
+    mv '{{ root }}/target/doc' '{{ root }}/artifacts/code'
     mv '{{ root }}/docs/en/book' '{{ root }}/artifacts/en'
     mv '{{ root }}/docs/hr/book' '{{ root }}/artifacts/hr'
     cp '{{ root }}/docs/index.html' '{{ root }}/artifacts'

@@ -5,6 +5,7 @@
       bash
       nushell
       gum
+      fzf
     ];
   };
 }
