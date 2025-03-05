@@ -29,7 +29,6 @@ prepare:
 
 lfs:
     dvc add {{ root }}/assets/measurements/*.csv
-    dvc add {{ root }}/assets/measurements/*.sql
     dvc push
 
 run *args:
