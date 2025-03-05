@@ -14,6 +14,8 @@
         "postgres://${auth}@${conn}/${db}?sslmode=disable";
     in
     pkgs.mkShell {
+      DATABASE_URL = databaseUrl;
+
       packages = with pkgs; [
         # documentation
         simple-http-server

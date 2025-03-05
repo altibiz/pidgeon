@@ -27,11 +27,11 @@ prepare:
           | each { $in | from json } \
           | filter { $in.Image | str starts-with "timescale" } \
           | first \
-          | get id) \
-        docker exec $timescale_container_id pg_isready --host localhost \
+          | get id); \
+        docker exec $timescale_container_id pg_isready --host localhost; \
         break \
       } catch { \
-        sleep 1sec \
+        sleep 1sec; \
         continue \
       } \
     }
