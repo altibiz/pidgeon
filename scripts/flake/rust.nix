@@ -113,23 +113,25 @@ in
         "postgres://${auth}@${conn}/${db}?sslmode=disable";
     in
     pkgs.mkShell {
-      RUST_BACKTRACE = "full";
+      shellHook = ''
+        export RUST_BACKTRACE="full";
 
-      DATABASE_URL = databaseUrl;
+        export DATABASE_URL="${databaseUrl}";
 
-      PIDGEON_DB_DOMAIN = postgres.host;
-      PIDGEON_DB_PORT = postgres.port;
-      PIDGEON_DB_USER = postgres.user;
-      PIDGEON_DB_PASSWORD = postgres.password;
-      PIDGEON_DB_NAME = postgres.database;
+        export PIDGEON_DB_DOMAIN="${postgres.host}";
+        export PIDGEON_DB_PORT="${postgres.port}";
+        export PIDGEON_DB_USER="${postgres.user}";
+        export PIDGEON_DB_PASSWORD="${postgres.password}";
+        export PIDGEON_DB_NAME="${postgres.database}";
 
-      PIDGEON_CLOUD_DOMAIN = "localhost:5000";
-      PIDGEON_CLOUD_API_KEY = "messenger";
-      PIDGEON_CLOUD_ID = "messenger";
+        export PIDGEON_CLOUD_DOMAIN="localhost:5000";
+        export PIDGEON_CLOUD_API_KEY="messenger";
+        export PIDGEON_CLOUD_ID="messenger";
 
-      PIDGEON_NETWORK_IP_RANGE_START = "127.0.0.1";
-      PIDGEON_NETWORK_IP_RANGE_END = "127.0.0.1";
-      PIDGEON_MODBUS_PORT = "5020";
+        export PIDGEON_NETWORK_IP_RANGE_START="127.0.0.1";
+        export PIDGEON_NETWORK_IP_RANGE_END="127.0.0.1";
+        export PIDGEON_MODBUS_PORT="5020";
+      '';
 
       buildInputs = [
         pkgs.pkg-config
