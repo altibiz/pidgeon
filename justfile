@@ -64,7 +64,7 @@ lint:
     glob '{{ root }}/scripts/**/*.sh' | each { |i| shellcheck $i } | str join "\n"
     ruff check '{{ root }}'
     pyright '{{ root }}'
-    cd '{{ root }}'; cargo clippy -- -D warnings
+    cd '{{ root }}'; $env.DATABASE_URL = null; cargo clippy -- -D warnings
 
 upgrade:
     nix flake update
