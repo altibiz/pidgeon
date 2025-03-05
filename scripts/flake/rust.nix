@@ -100,8 +100,6 @@ in
 
   flake.lib.rust.mkDevShell = pkgs:
     let
-      package = self.lib.rust.mkPackage pkgs;
-
       postgres = self.lib.dockerCompose.mkDockerComposePostgres pkgs;
 
       databaseUrl =
@@ -149,7 +147,6 @@ in
         rust-analyzer
         cargo-edit
         evcxr
-        package
       ];
     };
 }
