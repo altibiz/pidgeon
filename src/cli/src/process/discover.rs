@@ -104,7 +104,7 @@ impl Process {
       return vec![device_match];
     }
 
-    let device_matches = join_all(
+    join_all(
       modbus::Destination::slaves_for(
         modbus_device,
         Some(config.modbus.max_slave),
@@ -114,9 +114,7 @@ impl Process {
     .await
     .into_iter()
     .flatten()
-    .collect::<Vec<_>>();
-
-    device_matches
+    .collect::<Vec<_>>()
   }
 
   #[tracing::instrument(skip(self, config))]
