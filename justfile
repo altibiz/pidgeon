@@ -43,20 +43,20 @@ probe *args:
 format:
     cd '{{ root }}'; just --unstable --fmt
     prettier --write '{{ root }}'
-    cd '{{ root }}'; cargo fmt --all
-    yapf --recursive --in-place --parallel '{{ root }}'
-    shfmt --write '{{ root }}'
     nixpkgs-fmt '{{ root }}'
+    shfmt --write '{{ root }}'
+    yapf --recursive --in-place --parallel '{{ root }}'
+    cd '{{ root }}'; cargo fmt --all
 
 lint:
     cd '{{ root }}'; just --unstable --fmt --check
-    nixpkgs-fmt '{{ root }}' --check
     prettier --check '{{ root }}'
     cspell lint '{{ root }}' --no-progress
-    cd '{{ root }}'; cargo clippy -- -D warnings
+    nixpkgs-fmt '{{ root }}' --check
     glob '{{ root }}/scripts/**/*.sh' | each { |i| shellcheck $i } | str join "\n"
     ruff check '{{ root }}'
     pyright '{{ root }}'
+    cd '{{ root }}'; cargo clippy -- -D warnings
 
 test:
     cd '{{ root }}'; cargo test
