@@ -47,7 +47,6 @@ class Server:
     slave = Server.ModbusDelayedSlaveContext(
       # NOTE: its valid because it infers type by defaults
       hr=Server.ModbusZeroedSparseDataBlock(registers),  # type: ignore
-      zero_mode=True,
     )
     # NOTE: single makes it always return the slave for any slave number...
     # NOTE: using slave 1 because the tcp device slave number seems to not work

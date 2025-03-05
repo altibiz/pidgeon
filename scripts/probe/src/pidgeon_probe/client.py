@@ -105,7 +105,7 @@ class Client:
         response = await asyncio.wait_for(
           self.__modbus_client.write_registers(
             address=register,
-            values=[value.to_bytes(byteorder='little') for value in values],
+            values=values,
             slave=self.__slave_id,
           ),
           timeout=1,
