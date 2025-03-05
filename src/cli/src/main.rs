@@ -5,6 +5,7 @@
 #![deny(clippy::todo)]
 #![deny(clippy::unreachable)]
 #![deny(clippy::allow_attributes_without_reason)]
+#![allow(dead_code, reason = "remove once the time stuff is complete")]
 
 mod config;
 mod process;
