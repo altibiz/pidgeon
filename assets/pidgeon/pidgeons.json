@@ -1,0 +1,56 @@
+[
+  {
+    "name": "HELB-KONC 2",
+    "id": "grFvxoW5xQs69gfQfCSTIND8NT1L70tI",
+    "ip": "10.8.0.12",
+    "wifi": "PayZMy3Y0JIHJzwfwMRiH45NkXjAH7GT"
+  },
+  {
+    "id": "TulPr4fOqSE82Ro6jyRSlEv92NFiN3fo",
+    "ip": "10.8.0.11"
+  },
+  {
+    "name": "HELB-KONC 1",
+    "id": "PayZMy3Y0JIHJzwfwMRiH45NkXjAH7GT",
+    "ip": "10.8.0.15"
+  },
+  {
+    "name": "HELB-KONC 3",
+    "id": "6k73Uam8eNOg0KXhVdXj3p1C7N5bMpqf",
+    "ip": "10.8.0.10"
+  },
+  {
+    "name": "HELB-KONC 5",
+    "id": "EvztBTwG5Zryo7UJPZFjtYwMVuEqQyZ4",
+    "ip": "10.8.0.16"
+  },
+  {
+    "name": "HELB-TEST 1",
+    "id": "K2iADfcQngJoZvssNxiZDvbErFq0w3jn",
+    "ip": "10.8.0.17"
+  },
+  {
+    "name": "HELB-KONC 6",
+    "id": "HHeJNW843H35uc0gdh6sbJUftnLNklyj",
+    "ip": "10.8.0.19"
+  },
+  {
+    "id": "nEIcKYdZ8KG5Cm3qXTb0xhcSooccc6td",
+    "ip": "10.8.0.14"
+  },
+  {
+    "id": "8RHOU6R8p732mNDytEL9minBqdo2ax77",
+    "ip": "10.8.0.13"
+  },
+  {
+    "name": "HELB-KONC 7",
+    "id": "n5t4DIM4zK2wB89NFKlfUJd2yAfoilFi",
+    "ip": "10.8.0.20"
+  },
+  {
+    "name": "HELB-KONC 4",
+    "id": "shdJz2n5imgs87CefXClpi5DDpjbMKsT",
+    "ip": "10.8.0.18",
+    "wifi": "PayZMy3Y0JIHJzwfwMRiH45NkXjAH7GT"
+  }
+]

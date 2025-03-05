@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        select id, kind, status as \"status: DeviceStatus\", seen, pinged, address, path, baud_rate, slave\n        from devices\n      ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "status: DeviceStatus",
+        "type_info": {
+          "Custom": {
+            "name": "device_status",
+            "kind": {
+              "Enum": ["healthy", "unreachable", "inactive"]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "seen",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "pinged",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "address",
+        "type_info": "Inet"
+      },
+      {
+        "ordinal": 6,
+        "name": "path",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "baud_rate",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "slave",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [false, false, false, false, false, true, true, true, true]
+  },
+  "hash": "2d959cf721fac42f3c2aea2d1c129a73e3c49d39118bd04bd049edfac025347a"
+}

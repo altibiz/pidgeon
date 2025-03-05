@@ -2,20 +2,21 @@ useGitignore: true
 version: "0.2"
 language: en
 ignorePaths:
-  - "target/**/*"
+  - "target"
   - pyproject.toml
-  - "src/flake/**/*"
+  - "scripts/flake"
   - justfile
   - Cargo.toml
-  - "scripts/*"
   - flake.nix
   - docker-compose.yml
   - cspell.yaml
   - "docs/**/book.toml"
   - "docs/**/book"
-  # TODO: hr language
-  - "docs/hr/**/*"
+  - "docs/hr"
   - "docs/index.html"
+  - "test/e2e"
+  - "assets"
+  - "Cargo.nix"
 words:
   - pidgeon
   - modbus
@@ -48,3 +49,15 @@ words:
   - pyright
   - mdbook
   - justfile
+  - timespec
+  - levelname
+  - endianness
+  - struct
+  - structs
+  - oneoff
+  - serialport
+  - netdev
+  - baudrate
+  - schneideri
+  - datelike
+  - timelike

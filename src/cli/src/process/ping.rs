@@ -1,16 +1,16 @@
 use futures::future::join_all;
 use futures_time::future::FutureExt;
 
-#[allow(unused_imports)]
+#[allow(unused_imports, reason = "services")]
 use crate::{service::*, *};
 
 // TODO: use destination to send request because the device might not be discovered
 
 pub(crate) struct Process {
-  #[allow(unused)]
+  #[allow(dead_code, reason = "process")]
   config: config::Manager,
 
-  #[allow(unused)]
+  #[allow(dead_code, reason = "process")]
   services: service::Container,
 }
 
@@ -184,7 +184,24 @@ impl Process {
         .bind(
           device.id.clone(),
           modbus::Destination {
-            address: network::to_socket(db::to_address(device.address)),
+            device: match &device.address {
+              Some(address) => modbus::connection::Device::Tcp(
+                self.services.net().to_socket(db::to_address(*address)),
+              ),
+              None => match (&device.path, &device.baud_rate) {
+                (Some(path), Some(baud_rate)) => {
+                  modbus::connection::Device::Rtu {
+                    path: path.clone(),
+                    baud_rate: (*baud_rate as u32),
+                  }
+                }
+                _ => {
+                  return Err(anyhow::anyhow!(format!(
+                    "Device {device:?} missing appropriate server details"
+                  )))
+                }
+              },
+            },
             slave: db::to_slave(device.slave),
           },
         )

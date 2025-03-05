@@ -88,6 +88,12 @@ pub(crate) struct ValueRegister {
   pub(crate) value: Vec<u16>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) enum TimeImplementation {
+  #[serde(rename = "schneider-iEM3xxx")]
+  SchneideriEM3xxx,
+}
+
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Device {
   pub(crate) detect: Vec<DetectRegister>,
@@ -96,19 +102,22 @@ pub(crate) struct Device {
   pub(crate) configuration: Vec<ValueRegister>,
   pub(crate) daily: Vec<ValueRegister>,
   pub(crate) nightly: Vec<ValueRegister>,
+  pub(crate) time: Option<TimeImplementation>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Modbus {
-  pub(crate) read_timeout: Option<u32>,
+  pub(crate) request_timeout: Option<u32>,
   pub(crate) batch_threshold: Option<u16>,
   pub(crate) termination_timeout: Option<u32>,
   pub(crate) congestion_backoff: Option<u32>,
   pub(crate) partial_retries: Option<u32>,
   pub(crate) ping_timeout: Option<u32>,
   pub(crate) tariff_timeout: Option<u32>,
+  pub(crate) time_timeout: Option<u32>,
   pub(crate) inactive_timeout: Option<u32>,
   pub(crate) discovery_timeout: Option<u32>,
+  pub(crate) max_slave: Option<u8>,
   pub(crate) devices: HashMap<String, Device>,
 }
 
@@ -128,6 +137,7 @@ pub(crate) struct Schedule {
   pub(crate) health: Option<String>,
   pub(crate) daily: Option<String>,
   pub(crate) nightly: Option<String>,
+  pub(crate) time: Option<String>,
   pub(crate) poll: Option<String>,
   pub(crate) timezone: Option<chrono_tz::Tz>,
 }
@@ -304,11 +314,14 @@ pub(crate) fn to_modbus_register_kind(
 pub(crate) fn make_ip_range(start: String, end: String) -> ipnet::IpAddrRange {
   let (start, end) = match (start.parse(), end.parse()) {
     (Ok(start), Ok(end)) => (start, end),
-    #[allow(clippy::unwrap_used)] // NOTE: valid ipv4 addresses
-    _ => (
-      "192.168.1.0".parse().unwrap(),
-      "192.168.1.255".parse().unwrap(),
-    ),
+    #[allow(clippy::unwrap_used, reason = "valid static ipv4 addresses")]
+    err => {
+      tracing::warn!("Invalid IP addresses {:?}", err);
+      (
+        "192.168.1.0".parse().unwrap(),
+        "192.168.1.255".parse().unwrap(),
+      )
+    }
   };
 
   ipnet::IpAddrRange::from(ipnet::Ipv4AddrRange::new(start, end))
@@ -346,7 +359,7 @@ pub(crate) fn string_to_cron(
     }
   }
 
-  #[allow(clippy::unwrap_used)] // NOTE: this is a valid cron expression
+  #[allow(clippy::unwrap_used, reason = "valid static cron expression")]
   cron::Schedule::from_str(
     // NOTE: every minute
     // NOTE: sec | min | hour | day of month | month | day of week | year

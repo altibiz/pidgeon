@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::net::SocketAddr;
 use std::ops::IndexMut;
 use std::sync::Arc;
 
@@ -28,7 +27,7 @@ pub(crate) struct ReadResponseEntry {
 
 #[derive(Debug, Clone)]
 pub(crate) struct WriteResponseEntry {
-  #[allow(unused)]
+  #[allow(dead_code, reason = "keep it just in case")]
   pub(crate) inner: super::connection::WriteResponse,
   pub(crate) timestamp: chrono::DateTime<chrono::Utc>,
 }
@@ -72,14 +71,18 @@ pub(crate) enum TerminateError {
 
 impl Worker {
   pub(crate) fn new(
-    read_timeout: chrono::Duration,
+    request_timeout: chrono::Duration,
     termination_timeout: chrono::Duration,
     congestion_backoff: chrono::Duration,
     partial_retries: u32,
   ) -> Self {
     let (sender, receiver) = flume::unbounded();
-    let task =
-      Task::new(read_timeout, receiver, congestion_backoff, partial_retries);
+    let task = Task::new(
+      request_timeout,
+      receiver,
+      congestion_backoff,
+      partial_retries,
+    );
     let handle = tokio::spawn(task.execute());
     Self {
       sender,
@@ -315,7 +318,7 @@ struct ReadRequestStorage {
 
 #[derive(Debug)]
 struct Task {
-  connections: HashMap<SocketAddr, Connection>,
+  connections: HashMap<Device, Connection>,
   receiver: RequestReceiver,
   reads: Vec<ReadRequestStorage>,
   writes: Vec<WriteRequestStorage>,
@@ -414,7 +417,7 @@ impl Task {
         ConnectionAttempt::Existing(connection) => connection,
         ConnectionAttempt::New(connection) => self
           .connections
-          .entry(read.destination.address)
+          .entry(read.destination.device.clone())
           .or_insert(connection),
         ConnectionAttempt::Fail => {
           reads_to_remove.push(read.id);
@@ -486,7 +489,7 @@ impl Task {
         ConnectionAttempt::Existing(connection) => connection,
         ConnectionAttempt::New(connection) => self
           .connections
-          .entry(write.destination.address)
+          .entry(write.destination.device.clone())
           .or_insert(connection),
         ConnectionAttempt::Fail => {
           writes_to_remove.push(write.id);
@@ -571,7 +574,7 @@ impl Task {
         ConnectionAttempt::Existing(connection) => connection,
         ConnectionAttempt::New(connection) => self
           .connections
-          .entry(stream.destination.address)
+          .entry(stream.destination.device.clone())
           .or_insert(connection),
         ConnectionAttempt::Fail => {
           streams_to_remove.push(stream.id);
@@ -647,7 +650,10 @@ impl Task {
         self.streams = Vec::new();
         tracing::trace!(
           "Terminating {:?}",
-          self.reads.first().map(|read| read.destination.address)
+          self
+            .reads
+            .first()
+            .map(|read| read.destination.device.clone())
         );
       }
     }
@@ -673,7 +679,10 @@ impl Task {
         self.streams = Vec::new();
         tracing::trace!(
           "Terminating {:?}",
-          self.reads.first().map(|read| read.destination.address)
+          self
+            .reads
+            .first()
+            .map(|read| read.destination.device.clone())
         );
       }
     }
@@ -711,9 +720,25 @@ impl Task {
     };
 
     match kind {
-      ReadRequestKind::Read => self.reads.push(storage),
-      ReadRequestKind::Stream => self.streams.push(storage),
-    };
+      ReadRequestKind::Read => {
+        let index = self
+          .reads
+          .binary_search_by(|r| {
+            r.destination.slave.cmp(&storage.destination.slave)
+          })
+          .unwrap_or_else(|i| i);
+        self.reads.insert(index, storage);
+      }
+      ReadRequestKind::Stream => {
+        let index = self
+          .streams
+          .binary_search_by(|s| {
+            s.destination.slave.cmp(&storage.destination.slave)
+          })
+          .unwrap_or_else(|i| i);
+        self.streams.insert(index, storage);
+      }
+    }
 
     tracing::trace!("Added read request");
   }
@@ -739,7 +764,12 @@ impl Task {
       },
     };
 
-    self.writes.push(storage);
+    let index = self
+      .writes
+      .binary_search_by(|w| w.destination.slave.cmp(&storage.destination.slave))
+      .unwrap_or_else(|i| i);
+
+    self.writes.insert(index, storage);
 
     tracing::trace!("Added write request");
   }
@@ -754,19 +784,19 @@ enum ConnectionAttempt<'a> {
 impl Task {
   #[tracing::instrument(skip_all, fields(address = ?destination))]
   async fn attempt_connection<'a>(
-    connections: &'a mut HashMap<SocketAddr, Connection>,
+    connections: &'a mut HashMap<Device, Connection>,
     destination: &Destination,
     sender: Either<&ReadResponseSender, &WriteResponseSender>,
   ) -> ConnectionAttempt<'a> {
-    match connections.get_mut(&destination.address) {
+    match connections.get_mut(&destination.device) {
       Some(connection) => {
         tracing::trace!("Connected to existing connection");
 
         ConnectionAttempt::Existing(connection)
       }
       None => {
-        let mut connection = Connection::new(destination.address);
-        match connection.ensure_connected().await {
+        let mut connection = Connection::new(destination.device.clone());
+        match connection.ensure_connected(destination.slave).await {
           Ok(()) => {
             tracing::trace!("Connected to new connection");
 
@@ -824,9 +854,14 @@ impl Task {
         let read = match partial {
           Some(partial) => Some(partial.clone()),
           None => {
-            if let Err(error) = connection.ensure_connected().await {
-              metrics.reads.entry(storage.destination).or_default().push(
-                ReadMetric {
+            if let Err(error) =
+              connection.ensure_connected(storage.destination.slave).await
+            {
+              metrics
+                .reads
+                .entry(storage.destination.clone())
+                .or_default()
+                .push(ReadMetric {
                   message: format!(
                     "Failed connecting span {:?} {:?}",
                     span, &error
@@ -834,8 +869,7 @@ impl Task {
                   error: true,
                   span,
                   time: None,
-                },
-              );
+                });
 
               None
             } else {
@@ -847,14 +881,16 @@ impl Task {
 
               match data {
                 Ok(data) => {
-                  metrics.reads.entry(storage.destination).or_default().push(
-                    ReadMetric {
+                  metrics
+                    .reads
+                    .entry(storage.destination.clone())
+                    .or_default()
+                    .push(ReadMetric {
                       message: format!("Successfully read span {:?}", span),
                       error: false,
                       span,
                       time: Some(end.signed_duration_since(start)),
-                    },
-                  );
+                    });
 
                   Some(ReadResponseEntry {
                     inner: data,
@@ -862,8 +898,11 @@ impl Task {
                   })
                 }
                 Err(error) => {
-                  metrics.reads.entry(storage.destination).or_default().push(
-                    ReadMetric {
+                  metrics
+                    .reads
+                    .entry(storage.destination.clone())
+                    .or_default()
+                    .push(ReadMetric {
                       message: format!(
                         "Failed reading span {:?} {:?}",
                         span, &error
@@ -871,8 +910,7 @@ impl Task {
                       error: true,
                       span,
                       time: Some(end.signed_duration_since(start)),
-                    },
-                  );
+                    });
 
                   if let ReadError::Read(io_error) = error {
                     if io_error.kind() == std::io::ErrorKind::InvalidData {
@@ -924,9 +962,14 @@ impl Task {
         let read = match partial {
           Some(partial) => Some(partial.clone()),
           None => {
-            if let Err(error) = connection.ensure_connected().await {
-              metrics.writes.entry(storage.destination).or_default().push(
-                WriteMetric {
+            if let Err(error) =
+              connection.ensure_connected(storage.destination.slave).await
+            {
+              metrics
+                .writes
+                .entry(storage.destination.clone())
+                .or_default()
+                .push(WriteMetric {
                   message: format!(
                     "Failed connecting record {:?} {:?}",
                     record, &error
@@ -934,8 +977,7 @@ impl Task {
                   error: true,
                   record,
                   time: None,
-                },
-              );
+                });
 
               None
             } else {
@@ -947,14 +989,16 @@ impl Task {
 
               match data {
                 Ok(data) => {
-                  metrics.writes.entry(storage.destination).or_default().push(
-                    WriteMetric {
+                  metrics
+                    .writes
+                    .entry(storage.destination.clone())
+                    .or_default()
+                    .push(WriteMetric {
                       message: format!("Successfully read span {:?}", record),
                       error: false,
                       record,
                       time: Some(end.signed_duration_since(start)),
-                    },
-                  );
+                    });
 
                   Some(WriteResponseEntry {
                     inner: data,
@@ -962,8 +1006,11 @@ impl Task {
                   })
                 }
                 Err(error) => {
-                  metrics.writes.entry(storage.destination).or_default().push(
-                    WriteMetric {
+                  metrics
+                    .writes
+                    .entry(storage.destination.clone())
+                    .or_default()
+                    .push(WriteMetric {
                       message: format!(
                         "Failed reading span {:?} {:?}",
                         record, &error
@@ -971,8 +1018,7 @@ impl Task {
                       error: true,
                       record,
                       time: Some(end.signed_duration_since(start)),
-                    },
-                  );
+                    });
 
                   if let WriteError::Read(io_error) = error {
                     if io_error.kind() == std::io::ErrorKind::InvalidData {
@@ -1007,7 +1053,7 @@ impl Task {
 }
 
 #[derive(Debug, Clone)]
-#[allow(unused)]
+#[allow(dead_code, reason = "used with tracing")]
 struct WriteMetric {
   message: String,
   error: bool,
@@ -1016,7 +1062,7 @@ struct WriteMetric {
 }
 
 #[derive(Debug, Clone)]
-#[allow(unused)]
+#[allow(dead_code, reason = "used with tracing")]
 struct ReadMetric {
   message: String,
   error: bool,

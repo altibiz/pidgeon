@@ -1,22 +1,20 @@
-[tool.poetry]
+[project]
 name = "pidgeon"
 version = "0.1.0"
-description = "Raspberry Pi message broker"
-authors = ["Hrvoje Jurić <hrvoje@altibiz.com>"]
-license = "MIT"
-readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["pidgeon-probe"]
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[dependency-groups]
+dev = ["yapf >=0.40.2", "pyright >=1.1.334", "ruff >=0.1.4"]
 
-[tool.poetry.dependencies]
-python = "^3.10"
+[tool.uv.sources]
+pidgeon-probe = { workspace = true }
 
-[tool.poetry.group.dev.dependencies]
-yapf = "^0.40.2"
-pyright = "^1.1.334"
-ruff = "^0.1.4"
+[tool.uv.workspace]
+members = ["scripts/probe"]
+
+[project.scripts]
+pidgeon-probe = "pidgeon_probe:main"
 
 [tool.yapf]
 based_on_style = "pep8"

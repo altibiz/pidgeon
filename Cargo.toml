@@ -1,3 +1,5 @@
 [workspace]
 resolver = "2"
 members = ["src/cli"]
+metadata.crane.name = "pidgeon"
+package.version = "0.1.0"

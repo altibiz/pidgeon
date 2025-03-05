@@ -5,9 +5,17 @@ pub(crate) struct Values {
   #[arg(short, long)]
   pub(crate) trace: bool,
 
+  /// Set log level to debug
+  #[arg(short, long)]
+  pub(crate) debug: bool,
+
   /// Alternative configuration location
   #[arg(short, long)]
   pub(crate) config: Option<String>,
+
+  /// Skip running cloud processes
+  #[arg(short, long)]
+  pub(crate) local: bool,
 }
 
 pub(crate) fn parse() -> Values {

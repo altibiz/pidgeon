@@ -2,8 +2,8 @@ use std::net::IpAddr;
 
 use chrono::{DateTime, Utc};
 use sqlx::{
-  migrate::Migrator, types::ipnetwork::IpNetwork, FromRow, Pool, Postgres,
-  QueryBuilder, Type,
+  migrate::Migrator, types::ipnetwork::IpNetwork, ConnectOptions, FromRow,
+  Pool, Postgres, QueryBuilder, Type,
 };
 use thiserror::Error;
 
@@ -29,15 +29,17 @@ pub(crate) struct Device {
   pub(crate) id: String,
   pub(crate) kind: String,
   pub(crate) status: DeviceStatus,
-  pub(crate) address: IpNetwork,
   pub(crate) seen: DateTime<Utc>,
   pub(crate) pinged: DateTime<Utc>,
+  pub(crate) address: Option<IpNetwork>,
+  pub(crate) path: Option<String>,
+  pub(crate) baud_rate: Option<i32>,
   pub(crate) slave: Option<i32>,
 }
 
 #[derive(Debug, Clone, FromRow)]
 pub(crate) struct Measurement {
-  #[allow(unused)]
+  #[allow(dead_code, reason = "needed for database functionality")]
   pub(crate) id: i64,
   pub(crate) source: String,
   pub(crate) timestamp: DateTime<Utc>,
@@ -46,7 +48,7 @@ pub(crate) struct Measurement {
 
 #[derive(Debug, Clone, FromRow)]
 pub(crate) struct Health {
-  #[allow(unused)]
+  #[allow(dead_code, reason = "needed for database functionality")]
   pub(crate) id: i64,
   pub(crate) source: String,
   pub(crate) timestamp: DateTime<Utc>,
@@ -70,7 +72,7 @@ pub(crate) enum LogKind {
 
 #[derive(Debug, Clone, FromRow)]
 pub(crate) struct Log {
-  #[allow(unused)]
+  #[allow(dead_code, reason = "needed for database functionality")]
   pub(crate) id: i64,
   pub(crate) timestamp: DateTime<Utc>,
   pub(crate) last: Option<i64>,
@@ -97,6 +99,10 @@ impl service::Service for Service {
       .host(&config.db.domain)
       .username(&config.db.user)
       .database(&config.db.name)
+      .log_slow_statements(
+        log::LevelFilter::Warn,
+        core::time::Duration::from_secs(5),
+      )
       .options([(
         "statement_timeout",
         &config.db.timeout.num_milliseconds().to_string(),
@@ -124,7 +130,22 @@ impl service::Service for Service {
 impl Service {
   #[tracing::instrument(skip(self))]
   pub(crate) async fn migrate(&self) -> Result<(), MigrateError> {
-    MIGRATOR.run(&self.pool).await?;
+    let mut migration_result = MIGRATOR.run(&self.pool).await;
+    let mut migration_retries = 0usize;
+    while migration_result.is_err() && migration_retries < 100 {
+      migration_result = MIGRATOR.run(&self.pool).await;
+      migration_retries = {
+        #[allow(clippy::unwrap_used, reason = "it will never pass 100")]
+        let migration_retries = migration_retries.checked_add(1usize).unwrap();
+        migration_retries
+      };
+      tracing::warn!(
+        "Migration unsuccessful because\n{:?}\nRetrying in 1 second...",
+        migration_result
+      );
+      tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+    }
+    migration_result?;
 
     tracing::info!("Migration ran successfully");
 
@@ -133,11 +154,11 @@ impl Service {
 
   #[tracing::instrument(skip(self))]
   pub(crate) async fn get_devices(&self) -> Result<Vec<Device>, Error> {
-    #[allow(clippy::panic)] // NOTE: sqlx thing
+    #[allow(clippy::panic, reason = "sqlx thing")]
     let devices = sqlx::query_as!(
       Device,
       r#"
-        select id, kind, status as "status: DeviceStatus", seen, pinged, address, slave
+        select id, kind, status as "status: DeviceStatus", seen, pinged, address, path, baud_rate, slave
         from devices
       "#,
     )
@@ -154,11 +175,11 @@ impl Service {
     &self,
     id: &str,
   ) -> Result<Option<Device>, Error> {
-    #[allow(clippy::panic)] // NOTE: sqlx thing
+    #[allow(clippy::panic, reason = "sqlx thing")]
     let device = sqlx::query_as!(
       Device,
       r#"
-        select id, kind, status as "status: DeviceStatus", seen, pinged, address, slave
+        select id, kind, status as "status: DeviceStatus", seen, pinged, address, path, baud_rate, slave
         from devices
         where id = $1
       "#,
@@ -177,11 +198,11 @@ impl Service {
     &self,
     device: Device,
   ) -> Result<(), Error> {
-    #[allow(clippy::panic)] // NOTE: sqlx thing
+    #[allow(clippy::panic, reason = "sqlx thing")]
     sqlx::query!(
       r#"
-        insert into devices (id, kind, status, seen, pinged, address, slave)
-        values ($1, $2, $3, $4, $5, $6, $7)
+        insert into devices (id, kind, status, seen, pinged, address, path, baud_rate, slave)
+        values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       "#,
       device.id,
       device.kind,
@@ -189,6 +210,8 @@ impl Service {
       device.seen,
       device.pinged,
       device.address,
+      device.path,
+      device.baud_rate,
       device.slave
     )
     .execute(&self.pool)
@@ -201,7 +224,7 @@ impl Service {
 
   #[tracing::instrument(skip(self))]
   pub(crate) async fn delete_device(&self, id: &str) -> Result<(), Error> {
-    #[allow(clippy::panic)] // NOTE: sqlx thing
+    #[allow(clippy::panic, reason = "sqlx thing")]
     sqlx::query!(
       r#"
         delete from devices
@@ -225,7 +248,7 @@ impl Service {
     seen: DateTime<Utc>,
     pinged: DateTime<Utc>,
   ) -> Result<(), Error> {
-    #[allow(clippy::panic)] // NOTE: sqlx thing
+    #[allow(clippy::panic, reason = "sqlx thing")]
     sqlx::query!(
       r#"
         update devices
@@ -245,24 +268,32 @@ impl Service {
     Ok(())
   }
 
+  #[allow(
+    clippy::too_many_arguments,
+    reason = "needed for database functionality"
+  )]
   #[tracing::instrument(skip(self))]
   pub(crate) async fn update_device_destination(
     &self,
     id: &str,
-    address: IpNetwork,
+    address: Option<IpNetwork>,
+    path: Option<String>,
+    baud_rate: Option<i32>,
     slave: Option<i32>,
     seen: DateTime<Utc>,
     pinged: DateTime<Utc>,
   ) -> Result<(), Error> {
-    #[allow(clippy::panic)] // NOTE: sqlx thing
+    #[allow(clippy::panic, reason = "sqlx thing")]
     sqlx::query!(
       r#"
         update devices
-        set address = $2, slave = $3, seen = $4, pinged = $5
+        set address = $2, path = $3, baud_rate = $4, slave = $5, seen = $6, pinged = $7
         where id = $1
       "#,
       id,
       address,
+      path,
+      baud_rate,
       slave,
       seen,
       pinged
@@ -280,7 +311,7 @@ impl Service {
     &self,
     measurement: Measurement,
   ) -> Result<(), Error> {
-    #[allow(clippy::panic)] // NOTE: sqlx thing
+    #[allow(clippy::panic, reason = "sqlx thing")]
     sqlx::query!(
       r#"
         insert into measurements (source, timestamp, data)
@@ -325,7 +356,7 @@ impl Service {
     from: i64,
     limit: i64,
   ) -> Result<Vec<Measurement>, Error> {
-    #[allow(clippy::panic)] // NOTE: sqlx thing
+    #[allow(clippy::panic, reason = "sqlx thing")]
     let measurements = sqlx::query_as!(
       Measurement,
       r#"
@@ -351,7 +382,7 @@ impl Service {
     &self,
     health: Health,
   ) -> Result<(), Error> {
-    #[allow(clippy::panic)] // NOTE: sqlx thing
+    #[allow(clippy::panic, reason = "sqlx thing")]
     sqlx::query!(
       r#"
         insert into health (source, timestamp, status, data)
@@ -402,7 +433,7 @@ impl Service {
     from: i64,
     limit: i64,
   ) -> Result<Vec<Health>, Error> {
-    #[allow(clippy::panic)] // NOTE: sqlx thing
+    #[allow(clippy::panic, reason = "sqlx thing")]
     let healths = sqlx::query_as!(
       Health,
       r#"
@@ -424,7 +455,7 @@ impl Service {
 
   #[tracing::instrument(skip(self))]
   pub(crate) async fn insert_log(&self, log: Log) -> Result<(), Error> {
-    #[allow(clippy::panic)] // NOTE: sqlx thing
+    #[allow(clippy::panic, reason = "sqlx thing")]
     sqlx::query!(
       r#"
         insert into logs (timestamp, last, status, kind, response)
@@ -453,7 +484,7 @@ impl Service {
   pub(crate) async fn get_last_successful_push_log(
     &self,
   ) -> Result<Option<Log>, Error> {
-    #[allow(clippy::panic)] // NOTE: sqlx thing
+    #[allow(clippy::panic, reason = "sqlx thing")]
     let log = sqlx::query_as!(
       Log,
       r#"
@@ -479,7 +510,7 @@ impl Service {
   pub(crate) async fn get_last_successful_update_log(
     &self,
   ) -> Result<Option<Log>, Error> {
-    #[allow(clippy::panic)] // NOTE: sqlx thing
+    #[allow(clippy::panic, reason = "sqlx thing")]
     let log = sqlx::query_as!(
       Log,
       r#"
@@ -503,7 +534,7 @@ impl Service {
 }
 
 pub(crate) fn to_db_address(address: IpAddr) -> IpNetwork {
-  #[allow(clippy::unwrap_used)] // NOTE: 24 is valid for ipv4
+  #[allow(clippy::unwrap_used, reason = "24 is valid for ipv4")]
   IpNetwork::new(address, 24).unwrap()
 }
 

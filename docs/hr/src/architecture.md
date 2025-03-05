@@ -39,19 +39,13 @@ Dijagram za vizualni prikaz ovih komponenti i njihovih interakcija:
 left to right direction
 
 cloud "Lokacija" {
-  node "Abb B2x mjeritelj" as abb {
-    portin "RS-485" as abb_rs485
-  }
-
-  node "Schneider iEM3xxx mjeritelj" as schneider {
-    portin "RS-485" as schneider_rs485
-  }
-
-  node "Gateway" as gateway {
-    portin "502" as gateway_502
+  node "Mjeritelj" as meter {
+    portin "RS-485" as meter_rs485
   }
 
   node "Raspberry PI" as rpi {
+    component "Datotečni sustav" as filesystem
+
     package "Pidgeon" as pidgeon {
       package "Konfiguracija" as configuration {
         component Manager as config_manager
@@ -78,13 +72,13 @@ cloud "Lokacija" {
       }
     }
 
-    database "PostgreSQL" as postgres {
-      portin 5432 as postgres_5432
+    database "Relacijska baza podataka" as database {
+      portin 5432 as dbPort
     }
   }
 }
 
-cloud "Azure" as azure {
+cloud "Cloud" as cloud {
   node "Server" as server {
     portin "/iot/push" as server_push
     portin "/iot/poll" as server_poll
@@ -92,15 +86,11 @@ cloud "Azure" as azure {
   }
 }
 
-gateway --> abb_rs485 : "Modbus RTU"
-gateway --> schneider_rs485 : "Modbus RTU"
+config_manager --> filesystem
 
-config_manager --> rpi : "Datotečni sustav"
-
-modbus_service --> gateway_502 : "Modbus TCP"
-database_service --> postgres_5432 : "SQL"
-hardware_service --> rpi : "Datotečni sustav"
-network_service --> gateway_502 : "TCP"
+modbus_service --> meter_rs485 : "Modbus RTU"
+database_service --> dbPort : "SQL"
+hardware_service --> filesystem
 cloud_service --> server_push : "HTTP"
 cloud_service --> server_poll : "HTTP"
 cloud_service --> server_update : "HTTP"

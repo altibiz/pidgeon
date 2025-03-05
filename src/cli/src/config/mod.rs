@@ -8,7 +8,7 @@ use ipnet::IpAddrRange;
 use thiserror::Error;
 use tokio::sync::Mutex;
 
-use crate::service::modbus::{self, RegisterValueStorage};
+use crate::service::modbus;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Db {
@@ -25,6 +25,7 @@ pub(crate) struct Db {
 pub(crate) struct Network {
   pub(crate) timeout: chrono::Duration,
   pub(crate) ip_range: IpAddrRange,
+  pub(crate) modbus_port: u16,
 }
 
 #[derive(Debug, Clone)]
@@ -49,22 +50,26 @@ pub(crate) struct Device {
   pub(crate) detect: Vec<modbus::DetectRegister<modbus::RegisterKindStorage>>,
   pub(crate) measurement:
     Vec<modbus::MeasurementRegister<modbus::RegisterKindStorage>>,
-  pub(crate) configuration: Vec<modbus::ValueRegister<RegisterValueStorage>>,
-  pub(crate) daily: Vec<modbus::ValueRegister<RegisterValueStorage>>,
-  pub(crate) nightly: Vec<modbus::ValueRegister<RegisterValueStorage>>,
+  pub(crate) configuration:
+    Vec<modbus::ValueRegister<modbus::RegisterValueStorage>>,
+  pub(crate) daily: Vec<modbus::ValueRegister<modbus::RegisterValueStorage>>,
+  pub(crate) nightly: Vec<modbus::ValueRegister<modbus::RegisterValueStorage>>,
+  pub(crate) time: Option<modbus::TimeImplementation>,
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct Modbus {
-  pub(crate) read_timeout: chrono::Duration,
+  pub(crate) request_timeout: chrono::Duration,
   pub(crate) batch_threshold: u16,
   pub(crate) termination_timeout: chrono::Duration,
   pub(crate) congestion_backoff: chrono::Duration,
   pub(crate) partial_retries: u32,
   pub(crate) ping_timeout: chrono::Duration,
   pub(crate) tariff_timeout: chrono::Duration,
+  pub(crate) time_timeout: chrono::Duration,
   pub(crate) inactive_timeout: chrono::Duration,
   pub(crate) discovery_timeout: chrono::Duration,
+  pub(crate) max_slave: u8,
   pub(crate) devices: HashMap<String, Device>,
 }
 
@@ -78,6 +83,7 @@ pub(crate) struct Schedule {
   pub(crate) health: cron::Schedule,
   pub(crate) daily: cron::Schedule,
   pub(crate) nightly: cron::Schedule,
+  pub(crate) time: cron::Schedule,
   pub(crate) poll: cron::Schedule,
   pub(crate) timezone: chrono_tz::Tz,
 }
@@ -91,6 +97,7 @@ pub(crate) struct Values {
   pub(crate) hardware: Hardware,
   pub(crate) schedule: Schedule,
   pub(crate) log_level: tracing::level_filters::LevelFilter,
+  pub(crate) local: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -174,37 +181,37 @@ impl Manager {
 
   fn parse(config: Unparsed) -> Values {
     Values {
-      log_level: config.from_file.log_level.map_or_else(
-        || {
-          if config.from_args.trace {
-            tracing::level_filters::LevelFilter::TRACE
-          } else {
-            #[cfg(debug_assertions)]
-            {
-              tracing::level_filters::LevelFilter::DEBUG
-            }
-            #[cfg(not(debug_assertions))]
-            {
-              tracing::level_filters::LevelFilter::INFO
-            }
-          }
-        },
-        |log_level| match log_level {
+      log_level: if config.from_args.trace {
+        tracing::level_filters::LevelFilter::TRACE
+      } else if config.from_args.debug {
+        tracing::level_filters::LevelFilter::DEBUG
+      } else if let Some(log_level) = config.from_file.log_level {
+        match log_level {
           file::LogLevel::Trace => tracing::level_filters::LevelFilter::TRACE,
           file::LogLevel::Debug => tracing::level_filters::LevelFilter::DEBUG,
           file::LogLevel::Info => tracing::level_filters::LevelFilter::INFO,
           file::LogLevel::Warn => tracing::level_filters::LevelFilter::WARN,
           file::LogLevel::Error => tracing::level_filters::LevelFilter::ERROR,
-        },
-      ),
+        }
+      } else {
+        #[cfg(debug_assertions)]
+        {
+          tracing::level_filters::LevelFilter::DEBUG
+        }
+        #[cfg(not(debug_assertions))]
+        {
+          tracing::level_filters::LevelFilter::INFO
+        }
+      },
+      local: config.from_args.local,
       schedule: Schedule {
         discover: file::string_to_cron(
           &config.from_file.schedule.discover,
-          "0 */5 * * * * *", // NOTE: every 5 minutes
+          "0 0 * * * * *", // NOTE: every hour
         ),
         ping: file::string_to_cron(
           &config.from_file.schedule.ping,
-          "0 */5 * * * * *", // NOTE: every 5 minutes
+          "0 0 * * * * *", // NOTE: every hour
         ),
         measure: file::string_to_cron(
           &config.from_file.schedule.measure,
@@ -230,6 +237,10 @@ impl Manager {
           &config.from_file.schedule.nightly,
           "0 0 21 * * * *", // NOTE: at 21:00
         ),
+        time: file::string_to_cron(
+          &config.from_file.schedule.time,
+          "0 0 0 1 * * *", // NOTE: every month
+        ),
         poll: file::string_to_cron(
           &config.from_file.schedule.poll,
           "0 * * * * * *", // NOTE: every minute
@@ -247,12 +258,15 @@ impl Manager {
         timeout: file::milliseconds_to_chrono(
           config.from_file.cloud.timeout.unwrap_or(30000),
         ),
-        message_limit: config.from_file.cloud.message_limit.unwrap_or(1000),
+        message_limit: config.from_file.cloud.message_limit.unwrap_or(10000),
         ssl: config.from_env.cloud.ssl,
         domain: config.from_env.cloud.domain,
         api_key: config.from_env.cloud.api_key,
         id: config.from_env.cloud.id.unwrap_or_else(|| {
-          #[allow(clippy::unwrap_used)] // NOTE: it is for sure there on rpi4
+          #[allow(
+            clippy::unwrap_used,
+            reason = "it exists on the raspberry pi and should panic if there is no id to work with"
+          )]
           {
             "pidgeon-".to_string()
               + fs::read_to_string(
@@ -265,7 +279,7 @@ impl Manager {
       },
       db: Db {
         timeout: file::milliseconds_to_chrono(
-          config.from_file.db.timeout.unwrap_or(30000),
+          config.from_file.db.timeout.unwrap_or(30_000),
         ),
         ssl: config.from_env.db.ssl,
         domain: config.from_env.db.domain,
@@ -280,16 +294,17 @@ impl Manager {
       },
       network: Network {
         timeout: file::milliseconds_to_chrono(
-          config.from_file.network.timeout.unwrap_or(5_000),
+          config.from_file.network.timeout.unwrap_or(30_000),
         ),
         ip_range: file::make_ip_range(
           config.from_env.network.ip_range_start,
           config.from_env.network.ip_range_end,
         ),
+        modbus_port: config.from_env.network.modbus_port,
       },
       modbus: Modbus {
-        read_timeout: file::milliseconds_to_chrono(
-          config.from_file.modbus.read_timeout.unwrap_or(100),
+        request_timeout: file::milliseconds_to_chrono(
+          config.from_file.modbus.request_timeout.unwrap_or(2000),
         ),
         batch_threshold: config.from_file.modbus.batch_threshold.unwrap_or(4),
         termination_timeout: file::milliseconds_to_chrono(
@@ -300,7 +315,7 @@ impl Manager {
             .unwrap_or(10_000),
         ),
         congestion_backoff: file::milliseconds_to_chrono(
-          config.from_file.modbus.termination_timeout.unwrap_or(50),
+          config.from_file.modbus.congestion_backoff.unwrap_or(1000),
         ),
         partial_retries: config.from_file.modbus.partial_retries.unwrap_or(10),
         ping_timeout: file::milliseconds_to_chrono(
@@ -308,6 +323,9 @@ impl Manager {
         ),
         tariff_timeout: file::milliseconds_to_chrono(
           config.from_file.modbus.tariff_timeout.unwrap_or(30_000),
+        ),
+        time_timeout: file::milliseconds_to_chrono(
+          config.from_file.modbus.time_timeout.unwrap_or(30_000),
         ),
         inactive_timeout: file::milliseconds_to_chrono(
           config
@@ -317,8 +335,9 @@ impl Manager {
             .unwrap_or(5 * 60 * 1000),
         ),
         discovery_timeout: file::milliseconds_to_chrono(
-          config.from_file.modbus.discovery_timeout.unwrap_or(5_000),
+          config.from_file.modbus.discovery_timeout.unwrap_or(30_000),
         ),
+        max_slave: config.from_file.modbus.max_slave.unwrap_or(25),
         devices: config
           .from_file
           .modbus
@@ -359,6 +378,11 @@ impl Manager {
                   .into_iter()
                   .map(file::to_modbus_value_register)
                   .collect(),
+                time: device.time.map(|time| match time {
+                  file::TimeImplementation::SchneideriEM3xxx => {
+                    modbus::TimeImplementation::SchneideriEM3xxx
+                  }
+                }),
               },
             )
           })

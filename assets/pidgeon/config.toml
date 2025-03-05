@@ -1,0 +1,309 @@
+[schedule]
+timezone = "Europe/Zagreb"
+
+# schneider-iEM3xxx
+
+[[modbus.devices.schneider-iEM3xxx.detect]]
+address = 0x0031
+match = "iEM3[0-9]{3}"
+kind = { string = { length = 20 } }
+
+[[modbus.devices.schneider-iEM3xxx.id]]
+address = 0x0081
+kind = { u32 = { multiplier = 1 } }
+
+[[modbus.devices.schneider-iEM3xxx.configuration]]
+address = 5249
+value = [2060, 0x0000, 0x0001]
+
+[[modbus.devices.schneider-iEM3xxx.daily]]
+address = 5249
+value = [2008, 0x0000, 0x0001]
+
+[[modbus.devices.schneider-iEM3xxx.nightly]]
+address = 5249
+value = [2008, 0x0000, 0x0002]
+
+[modbus.devices.schneider-iEM3xxx]
+time = "schneider-iEM3xxx"
+
+# schneider-iEM3xxx instantaneous
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "voltageL1AnyT0_V"
+address = 0x0BD3
+kind = { f32 = { multiplier = 1 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "voltageL2AnyT0_V"
+address = 0x0BD5
+kind = { f32 = { multiplier = 1 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "voltageL3AnyT0_V"
+address = 0x0BD7
+kind = { f32 = { multiplier = 1 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "currentL1AnyT0_A"
+address = 0x0BB7
+kind = { f32 = { multiplier = 1 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "currentL2AnyT0_A"
+address = 0x0BB9
+kind = { f32 = { multiplier = 1 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "currentL3AnyT0_A"
+address = 0x0BBB
+kind = { f32 = { multiplier = 1 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "activePowerL1NetT0_W"
+address = 0x0BED
+kind = { f32 = { multiplier = 1000 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "activePowerL2NetT0_W"
+address = 0x0BEF
+kind = { f32 = { multiplier = 1000 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "activePowerL3NetT0_W"
+address = 0x0BF1
+kind = { f32 = { multiplier = 1000 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "reactivePowerTotalNetT0_VAR"
+address = 0x0BFB
+kind = { f32 = { multiplier = 1000 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "apparentPowerTotalNetT0_VA"
+address = 0x0C03
+kind = { f32 = { multiplier = 1000 } }
+
+# schneider-iEM3xxx cumulative
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "activeEnergyL1ImportT0_Wh"
+address = 0x0DBD
+kind = { u64 = { multiplier = 1 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "activeEnergyL2ImportT0_Wh"
+address = 0x0DC1
+kind = { u64 = { multiplier = 1 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "activeEnergyL3ImportT0_Wh"
+address = 0x0DC5
+kind = { u64 = { multiplier = 1 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "activeEnergyTotalImportT0_Wh"
+address = 0x0C83
+kind = { u64 = { multiplier = 1 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "activeEnergyTotalExportT0_Wh"
+address = 0x0C87
+kind = { u64 = { multiplier = 1 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "reactiveEnergyTotalImportT0_VARh"
+address = 0x0C93
+kind = { u64 = { multiplier = 1 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "reactiveEnergyTotalExportT0_VARh"
+address = 0x0C97
+kind = { u64 = { multiplier = 1 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "activeEnergyTotalImportT1_Wh"
+address = 0x1063
+kind = { u64 = { multiplier = 1 } }
+
+[[modbus.devices.schneider-iEM3xxx.measurement]]
+name = "activeEnergyTotalImportT2_Wh"
+address = 0x1067
+kind = { u64 = { multiplier = 1 } }
+
+# abb-B2x
+
+[[modbus.devices.abb-B2x.detect]]
+address = 0x8960
+match = "B23 [0-9]12-100"
+kind = { string = { length = 6 } }
+
+[[modbus.devices.abb-B2x.id]]
+address = 0x8900
+kind = { u32 = { multiplier = 1 } }
+
+[[modbus.devices.abb-B2x.configuration]]
+address = 0x8C90
+value = [0x0001]
+
+[[modbus.devices.abb-B2x.daily]]
+address = 0x8A07
+value = [0x0001]
+
+[[modbus.devices.abb-B2x.nightly]]
+address = 0x8A07
+value = [0x0002]
+
+# abb-B2x instantaneous
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "voltageL1AnyT0_V"
+address = 0x5B00
+kind = { u32 = { multiplier = 0.1 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "voltageL2AnyT0_V"
+address = 0x5B02
+kind = { u32 = { multiplier = 0.1 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "voltageL3AnyT0_V"
+address = 0x5B04
+kind = { u32 = { multiplier = 0.1 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "currentL1AnyT0_A"
+address = 0x5B0C
+kind = { u32 = { multiplier = 0.01 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "currentL2AnyT0_A"
+address = 0x5B0E
+kind = { u32 = { multiplier = 0.01 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "currentL3AnyT0_A"
+address = 0x5B10
+kind = { u32 = { multiplier = 0.01 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "activePowerL1NetT0_W"
+address = 0x5B16
+kind = { s32 = { multiplier = 0.01 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "activePowerL2NetT0_W"
+address = 0x5B18
+kind = { s32 = { multiplier = 0.01 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "activePowerL3NetT0_W"
+address = 0x5B1A
+kind = { s32 = { multiplier = 0.01 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "reactivePowerL1NetT0_VAR"
+address = 0x5B1E
+kind = { s32 = { multiplier = 0.01 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "reactivePowerL2NetT0_VAR"
+address = 0x5B20
+kind = { s32 = { multiplier = 0.01 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "reactivePowerL3NetT0_VAR"
+address = 0x5B22
+kind = { s32 = { multiplier = 0.01 } }
+
+# abb-B2x cumulative
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "activeEnergyL1ImportT0_Wh"
+address = 0x5460
+kind = { u64 = { multiplier = 10 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "activeEnergyL2ImportT0_Wh"
+address = 0x5464
+kind = { u64 = { multiplier = 10 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "activeEnergyL3ImportT0_Wh"
+address = 0x5468
+kind = { u64 = { multiplier = 10 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "activeEnergyL1ExportT0_Wh"
+address = 0x546C
+kind = { u64 = { multiplier = 10 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "activeEnergyL2ExportT0_Wh"
+address = 0x5470
+kind = { u64 = { multiplier = 10 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "activeEnergyL3ExportT0_Wh"
+address = 0x5474
+kind = { u64 = { multiplier = 10 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "reactiveEnergyL1ImportT0_VARh"
+address = 0x5484
+kind = { u64 = { multiplier = 10 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "reactiveEnergyL2ImportT0_VARh"
+address = 0x5488
+kind = { u64 = { multiplier = 10 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "reactiveEnergyL3ImportT0_VARh"
+address = 0x548C
+kind = { u64 = { multiplier = 10 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "reactiveEnergyL1ExportT0_VARh"
+address = 0x5490
+kind = { u64 = { multiplier = 10 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "reactiveEnergyL2ExportT0_VARh"
+address = 0x5494
+kind = { u64 = { multiplier = 10 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "reactiveEnergyL3ExportT0_VARh"
+address = 0x5498
+kind = { u64 = { multiplier = 10 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "activeEnergyTotalImportT0_Wh"
+address = 0x5000
+kind = { u64 = { multiplier = 10 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "activeEnergyTotalExportT0_Wh"
+address = 0x5004
+kind = { u64 = { multiplier = 10 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "reactiveEnergyTotalImportT0_VARh"
+address = 0x500C
+kind = { u64 = { multiplier = 10 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "reactiveEnergyTotalExportT0_VARh"
+address = 0x5010
+kind = { u64 = { multiplier = 10 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "activeEnergyTotalImportT1_Wh"
+address = 0x5170
+kind = { u64 = { multiplier = 10 } }
+
+[[modbus.devices.abb-B2x.measurement]]
+name = "activeEnergyTotalImportT2_Wh"
+address = 0x5174
+kind = { u64 = { multiplier = 10 } }

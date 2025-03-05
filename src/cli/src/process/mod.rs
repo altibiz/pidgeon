@@ -6,6 +6,7 @@ mod nightly;
 mod ping;
 mod poll;
 mod push;
+mod time;
 mod update;
 
 use std::sync::Arc;
@@ -16,8 +17,7 @@ use tokio_cron_scheduler::{Job, JobScheduler, JobSchedulerError};
 
 use crate::{config, service};
 
-// OPTIMIZE: all processes by removing unnecessary cloning at least
-// TODO: on startup run discovery to populate modbus device registry
+// FIXME: remove warnings about dead code for unused processes
 
 pub(crate) trait Process {
   fn process_name(&self) -> &'static str {
@@ -59,7 +59,7 @@ macro_rules! add_job_impl {
     let config = $self.config.clone();
     let services = $self.services.clone();
     let process = Arc::new(Mutex::new($name::Process::new(config, services)));
-    #[allow(clippy::redundant_closure_call)] // NOTE: it gets optimized
+    #[allow(clippy::redundant_closure_call, reason = "easier for macro")]
     {
       $startup(process.clone()).await;
     }
@@ -152,15 +152,20 @@ impl Container {
       }
     };
 
-    run_add_job!(self, config, scheduler, poll);
+    if !config.local {
+      run_add_job!(self, config, scheduler, poll);
+    }
     run_add_job!(self, config, scheduler, discover);
     run_add_job!(self, config, scheduler, ping);
-    add_job!(self, config, scheduler, measure);
-    add_job!(self, config, scheduler, push);
-    add_job!(self, config, scheduler, update);
-    add_job!(self, config, scheduler, health);
-    add_job!(self, config, scheduler, daily);
-    add_job!(self, config, scheduler, nightly);
+    run_add_job!(self, config, scheduler, measure);
+    // add_job!(self, config, scheduler, daily);
+    // add_job!(self, config, scheduler, nightly);
+    // add_job!(self, config, scheduler, time);
+    if !config.local {
+      add_job!(self, config, scheduler, push);
+      // add_job!(self, config, scheduler, update);
+      // add_job!(self, config, scheduler, health);
+    }
 
     if let Err(error) = scheduler.start().await {
       return Err(ContainerError::StartupFailed(error));

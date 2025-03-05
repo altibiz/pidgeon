@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        insert into devices (id, kind, status, seen, pinged, address, path, baud_rate, slave)\n        values ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n      ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        {
+          "Custom": {
+            "name": "device_status",
+            "kind": {
+              "Enum": ["healthy", "unreachable", "inactive"]
+            }
+          }
+        },
+        "Timestamptz",
+        "Timestamptz",
+        "Inet",
+        "Text",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e156c1a4b100a5d2199e7ff33a8d30af968e9eff5c4cad016027e6c9af8b8cd7"
+}
