@@ -104,18 +104,22 @@ def "main deploy" [id?: string] {
 
 def "main cache" [id?: string] {
   let pidgeon = (pick pidgeon $id)
-  let key = vault kv get -format=json "kv/ozds/nix/lvm.altibiz.com"
+  let secrets = vault kv get -format=json "kv/ozds/nix/lvm.altibiz.com"
     | from json
     | get data.data
-    | get "private.pem"
 
   let file = mktemp -t
   chmod 600 $file
-  $key | save -f $file
+  $secrets."private.pem" | save -f $file
 
-  (nix copy
-    --to $"https://lvm.altibiz.com/harmonia?secret-key=($file)"
-    $"($root)#nixosConfigurations.($pidgeon.configuration).config.system.build.toplevel")
+  with-env {
+    AWS_ACCESS_KEY_ID $secrets."aws-access-key-id"
+    AWS_SECRET_ACCESS_KEY $secrets."aws-secret-access-key"
+  } {
+    (nix copy
+      --to $"s3://nix-binary-cache?endpoint=lvm.altibiz.com:9000&secret-key=($file)"
+      $"($root)#nixosConfigurations.($pidgeon.configuration).config.system.build.toplevel")
+  }
 
   rm -f $file
 }
