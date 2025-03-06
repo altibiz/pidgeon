@@ -119,7 +119,8 @@ def --wrapped "main s3" [...args] {
 }
 
 def "main cache" [id?: string] {
-  let pidgeon = (pick pidgeon $id)
+  let pidgeons = (open --raw $pidgeons) | from json
+
   let secrets = vault kv get -format=json "kv/ozds/nix/s3.lvm.altibiz.com"
     | from json
     | get data.data
@@ -132,9 +133,12 @@ def "main cache" [id?: string] {
     AWS_ACCESS_KEY_ID: ($secrets."aws-access-key-id"),
     AWS_SECRET_ACCESS_KEY: ($secrets."aws-secret-access-key")
   } {
-    (nix copy
-      --to $"s3://nix-binary-cache?endpoint=s3.lvm.altibiz.com&secret-key=($file)"
-      $"($root)#nixosConfigurations.($pidgeon.configuration).config.system.build.toplevel")
+    for pidgeon in pidgeons {
+      let configuration = $"pidgeon-($pidgeon.id)-raspberryPi4-($system)"
+      let expr = $"nixosConfigurations.($pidgeon.configuration).config.system.build.toplevel" 
+      let cache = $"s3://nix-binary-cache?endpoint=s3.lvm.altibiz.com&secret-key=($file)"
+      nix copy --to $cache $"($root)#($expr)"
+    }
   }
 
   rm -f $file
