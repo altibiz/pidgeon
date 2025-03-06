@@ -104,7 +104,7 @@ def "main deploy" [id?: string] {
 
 def "main cache" [id?: string] {
   let pidgeon = (pick pidgeon $id)
-  let secrets = vault kv get -format=json "kv/ozds/nix/lvm.altibiz.com"
+  let secrets = vault kv get -format=json "kv/ozds/nix/s3.lvm.altibiz.com"
     | from json
     | get data.data
 
@@ -117,7 +117,7 @@ def "main cache" [id?: string] {
     AWS_SECRET_ACCESS_KEY: ($secrets."aws-secret-access-key")
   } {
     (nix copy
-      --to $"s3://nix-binary-cache?endpoint=lvm.altibiz.com:9000&secret-key=($file)"
+      --to $"s3://nix-binary-cache?endpoint=s3.lvm.altibiz.com&secret-key=($file)"
       $"($root)#nixosConfigurations.($pidgeon.configuration).config.system.build.toplevel")
   }
 
