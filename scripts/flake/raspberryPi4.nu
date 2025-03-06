@@ -102,6 +102,24 @@ def "main deploy" [id?: string] {
       '($root)#($pidgeon.configuration)'"
 }
 
+def "main cache" [id?: string] {
+  let pidgeon = (pick pidgeon $id)
+  let key = vault kv get -format=json "kv/ozds/nix/lvm.altibiz.com"
+    | from json
+    | get data.data
+    | get "private.pem"
+
+  let file = mktemp -t
+  chmod 600 $file
+  $key | save -f $file
+
+  (nix copy
+    --to $"https://lvm.altibiz.com/harmonia?secret-key=($file)"
+    $"($root)#nixosConfigurations.($pidgeon.configuration).config.system.build.toplevel")
+
+  rm -f $file
+}
+
 def "main db user" [id?: string] {
   let pidgeon = (pick pidgeon $id)
 

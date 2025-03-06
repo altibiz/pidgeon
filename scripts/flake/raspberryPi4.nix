@@ -109,6 +109,9 @@
         raspberrypi-eeprom
         man-pages
         man-pages-posix
+        self.packages.${pkgs.system}.pidgeonProbe
+        self.packages.${pkgs.system}.pidgeonCli
+        mbpoll
       ];
 
       # service

@@ -40,4 +40,13 @@
       root = ./.;
       prefix = "scripts/flake";
     };
+
+  nixConfig = {
+    extra-substituters = [
+      "https://lvm.altibiz.com/harmonia"
+    ];
+    extra-trusted-public-keys = [
+      "lvm.altibiz.com:Ui7jQl+DjJddY6Pu5S3PUibl2B/1he5lL7trwaC9CxI="
+    ];
+  };
 }
