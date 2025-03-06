@@ -118,7 +118,7 @@ def --wrapped "main s3" [...args] {
   }
 }
 
-def "main cache" [id?: string] {
+def "main cache" [] {
   let pidgeons = (open --raw $pidgeons)
     | from json
     | each { |pidgeon|
