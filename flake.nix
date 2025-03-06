@@ -46,7 +46,7 @@
       "s3://nix-binary-cache?endpoint=s3.lvm.altibiz.com"
     ];
     extra-trusted-public-keys = [
-      "lvm.altibiz.com:Ui7jQl+DjJddY6Pu5S3PUibl2B/1he5lL7trwaC9CxI="
+      "s3.lvm.altibiz.com:2joxncr8RIOfSZcVvt79MvvX3IA4ulUjdc2mkKUR1xc="
     ];
   };
 }
