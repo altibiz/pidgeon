@@ -102,6 +102,22 @@ def "main deploy" [id?: string] {
       '($root)#($pidgeon.configuration)'"
 }
 
+def --wrapped "main s3" [...args] {
+  let secrets = vault kv get -format=json "kv/ozds/nix/s3.lvm.altibiz.com"
+    | from json
+    | get data.data
+
+  with-env {
+    AWS_ACCESS_KEY_ID: ($secrets."aws-access-key-id"),
+    AWS_SECRET_ACCESS_KEY: ($secrets."aws-secret-access-key")
+  } {
+    (s3cmd
+      --host=s3.lvm.altibiz.com
+      "--host-bucket=s3.lvm.altibiz.com/%(bucket)"
+      ...($args))
+  }
+}
+
 def "main cache" [id?: string] {
   let pidgeon = (pick pidgeon $id)
   let secrets = vault kv get -format=json "kv/ozds/nix/s3.lvm.altibiz.com"
