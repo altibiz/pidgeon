@@ -108,8 +108,8 @@ def --wrapped "main s3" [...args] {
     | get data.data
 
   with-env {
-    AWS_ACCESS_KEY_ID: ($secrets."aws-access-key-id"),
-    AWS_SECRET_ACCESS_KEY: ($secrets."aws-secret-access-key")
+    AWS_ACCESS_KEY_ID: ($secrets."admin-aws-access-key-id"),
+    AWS_SECRET_ACCESS_KEY: ($secrets."admin-aws-secret-access-key")
   } {
     (s3cmd
       --host=s3.lvm.altibiz.com
