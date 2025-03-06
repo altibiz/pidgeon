@@ -46,6 +46,7 @@
         unzip
 
         # rpi
+        s3cmd
         rumor.packages.${pkgs.system}.default
         vault
         vault-medusa
