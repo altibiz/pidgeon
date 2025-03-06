@@ -95,7 +95,6 @@ def "main deploy" [id?: string] {
     | ssh-add - \\
     && export SSHPASS='($pidgeon.secrets."pass")' \\
     && sshpass -e deploy \\
-      --remote-build \\
       --skip-checks \\
       --interactive-sudo true \\
       --hostname ($pidgeon.ip) \\
