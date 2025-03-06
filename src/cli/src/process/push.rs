@@ -29,7 +29,7 @@ impl process::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
     let config = self.config.values().await;
 
-    let mut last_pushed_id =
+    let last_pushed_id =
       match self.services.db().get_last_successful_push_log().await? {
         Some(db::Log {
           last: Some(last), ..
@@ -39,6 +39,10 @@ impl process::Recurring for Process {
 
     let mut limit = config.cloud.message_limit;
     loop {
+      tokio::time::sleep(tokio::time::Duration::from_millis(
+        config.cloud.throttle_milliseconds,
+      ))
+      .await;
       match self.try_push(last_pushed_id, limit).await? {
         Either::Left(TryPushResponse {
           log_status: db::LogStatus::Failure,
@@ -46,11 +50,8 @@ impl process::Recurring for Process {
           last_push_id,
         }) => {
           limit /= 2;
-          if limit == 0 {
-            last_pushed_id = last_pushed_id
-              .checked_add(1)
-              .ok_or_else(|| anyhow::anyhow!("Last pushed id overflow"))?;
-            limit = config.cloud.message_limit;
+          if limit <= config.cloud.message_lower_bound {
+            break;
           }
           let log = db::Log {
             id: 0,

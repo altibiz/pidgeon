@@ -125,6 +125,8 @@ pub(crate) struct Modbus {
 pub(crate) struct Cloud {
   pub(crate) timeout: Option<u32>,
   pub(crate) message_limit: Option<i64>,
+  pub(crate) message_lower_bound: Option<i64>,
+  pub(crate) throttle_milliseconds: Option<u64>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]

@@ -54,13 +54,13 @@ impl process::Recurring for Process {
             Err(error) => {
               tracing::error! {
                 %error,
-                "Failed writing nightly to device {}",
+                "Failed writing time to device {}",
                 &device.id
               }
             }
             Ok(_) => {
               tracing::info! {
-                "Wrote nightly to device {}",
+                "Wrote time to device {}",
                 &device.id
               }
             }

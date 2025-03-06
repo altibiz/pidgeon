@@ -158,9 +158,9 @@ impl Container {
     run_add_job!(self, config, scheduler, discover);
     run_add_job!(self, config, scheduler, ping);
     run_add_job!(self, config, scheduler, measure);
+    run_add_job!(self, config, scheduler, time);
     // add_job!(self, config, scheduler, daily);
     // add_job!(self, config, scheduler, nightly);
-    // add_job!(self, config, scheduler, time);
     if !config.local {
       add_job!(self, config, scheduler, push);
       // add_job!(self, config, scheduler, update);

@@ -3,7 +3,7 @@ import tomllib
 import os
 import struct
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from dataclasses import dataclass
 from typing import Any
 from pidgeon_probe.log import log
@@ -91,6 +91,7 @@ class Loader:
     for config in (self.__config["measurement"] + self.__config["id"]):
       self.__write_measurement_or_id_register(measurement, config, out)
     self.__write_detect_register(out)
+    self.__write_timestamp_register(out)
     return out
 
   def __next_measurement(self) -> Measurement:
@@ -190,6 +191,21 @@ class Loader:
     for i, register in enumerate(registers):
       out[address + i + 1] = register
 
+  def __write_timestamp_register(self, out: dict[int, int]) -> None:
+    start: int | None = None
+    registers: list[int] | None = None
+
+    if self.__device_type == DeviceType.schneider_iem3xxx:
+      start = 1844
+      values = self.__to_little_endian_bytes(datetime.now(
+        timezone(timedelta(hours=1))),
+                                             kind="time-schneider-iEM3xxx")
+      registers = self.__encode_numeric_bytes(values)
+
+    if start is not None and registers is not None:
+      for i, register in enumerate(registers):
+        out[start + i + 1] = register
+
   def __write_detect_register(self, out: dict[int, int]) -> None:
     start: int | None = None
     registers: list[int] | None = None
@@ -266,8 +282,18 @@ class Loader:
     return result
 
   @staticmethod
-  def __to_little_endian_bytes(value: int | float | str, kind: str) -> bytes:
-    if kind == "string" and isinstance(value, str):
+  def __to_little_endian_bytes(value: int | float | str | datetime,
+                               kind: str) -> bytes:
+    if kind == "time-schneider-iEM3xxx" and isinstance(value, datetime):
+      result = b''
+      result += struct.pack('<H', (value.second * 1000) & 0x3FFF)
+      result += struct.pack('<H',
+                            ((value.hour & 0x1F) << 8) | (value.minute & 0x3F))
+      result += struct.pack('<H', ((value.month & 0x0F) << 8) |
+                            (value.weekday() << 5) | (value.day & 0x1F))
+      result += struct.pack('<H', 0x7F & (value.year - 2000))
+      return result
+    elif kind == "string" and isinstance(value, str):
       return value.encode("utf-8")
     elif kind == 'f32':
       return struct.pack('<f', value)

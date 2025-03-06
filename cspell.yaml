@@ -62,3 +62,5 @@ words:
   - datelike
   - timelike
   - nushell
+  - nixos
+  - substituters
