@@ -133,9 +133,9 @@ def "main cache" [id?: string] {
     AWS_ACCESS_KEY_ID: ($secrets."aws-access-key-id"),
     AWS_SECRET_ACCESS_KEY: ($secrets."aws-secret-access-key")
   } {
-    for pidgeon in pidgeons {
+    for pidgeon in $pidgeons {
       let configuration = $"pidgeon-($pidgeon.id)-raspberryPi4-($system)"
-      let expr = $"nixosConfigurations.($pidgeon.configuration).config.system.build.toplevel" 
+      let expr = $"nixosConfigurations.($configuration).config.system.build.toplevel" 
       let cache = $"s3://nix-binary-cache?endpoint=s3.lvm.altibiz.com&secret-key=($file)"
       nix copy --to $cache $"($root)#($expr)"
     }
