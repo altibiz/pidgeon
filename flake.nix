@@ -43,7 +43,7 @@
 
   nixConfig = {
     extra-substituters = [
-      "s3://nix-binary-cache?endpoint=lvm.altibiz.com:9000"
+      "s3://nix-binary-cache?endpoint=s3.lvm.altibiz.com"
     ];
     extra-trusted-public-keys = [
       "lvm.altibiz.com:Ui7jQl+DjJddY6Pu5S3PUibl2B/1he5lL7trwaC9CxI="
