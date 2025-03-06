@@ -113,8 +113,8 @@ def "main cache" [id?: string] {
   $secrets."private.pem" | save -f $file
 
   with-env {
-    AWS_ACCESS_KEY_ID $secrets."aws-access-key-id"
-    AWS_SECRET_ACCESS_KEY $secrets."aws-secret-access-key"
+    AWS_ACCESS_KEY_ID: ($secrets."aws-access-key-id"),
+    AWS_SECRET_ACCESS_KEY: ($secrets."aws-secret-access-key")
   } {
     (nix copy
       --to $"s3://nix-binary-cache?endpoint=lvm.altibiz.com:9000&secret-key=($file)"
