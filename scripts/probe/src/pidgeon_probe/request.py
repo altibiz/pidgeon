@@ -245,6 +245,12 @@ schneider_iem3xxx_requests: list[Union[ReadRequest, WriteRequest]] = [
     size=2,
     convert=Client.to_uint32,
   ),
+  ReadRequest(
+    name="Timestamp",
+    register=0x0734,
+    size=4,
+    convert=Client.schneider_iem3xxx_to_datetime,
+  ),
   # WriteRequest(
   #   name="Configuration", register=5249, values=[2060, 0x0000, 0x0001]),
   # WriteRequest(

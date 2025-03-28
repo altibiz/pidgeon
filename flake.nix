@@ -40,4 +40,13 @@
       root = ./.;
       prefix = "scripts/flake";
     };
+
+  nixConfig = {
+    extra-substituters = [
+      "s3://nix-binary-cache?endpoint=s3.lvm.altibiz.com"
+    ];
+    extra-trusted-public-keys = [
+      "s3.lvm.altibiz.com:2joxncr8RIOfSZcVvt79MvvX3IA4ulUjdc2mkKUR1xc="
+    ];
+  };
 }

@@ -37,6 +37,8 @@ pub(crate) struct Hardware {
 pub(crate) struct Cloud {
   pub(crate) timeout: chrono::Duration,
   pub(crate) message_limit: i64,
+  pub(crate) message_lower_bound: i64,
+  pub(crate) throttle_milliseconds: u64,
   pub(crate) ssl: bool,
   pub(crate) domain: String,
   pub(crate) api_key: Option<String>,
@@ -259,6 +261,10 @@ impl Manager {
           config.from_file.cloud.timeout.unwrap_or(30000),
         ),
         message_limit: config.from_file.cloud.message_limit.unwrap_or(10000),
+        // NOTE: 1000 is roughly double the measure rate so it is fair to say that
+        // if we are not able to catch up with measurements that there are network errors
+        message_lower_bound: config.from_file.cloud.message_lower_bound.unwrap_or(1000),
+        throttle_milliseconds: config.from_file.cloud.throttle_milliseconds.unwrap_or(1000),
         ssl: config.from_env.cloud.ssl,
         domain: config.from_env.cloud.domain,
         api_key: config.from_env.cloud.api_key,

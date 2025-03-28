@@ -1,5 +1,6 @@
 import struct
 import asyncio
+from datetime import datetime
 from typing import Callable, Optional, TypeVar, Union, List
 from pymodbus.client import AsyncModbusSerialClient, AsyncModbusTcpClient
 
@@ -194,3 +195,22 @@ class Client:
   @staticmethod
   def to_utf8(*registers: int) -> str:
     return Client.to_bytes(*registers).decode("utf8")
+
+  @staticmethod
+  def schneider_iem3xxx_to_datetime(year: int, month_weekday: int,
+                                    hour_minute: int,
+                                    millisecond: int) -> datetime:
+    year = 2000 + (year & 0x7F)
+    month = (month_weekday >> 8) & 0x0F
+    day = month_weekday & 0x1F
+    hour = (hour_minute >> 8) & 0x1F
+    minute = hour_minute & 0x3F
+    millisecond = millisecond & 0x3FFF
+
+    return datetime(year=year,
+                    month=month,
+                    day=day,
+                    hour=hour,
+                    minute=minute,
+                    second=millisecond // 1000,
+                    microsecond=millisecond * 1000)

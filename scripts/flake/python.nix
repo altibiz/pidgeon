@@ -54,7 +54,6 @@ let
     editablePythonSet = pythonSet.overrideScope
       (lib.composeManyExtensions [
         editableOverlay
-
         (final: prev: {
           pidgeon-probe = prev.pidgeon-probe.overrideAttrs (old: {
             src = lib.cleanSource old.src;
@@ -76,13 +75,13 @@ in
       uv = mkUvLib pkgs;
 
       venv =
-        uv.editablePythonSet.mkVirtualEnv
+        uv.pythonSet.mkVirtualEnv
           "pidgeon-env"
           uv.workspace.deps.default;
     in
     uv.buildUtil.mkApplication {
       venv = venv;
-      package = uv.editablePythonSet.pidgeon-probe;
+      package = uv.pythonSet.pidgeon-probe;
     };
 
   flake.lib.python.mkDevShell = pkgs:

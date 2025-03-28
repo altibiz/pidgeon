@@ -13,10 +13,119 @@ def "main" [] {
   nu $self --help
 }
 
-def "main vpn" [] {
-  let host = open --raw /etc/hostname | str trim
+def "main make-vpn" [ip: string, --host: string] {
+  let host = if $host == null {
+      open --raw /etc/hostname
+    } else {
+      $host
+    } | str trim
 
-  let config = vault kv get -format=json "kv/ozds/vpn"
+  rm -rf $artifacts
+  mkdir $artifacts
+  cd $artifacts
+
+  {
+    imports: [
+      {
+        importer: "vault-file"
+        arguments: {
+          path: "kv/ozds/shared"
+          file: "nebula-ca-priv"
+        }
+      }
+      {
+        importer: "vault-file"
+        arguments: {
+          path: "kv/ozds/shared"
+          file: "nebula-ca-pub"
+        }
+      }
+      {
+        importer: "vault"
+        arguments: {
+          path: "kv/ozds/vpn"
+        }
+      }
+    ]
+    generations: [
+      {
+        generator: "nebula"
+        arguments: {
+          ca_private: "nebula-ca-priv"
+          ca_public: "nebula-ca-pub"
+          name: $host
+          ip: $"($ip)/16"
+          private: $"($host)-nebula-priv"
+          public: $"($host)-nebula-pub"
+        }
+      }
+      {
+        generator: "moustache"
+        arguments: {
+          name: $host
+          variables: {
+            CA_PUBLIC: "nebula-ca-pub"
+            CERT_PRIVATE: $"($host)-nebula-priv"
+            CERT_PUBLIC: $"($host)-nebula-pub"
+          }
+          template: "firewall:
+  inbound:
+    - host: any
+      port: any
+      proto: any
+  outbound:
+    - host: any
+      port: any
+      proto: any
+handshakes:
+  try_interval: 1s
+listen:
+  host: 0.0.0.0
+  port: 0
+pki:
+  ca: \"{{CA_PUBLIC}}\"
+  key: \"{{CERT_PRIVATE}}\"
+  cert: \"{{CERT_PUBLIC}}\"
+lighthouse:
+  am_lighthouse: false
+  hosts:
+    - 10.8.0.1
+relay:
+  am_relay: false
+  relays:
+    - 10.8.0.1
+  use_relays: true
+static_host_map:
+  10.8.0.1:
+    - ozds-vpn.altibiz.com:4242
+static_map:
+  cadence: 5m
+  lookup_timeout: 10s
+tun:
+  dev: nebula.ozds-vpn
+  disabled: false"
+        }
+      }
+    ]
+    exports: [
+      {
+        exporter: "vault"
+        arguments: {
+          path: "kv/ozds/vpn"
+        }
+      }
+    ]
+  } | to json | rumor stdin json --stay
+}
+
+def "main vpn" [--host: string] {
+  let host = if $host == null {
+      open --raw /etc/hostname
+    } else {
+      $host
+    } | str trim
+
+  let config = vault kv get -format=json "kv/ozds/vpn/current"
     | from json
     | get data.data
     | get $host
@@ -95,12 +204,72 @@ def "main deploy" [id?: string] {
     | ssh-add - \\
     && export SSHPASS='($pidgeon.secrets."pass")' \\
     && sshpass -e deploy \\
-      --remote-build \\
       --skip-checks \\
       --interactive-sudo true \\
       --hostname ($pidgeon.ip) \\
       -- \\
       '($root)#($pidgeon.configuration)'"
+}
+
+def --wrapped "main s3" [...args] {
+  let secrets = vault kv get -format=json "kv/ozds/nix/s3.lvm.altibiz.com"
+    | from json
+    | get data.data
+
+  with-env {
+    AWS_ACCESS_KEY_ID: ($secrets."admin-aws-access-key-id"),
+    AWS_SECRET_ACCESS_KEY: ($secrets."admin-aws-secret-access-key")
+  } {
+    (s3cmd
+      --host=s3.lvm.altibiz.com
+      "--host-bucket=s3.lvm.altibiz.com/%(bucket)"
+      ...($args))
+  }
+}
+
+def --wrapped "main path-info" [...args] {
+  let secrets = vault kv get -format=json "kv/ozds/nix/s3.lvm.altibiz.com"
+    | from json
+    | get data.data
+
+  with-env {
+    AWS_ACCESS_KEY_ID: ($secrets."admin-aws-access-key-id"),
+    AWS_SECRET_ACCESS_KEY: ($secrets."admin-aws-secret-access-key")
+  } {
+    (nix path-info
+      --store s3://nix-binary-cache?endpoint=s3.lvm.altibiz.com
+      ...($args))
+  }
+}
+
+def "main cache" [] {
+  let derivations = (open --raw $pidgeons)
+    | from json
+    | each { |pidgeon|
+        let configuration = $"pidgeon-($pidgeon.id)-raspberryPi4-($system)"
+        let expr = $"nixosConfigurations.($configuration).config.system.build.toplevel" 
+        $"($root)#($expr)"
+      }
+    | append $"($root)#packages.($system).pidgeonProbe"
+    | append $"($root)#packages.($system).pidgeonCli"
+
+  let secrets = vault kv get -format=json "kv/ozds/nix/s3.lvm.altibiz.com"
+    | from json
+    | get data.data
+
+  let file = mktemp -t
+  chmod 600 $file
+  $secrets."private.pem" | save -f $file
+
+  with-env {
+    AWS_ACCESS_KEY_ID: ($secrets."aws-access-key-id"),
+    AWS_SECRET_ACCESS_KEY: ($secrets."aws-secret-access-key")
+  } {
+    let cache = $"s3://nix-binary-cache?endpoint=s3.lvm.altibiz.com&secret-key=($file)"
+    nix copy --to $cache ...($derivations)
+  }
+
+  rm -f $file
 }
 
 def "main db user" [id?: string] {
