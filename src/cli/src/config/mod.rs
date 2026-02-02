@@ -182,6 +182,24 @@ impl Manager {
   }
 
   fn parse(config: Unparsed) -> Values {
+    // NOTE: with sparse modbus servers we want to set the match timeout high enough
+    // so it compensates for timeouts of all devices before the final device
+    let default_match_timeout =
+      config
+        .from_file
+        .modbus
+        .max_slave
+        .map_or(100_000, |max_slave| {
+          config.from_file.modbus.request_timeout.map_or(
+            100_000,
+            |request_timeout| {
+              request_timeout
+                .saturating_mul(max_slave as u32)
+                .saturating_mul(2)
+            },
+          )
+        });
+
     Values {
       log_level: if config.from_args.trace {
         tracing::level_filters::LevelFilter::TRACE
@@ -325,7 +343,7 @@ impl Manager {
         ),
         partial_retries: config.from_file.modbus.partial_retries.unwrap_or(10),
         ping_timeout: file::milliseconds_to_chrono(
-          config.from_file.modbus.ping_timeout.unwrap_or(30_000),
+          default_match_timeout
         ),
         tariff_timeout: file::milliseconds_to_chrono(
           config.from_file.modbus.tariff_timeout.unwrap_or(30_000),
@@ -341,7 +359,7 @@ impl Manager {
             .unwrap_or(5 * 60 * 1000),
         ),
         discovery_timeout: file::milliseconds_to_chrono(
-          config.from_file.modbus.discovery_timeout.unwrap_or(30_000),
+          default_match_timeout
         ),
         max_slave: config.from_file.modbus.max_slave.unwrap_or(25),
         devices: config
