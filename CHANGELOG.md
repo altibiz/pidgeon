@@ -23,6 +23,7 @@ and adheres to [Semantic Versioning](https://semver.org/).
 - probe package fix
 - actually run time process to change meter clock time
 - use release branch for doc generation
+- ping and discovery default timeout
 
 ### Removed
 

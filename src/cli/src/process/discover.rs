@@ -249,22 +249,51 @@ impl Process {
     device: config::Device,
     destination: modbus::Destination,
   ) -> Option<config::Device> {
-    let registers = self
-      .services
-      .modbus()
-      .read_from_destination(destination, device.detect.clone())
-      .await
-      .ok()?;
+    tracing::debug!(
+      "Checking device {:?} for destination {:?}",
+      device.kind,
+      destination,
+    );
+
+    let registers = {
+      let result = self
+        .services
+        .modbus()
+        .read_from_destination(destination.clone(), device.detect.clone())
+        .await;
+      match result {
+        Ok(registers) => registers,
+        Err(err) => {
+          tracing::debug!(
+            "Checking device {:?} for destination {:?} errored {:?}",
+            device.kind,
+            destination,
+            err
+          );
+          return None;
+        }
+      }
+    };
 
     let matches = registers
       .into_iter()
       .map(|register| register.matches())
       .collect::<Vec<_>>();
 
-    matches
-      .into_iter()
-      .all(std::convert::identity)
-      .then_some(device)
+    let matched = matches.into_iter().all(std::convert::identity);
+
+    tracing::debug!(
+      "Checking device {:?} for destination {:?} matched {:?}",
+      device.kind,
+      destination,
+      matched
+    );
+
+    if matched {
+      Some(device)
+    } else {
+      None
+    }
   }
 
   async fn match_id(
@@ -272,6 +301,12 @@ impl Process {
     device: config::Device,
     destination: modbus::Destination,
   ) -> Option<DeviceMatch> {
+    tracing::debug!(
+      "Checking device id {:?} for destination {:?}",
+      device.kind,
+      destination,
+    );
+
     let matching_destination = destination.clone();
     let registers = self
       .services
