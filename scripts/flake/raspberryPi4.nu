@@ -211,6 +211,72 @@ def "main deploy" [id?: string] {
       '($root)#($pidgeon.configuration)'"
 }
 
+def "main install" [id?: string, dev?: string] {
+  let pidgeon = (pick pidgeon $id)
+
+  let device = (pick device $dev)
+
+  if ($device | str starts-with "/dev/sd") {
+    sudo mount $"($device)2" /mnt
+    sudo mount $"($device)1" /mnt/firmware
+  } else {
+    print "Unsupported device type"
+    exit 1
+  }
+
+  try {
+    # NOTE: it errors out with sandbox
+    # NOTE: filter-syscalls: https://github.com/NixOS/nix/issues/5258
+    (nixos-install
+      --option sandbox false
+      --option filter-syscalls false
+      --flake $"($root)#($pidgeon.configuration)")
+  } catch { |err|
+    printf $"Install for ($pidgeon.id) on ($device) failed: ($err)"
+    sudo umount -R /mnt
+    exit 1
+  }
+
+  sudo umount -R /mnt
+}
+
+def "main update" [id?: string, dev?: string] {
+  let pidgeon = (pick pidgeon $id)
+
+  let device = (pick device $dev)
+
+  if ($device | str starts-with "/dev/sd") {
+    sudo mount $"($device)2" /mnt
+    sudo mount $"($device)1" /mnt/firmware
+  } else {
+    print "Unsupported device type"
+    exit 1
+  }
+
+  sudo mkdir -p /mnt/src
+  sudo mount --bind $root /mnt/src
+
+  try {
+    # NOTE: it errors out with sandbox
+    # NOTE: filter-syscalls: https://github.com/NixOS/nix/issues/5258
+    (sudo nixos-enter --command
+      ("nixos-rebuild boot"
+        + " --option sandbox false"
+        + " --option filter-syscalls false"
+        + $" --flake '/src#($pidgeon.configuration)'"))
+  } catch { |err|
+    printf $"Update for ($pidgeon.id) on ($device) failed: ($err)"
+    sudo umount /mnt/src
+    sudo rmdir /mnt/src
+    sudo umount -R /mnt
+    exit 1
+  }
+
+  sudo umount /mnt/src
+  sudo rmdir /mnt/src
+  sudo umount -R /mnt
+}
+
 def --wrapped "main s3" [...args] {
   let secrets = vault kv get -format=json "kv/ozds/nix/s3.lvm.altibiz.com"
     | from json
@@ -247,7 +313,7 @@ def "main cache" [] {
     | from json
     | each { |pidgeon|
         let configuration = $"pidgeon-($pidgeon.id)-raspberryPi4-($system)"
-        let expr = $"nixosConfigurations.($configuration).config.system.build.toplevel" 
+        let expr = $"nixosConfigurations.($configuration).config.system.build.toplevel"
         $"($root)#($expr)"
       }
     | append $"($root)#packages.($system).pidgeonProbe"
@@ -313,4 +379,15 @@ def "pick pidgeon" [id?: string] {
     | insert secrets $secrets
     | insert configuration $configuration
     | insert spec $spec
+}
+
+def "pick device" [dev?: string] {
+  if ($dev | is-not-empty) {
+    return $dev
+  }
+
+  let dev = lsblk -o NAME -r -n -d
+    | gum choose --header "Pick target device:"
+
+  $"/dev/($dev)"
 }
