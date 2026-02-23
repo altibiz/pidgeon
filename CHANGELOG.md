@@ -24,6 +24,7 @@ and adheres to [Semantic Versioning](https://semver.org/).
 - actually run time process to change meter clock time
 - use release branch for doc generation
 - ping and discovery default timeout
+- konc 4 routing
 
 ### Removed
 
