@@ -126,7 +126,7 @@ let
               {
                 importer = "vault-file";
                 arguments.path = "kv/ozds/pidgeon/${pidgeon.wifi}";
-                arguments.file = files.wifiSsid;
+                arguments.file = files.wifiSsidSuffix;
               }
               {
                 importer = "vault-file";
