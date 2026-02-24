@@ -17,6 +17,7 @@ and adheres to [Semantic Versioning](https://semver.org/).
 - functions to connect to s3 nix binary cache bucket
 - reading and serving time related registers to probe
 - push process throttling
+- update/install commands for raspberry pis
 
 ### Changed
 
@@ -24,7 +25,8 @@ and adheres to [Semantic Versioning](https://semver.org/).
 - actually run time process to change meter clock time
 - use release branch for doc generation
 - ping and discovery default timeout
-- konc 4 routing
+- wifi share fix
+- concentrator 4 routing
 
 ### Removed
 
