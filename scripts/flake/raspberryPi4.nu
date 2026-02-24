@@ -211,6 +211,9 @@ def "main deploy" [id?: string] {
       '($root)#($pidgeon.configuration)'"
 }
 
+# NOTE: needs partitioning before use
+# please don't use for now
+# instead create image and flash it
 def "main install" [id?: string, dev?: string] {
   let pidgeon = (pick pidgeon $id)
 
@@ -231,6 +234,8 @@ def "main install" [id?: string, dev?: string] {
       --option sandbox false
       --option filter-syscalls false
       --flake $"($root)#($pidgeon.configuration)")
+
+    $pidgeon.secrets."scrt.key" | sudo tee /mnt/root/host.scrt.key
   } catch { |err|
     printf $"Install for ($pidgeon.id) on ($device) failed: ($err)"
     sudo umount -R /mnt
