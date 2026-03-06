@@ -13,8 +13,8 @@ def "main" [] {
   nu $self --help
 }
 
-def "main make-vpn" [ip: string, --host: string] {
-  let host = if $host == null {
+def "main make-vpn" [--ip: string = "", --host: string = ""] {
+  let host = if ($host | is-empty) {
       open --raw /etc/hostname
     } else {
       $host
@@ -118,8 +118,8 @@ tun:
   } | to json | rumor stdin json --stay
 }
 
-def "main vpn" [--host: string] {
-  let host = if $host == null {
+def "main vpn" [--host: string = ""] {
+  let host = if ($host | is-empty) {
       open --raw /etc/hostname
     } else {
       $host
@@ -139,7 +139,7 @@ def "main vpn" [--host: string] {
   rm -f $file
 }
 
-def "main secrets" [id?: string] {
+def "main secrets" [--id: string = ""] {
   let pidgeon = (pick pidgeon $id)
 
   rm -rf $artifacts
@@ -149,7 +149,7 @@ def "main secrets" [id?: string] {
   $pidgeon.spec | rumor stdin json --stay
 }
 
-def "main image" [id?: string] {
+def "main image" [--id: string = ""] {
   let pidgeon = (pick pidgeon $id)
 
   rm -rf $artifacts
@@ -185,7 +185,7 @@ exit"
   echo $commands | guestfish --rw -a image.img
 }
 
-def "main ssh" [id?: string] {
+def "main ssh" [--id: string = ""] {
   let pidgeon = (pick pidgeon $id)
 
   ssh-agent bash -c $"echo '($pidgeon.secrets."ssh.key")' \\
@@ -193,13 +193,14 @@ def "main ssh" [id?: string] {
     && ssh altibiz@($pidgeon.ip)"
 }
 
-def "main pass" [id?: string] {
+def "main pass" [--id: string = ""] {
   let pidgeon = (pick pidgeon $id)
   $pidgeon.secrets."pass"
 }
 
-def "main deploy" [id?: string] {
+def --wrapped "main deploy" [--id: string = "", ...args] {
   let pidgeon = (pick pidgeon $id)
+  let args = $args | each { into string } | str join " "
   ssh-agent bash -c $"echo '($pidgeon.secrets."ssh.key")' \\
     | ssh-add - \\
     && export SSHPASS='($pidgeon.secrets."pass")' \\
@@ -207,6 +208,7 @@ def "main deploy" [id?: string] {
       --skip-checks \\
       --interactive-sudo true \\
       --hostname ($pidgeon.ip) \\
+      ($args) \\
       -- \\
       '($root)#($pidgeon.configuration)'"
 }
@@ -214,7 +216,7 @@ def "main deploy" [id?: string] {
 # NOTE: needs partitioning before use
 # please don't use for now
 # instead create image and flash it
-def "main install" [id?: string, dev?: string] {
+def "main install" [--id: string = "", --dev: string = ""] {
   let pidgeon = (pick pidgeon $id)
 
   let device = (pick device $dev)
@@ -245,7 +247,7 @@ def "main install" [id?: string, dev?: string] {
   sudo umount -R /mnt
 }
 
-def "main update" [id?: string, dev?: string] {
+def "main update" [--id: string = "", --dev: string = ""] {
   let pidgeon = (pick pidgeon $id)
 
   let device = (pick device $dev)
@@ -343,7 +345,7 @@ def "main cache" [] {
   rm -f $file
 }
 
-def "main db user" [id?: string] {
+def "main db user" [--id: string = ""] {
   let pidgeon = (pick pidgeon $id)
 
   let auth = $"altibiz:($pidgeon.secrets."altibiz.db.user")"
@@ -352,7 +354,7 @@ def "main db user" [id?: string] {
   usql $"postgres://($auth)@($conn)/pidgeon"
 }
 
-def "main db admin" [id?: string] {
+def "main db admin" [--id: string = ""] {
   let pidgeon = (pick pidgeon $id)
 
   let auth = $"postgres:($pidgeon.secrets."postgres.db.user")"
@@ -361,12 +363,12 @@ def "main db admin" [id?: string] {
   usql $"postgres://($auth)@($conn)/pidgeon"
 }
 
-def "pick pidgeon" [id?: string] {
+def "pick pidgeon" [id: string] {
   mut id = $id
 
   let pidgeons = (open --raw $pidgeons) | from json
 
-  if $id == null {
+  if ($id | is-empty) {
     let ids = $pidgeons | get id
     $id = (gum choose --header "Pick pidgeon id:" ...($ids))
   }
@@ -386,7 +388,7 @@ def "pick pidgeon" [id?: string] {
     | insert spec $spec
 }
 
-def "pick device" [dev?: string] {
+def "pick device" [dev: string] {
   if ($dev | is-not-empty) {
     return $dev
   }
