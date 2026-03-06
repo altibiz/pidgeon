@@ -27,6 +27,7 @@ and adheres to [Semantic Versioning](https://semver.org/).
 - ping and discovery default timeout
 - wifi share fix
 - concentrator 4 routing
+- better raspberry pi arguments
 
 ### Removed
 
