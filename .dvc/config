@@ -1,4 +1,6 @@
 [core]
     remote = azure
+[cache]
+    dir = /home/ibencic/.cache/dvc
 ['remote "azure"']
     url = azure://ozds

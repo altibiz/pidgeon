@@ -331,10 +331,21 @@ macro_rules! parse_integer_register {
 }
 
 macro_rules! parse_floating_register {
-  ($variant: ident, $type: ty, $data: ident, $multiplier: ident, $timestamp: expr) => {{
+  ($variant: ident, $type: ty, $address: expr, $data: ident, $multiplier: ident, $timestamp: expr) => {{
     let bytes = decode_numeric_bytes($data);
     let slice = bytes.as_slice().try_into()?;
-    let value = Decimal::try_from(<$type>::from_ne_bytes(slice))?;
+    let mut typed = <$type>::from_ne_bytes(slice);
+    if !typed.is_finite() {
+      tracing::trace!(
+        "Register {:#06X} {} has non-finite value {} ({:#X}), using 0",
+        $address,
+        stringify!($variant),
+        typed,
+        typed.to_bits()
+      );
+      typed = 0.0;
+    }
+    let value = Decimal::try_from(typed)?;
     RegisterValueStorage::$variant(RegisterValue::<Decimal> {
       value: match $multiplier {
         Some($multiplier) => value
@@ -369,10 +380,24 @@ macro_rules! parse_register {
         parse_integer_register!(S64, i64, $data, multiplier, $timestamp)
       }
       RegisterKindStorage::F32(NumericRegisterKind { multiplier }) => {
-        parse_floating_register!(F32, f32, $data, multiplier, $timestamp)
+        parse_floating_register!(
+          F32,
+          f32,
+          $self.address,
+          $data,
+          multiplier,
+          $timestamp
+        )
       }
       RegisterKindStorage::F64(NumericRegisterKind { multiplier }) => {
-        parse_floating_register!(F64, f64, $data, multiplier, $timestamp)
+        parse_floating_register!(
+          F64,
+          f64,
+          $self.address,
+          $data,
+          multiplier,
+          $timestamp
+        )
       }
       RegisterKindStorage::String(_) => {
         let bytes = decode_string_bytes($data);
