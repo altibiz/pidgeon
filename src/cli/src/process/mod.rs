@@ -8,6 +8,7 @@ mod poll;
 mod push;
 mod time;
 mod update;
+mod system_health;
 
 use std::sync::Arc;
 
@@ -155,12 +156,18 @@ impl Container {
     if !config.local {
       run_add_job!(self, config, scheduler, poll);
     }
+
+    // NOTE: these trigger the full discovery with timeout, so we should
+    // add option for true program only run
     run_add_job!(self, config, scheduler, discover);
     run_add_job!(self, config, scheduler, ping);
+
     run_add_job!(self, config, scheduler, measure);
     run_add_job!(self, config, scheduler, time);
     // add_job!(self, config, scheduler, daily);
     // add_job!(self, config, scheduler, nightly);
+    run_add_job!(self, config, scheduler, system_health);
+
     if !config.local {
       add_job!(self, config, scheduler, push);
       // add_job!(self, config, scheduler, update);

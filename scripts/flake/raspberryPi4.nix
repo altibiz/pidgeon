@@ -12,7 +12,7 @@
 {
   seal.overlays.raspberryPi4 =
     (final: prev: {
-      # NOTE: https://github.com/NixOS/nixpkgs/issues/154163#issuecomment-1008362877  
+      # NOTE: https://github.com/NixOS/nixpkgs/issues/154163#issuecomment-1008362877
       makeModulesClosure = x: prev.makeModulesClosure
         (x // { allowMissing = true; });
     });
@@ -418,40 +418,67 @@
         }
       ];
 
-      # visualization
+      # data visualization (system health / measurements)
+      # NOTE: localhost only, open with 'nu scripts/flake/raspberryPi4.nu grafana'
+      services.grafana.enable = true;
+      services.grafana.settings = {
+        server = {
+          http_addr = "127.0.0.1";
+          http_port = 3000;
+        };
+        security = {
+          admin_password = "$__file{${config.sops.secrets.${secretKeys.grafanaAdminPassword}.path}}";
+          secret_key = "$__file{${config.sops.secrets.${secretKeys.grafanaSecretKey}.path}}";
+          disable_gravatar = true;
+        };
+        analytics = {
+          reporting_enabled = false;
+          check_for_updates = false;
+          check_for_plugin_updates = false;
+          feedback_links_enabled = false;
+        };
+        plugins.plugin_admin_enabled = false;
+        news.news_feed_enabled = false;
+        date_formats.default_timezone = "utc";
+      };
 
-      # services.grafana.enable = true;
-      # services.grafana.settings = {
-      #   server = {
-      #     http_addr = "0.0.0.0";
-      #     http_port = 3000;
-      #   };
-      #   date_formats = {
-      #     default_timezone = "utc";
-      #   };
-      # };
+      sops.secrets.${secretKeys.grafanaAdminPassword} = {
+        owner = config.systemd.services.grafana.serviceConfig.User;
+      };
+      sops.secrets.${secretKeys.grafanaSecretKey} = {
+        owner = config.systemd.services.grafana.serviceConfig.User;
+      };
 
-      # networking.firewall.allowedTCPPorts = [
-      #   3000
-      # ];
+      services.grafana.provision.enable = true;
+      services.grafana.provision.datasources.settings = {
+        apiVersion = 1;
+        datasources = [
+          {
+            name = "Pidgeon DB";
+            uid = "pidgeon-db";
+            type = "postgres";
+            url = "localhost:5433";
+            user = "grafana";
+            isDefault = true;
+            jsonData = {
+              database = "pidgeon";
+              sslmode = "disable";
+              postgresVersion = 1500;
+              timescaledb = true;
+            };
+          }
+        ];
+      };
 
-      # services.grafana.provision.enable = true;
-      # services.grafana.provision.datasources.settings = {
-      #   apiVersion = 1;
-      #   datasources = [
-      #     {
-      #       name = "Pidgeon DB";
-      #       type = "postgres";
-      #       url = "localhost:5433";
-      #       user = "pidgeon";
-      #       jsonData = {
-      #         database = "pidgeon";
-      #         sslmode = "disable";
-      #         version = 10; # NOTE: >=10
-      #         timescaledb = true;
-      #       };
-      #     }
-      #   ];
-      # };
+      # NOTE: services for postgres to add readonly grafana account
+      # with deescalated privigeles
+      services.postgresql.ensureUsers = [ { name = "grafana"; } ];
+      systemd.services.postgresql.postStart = lib.mkAfter ''
+        $PSQL -d pidgeon -tAc 'GRANT USAGE ON SCHEMA public TO grafana'
+        $PSQL -d pidgeon -tAc 'GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafana'
+        $PSQL -d pidgoen -tAc 'ALTER DEFAULT PRIVILEGES FOR ROLE pidgeon IN SCHEMA public GRANT SELECT ON TABLES TO grafana'
+      '';
+
+
     };
 }

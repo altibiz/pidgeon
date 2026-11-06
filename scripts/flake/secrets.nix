@@ -90,6 +90,8 @@ let
               agePrivate = "scrt.key";
               secretsPublic = "scrt.val.pub";
               secretsPrivate = "scrt.val";
+              grafanaAdminPassword = "grafana.admin.pass";
+              grafanaSecretKey = "grafana.secret.key";
             };
 
             rumor.imports = [
@@ -328,6 +330,20 @@ let
                 };
               }
               {
+                generator = "key";
+                arguments = {
+                  name = files.grafanaAdminPassword;
+                  length = 32;
+                };
+              }
+              {
+                generator = "key";
+                arguments = {
+                  name = files.grafanaSecretKey;
+                  length = 32;
+                };
+              }
+              {
                 generator = "sops";
                 arguments = {
                   age = files.agePublic;
@@ -344,6 +360,8 @@ let
                     ${instanceSecrets.keys.userHashedPasswordFile} = files.userPasswordPublic;
                     ${instanceSecrets.keys.userAuthorizedKeys} = files.userSshPublic;
                     ${instanceSecrets.keys.pidgeonEnv} = files.pidgeonEnv;
+                    ${instanceSecrets.keys.grafanaAdminPassword} = files.grafanaAdminPassword;
+                    ${instanceSecrets.keys.grafanaSecretKey} = files.grafanaSecretKey;
                   };
                   renew = true;
                 };

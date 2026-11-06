@@ -4,6 +4,7 @@ pub mod i2c;
 pub mod modbus;
 pub mod net;
 pub mod serial;
+pub mod system;
 
 use std::sync::Arc;
 
@@ -21,6 +22,7 @@ struct Values {
   net: net::Service,
   i2c: i2c::Service,
   serial: serial::Service,
+  system: system::Service
 }
 
 #[derive(Debug, Clone)]
@@ -38,6 +40,7 @@ impl Container {
         net: net::Service::new(config.clone()),
         i2c: i2c::Service::new(config.clone()),
         serial: serial::Service::new(config.clone()),
+        system: system::Service::new(config.clone())
       }),
     }
   }
@@ -70,5 +73,10 @@ impl Container {
   #[inline]
   pub(crate) fn serial(&self) -> &serial::Service {
     &self.values.serial
+  }
+
+  #[inline]
+  pub(crate) fn system(&self) -> &system::Service {
+    &self.values.system
   }
 }

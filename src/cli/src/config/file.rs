@@ -9,7 +9,10 @@ use crate::service::modbus::{self, RegisterValue};
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Hardware {
-  pub(crate) temperature_monitor: Option<String>,
+  pub(crate) temperature_monitor_path: Option<String>,
+  pub(crate) cpu_temperature_path: Option<String>,
+  pub(crate) cpu_frequency_path: Option<String>,
+  pub(crate) throttled_path: Option<String>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
@@ -141,6 +144,7 @@ pub(crate) struct Schedule {
   pub(crate) nightly: Option<String>,
   pub(crate) time: Option<String>,
   pub(crate) poll: Option<String>,
+  pub(crate) system_health: Option<String>,
   pub(crate) timezone: Option<chrono_tz::Tz>,
 }
 

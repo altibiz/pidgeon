@@ -19,7 +19,7 @@ pub(crate) enum ReadError {
 impl super::Service for Service {
   fn new(config: config::Values) -> Self {
     Self {
-      temperature_monitor: config.hardware.temperature_monitor.into(),
+      temperature_monitor: config.hardware.temperature_monitor_path.into(),
     }
   }
 }
