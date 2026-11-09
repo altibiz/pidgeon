@@ -1,9 +1,14 @@
-{ self, pkgs, lib, ...} : {
+{ self, pkgs, specialArgs, ...} : {
   integrate.check.check = pkgs.testers.pidgeonHost {
     name = "pidgeon-host";
 
-    nodes.pidgeon = { pkgs, ... }: {
+    node.specialArgs = specialArgs;
+
+    nodes.pidgeon = { pkgs, lib, ... }: {
       imports = [ self.nixosModules.pidgeonHost ];
+
+      nixpkgs.config.allowUnfreePredicate = pkg:
+        builtins.elem (lib.getName pkg) [ "timescaledb" ];
 
       services.postgresql.initialScript = pkgs.writeText "init.sql" ''
           CREATE USER pidgeon PASSWORD 'pidgeon';
@@ -20,7 +25,7 @@
           PIDGEON_NETWORK_IP_RANGE_START=127.0.0.1
           PIDGEON_NETWORK_IP_RANGE_END=127.0.0.1
         '';
-        services.grafana.settings.security.admin_password = "test";
+        services.grafana.settings.security.admin_password = "$__file{${pkgs.writeText "grafana-admin-pass" "test"}}";
         environment.systemPackages = [ pkgs.curl ];
         virtualisation.memorySize = 2048;
     };
@@ -40,10 +45,8 @@
         lan.fail("curl -sf --max-time 5 http://pidgeon:3000/api/health")
 
         psql = "psql -h localhost -p 5433 -U grafana -d pidgeon -tAc"
-        pidgeon.wait_until_succeeds(f"{psql} 'select count(*) from
-  system_health' | grep -qv '^0$'", timeout=300)
+        pidgeon.wait_until_succeeds(f"{psql} 'select count(*) from system_health' | grep -qv '^0$'", timeout=300)
         pidgeon.fail(f"{psql} 'delete from system_health'")
       '';
-
   };
 }

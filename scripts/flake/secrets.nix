@@ -40,6 +40,8 @@ let
               userHashedPasswordFile = "altibiz.pass.pub";
               userAuthorizedKeys = "altibiz.ssh.pub";
               pidgeonEnv = "pidgeon.env";
+              grafanaAdminPassword = "grafana.admin.pass";
+              grafanaSecretKey = "grafana.secret.key";
             };
           in
           {
