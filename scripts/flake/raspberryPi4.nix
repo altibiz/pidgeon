@@ -386,8 +386,8 @@
       # data visualization
 
       services.grafana.settings.security = {
-        admin_password = "$_file{${config.sops.secrets.${secretKeys.grafanaAdminPassword}.path}}";
-        secret_key = "$_file{${config.sops.secrets.${secretKeys.grafanaSecretKey}.path}}";
+        admin_password = "$__file{${config.sops.secrets.${secretKeys.grafanaAdminPassword}.path}}";
+        secret_key = "$__file{${config.sops.secrets.${secretKeys.grafanaSecretKey}.path}}";
       };
 
       sops.secrets.${secretKeys.grafanaAdminPassword} = {

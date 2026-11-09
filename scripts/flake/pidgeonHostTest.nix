@@ -1,8 +1,9 @@
 { self, pkgs, specialArgs, ...} : {
-  integrate.check.check = pkgs.testers.pidgeonHost {
+  integrate.check.check = pkgs.testers.runNixOSTest {
     name = "pidgeon-host";
 
     node.specialArgs = specialArgs;
+    node.pkgsReadOnly = false;
 
     nodes.pidgeon = { pkgs, lib, ... }: {
       imports = [ self.nixosModules.pidgeonHost ];
@@ -15,16 +16,17 @@
           CREATE DATABASE pidgeon OWNER pidgeon;
         '';
         services.postgresql.settings.ssl = lib.mkForce "off";
-        services.pidgeon.envPath = pkgs.writeText "pidgeon.env" ''
+        services.pidgeon.envPath = "${pkgs.writeText "pidgeon.env" ''
           PIDGEON_DB_DOMAIN=localhost
           PIDGEON_DB_PORT=5433
           PIDGEON_DB_USER=pidgeon
           PIDGEON_DB_PASSWORD=pidgeon
           PIDGEON_DB_NAME=pidgeon
           PIDGEON_CLOUD_DOMAIN=localhost
+          PIDGEON_CLOUD_ID=pidgeon-test
           PIDGEON_NETWORK_IP_RANGE_START=127.0.0.1
           PIDGEON_NETWORK_IP_RANGE_END=127.0.0.1
-        '';
+        ''}";
         services.grafana.settings.security.admin_password = "$__file{${pkgs.writeText "grafana-admin-pass" "test"}}";
         environment.systemPackages = [ pkgs.curl ];
         virtualisation.memorySize = 2048;
