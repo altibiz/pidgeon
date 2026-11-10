@@ -50,7 +50,6 @@
     networking.firewall.enable = true;
     networking.firewall.allowedTCPPorts = [ 5433 ];
 
-
     services.grafana.enable = true;
     services.grafana.settings = {
       server = {
@@ -72,6 +71,21 @@
     };
 
     services.grafana.provision.enable = true;
+
+    services.grafana.provision.dashboards.settings = {
+      apiVersion = 1;
+      providers = [
+        {
+          name = "pidgeon";
+          folder = "Pidgeon";
+          type = "file";
+          disableDeletion = true;
+          allowUiUpdates = false; # NOTE: the updates are done manually with whole system update
+          options.path = "${self}/assets/grafana/dashboards";
+        }
+      ];
+    };
+
     services.grafana.provision.datasources.settings = {
       apiVersion = 1;
       datasources = [

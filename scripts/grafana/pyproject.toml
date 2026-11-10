@@ -1,0 +1,14 @@
+[project]
+name = "pidgeon-grafana"
+version = "0.1.0"
+description = "Generates the pidgeon Grafana dashboards"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+pidgeon-grafana = "pidgeon_grafana:main"

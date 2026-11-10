@@ -46,16 +46,18 @@ let
         pyprojectOverrides
       ]);
 
+    editableMembers = [ "pidgeon-probe" "pidgeon-grafana" ];
+
     editableOverlay = workspace.mkEditablePyprojectOverlay {
       root = "$REPO_ROOT";
-      members = [ "pidgeon-probe" ];
+      members = editableMembers;
     };
 
     editablePythonSet = pythonSet.overrideScope
       (lib.composeManyExtensions [
         editableOverlay
-        (final: prev: {
-          pidgeon-probe = prev.pidgeon-probe.overrideAttrs (old: {
+        (final: prev: lib.genAttrs editableMembers (name:
+          prev.${name}.overrideAttrs (old: {
             src = lib.cleanSource old.src;
 
             # NOTE: hatchling requirement
@@ -64,8 +66,7 @@ let
               ++ final.resolveBuildSystem {
                 editables = [ ];
               };
-          });
-        })
+          })))
       ]);
   };
 in

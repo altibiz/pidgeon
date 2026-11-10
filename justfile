@@ -45,6 +45,9 @@ probe-server *args:
       --measurements '{{ root }}/assets/measurements' \
       {{ args }}
 
+grafana *args:
+
+
 test:
     cd '{{ root }}'; cargo test
 

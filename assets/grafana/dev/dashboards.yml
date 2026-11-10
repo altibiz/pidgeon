@@ -1,0 +1,12 @@
+apiVersion: 1
+providers:
+  - name: pidgeon
+    folder: Pidgeon
+    type: file
+    disableDeletion: true
+    # NOTE: same as scripts/flake/pidgeonHost.nix - saving in the UI offers the
+    # JSON to paste into assets/grafana/dashboards, which reloads automatically
+    allowUiUpdates: false
+    updateIntervalSeconds: 10
+    options:
+      path: /etc/grafana/dashboards/pidgeon

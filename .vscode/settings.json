@@ -30,5 +30,6 @@
   "editor.wordWrap": "off",
   "files.insertFinalNewline": true,
   "files.trimTrailingWhitespace": true,
-  "editor.formatOnSave": true
+  "editor.formatOnSave": true,
+  "python-envs.defaultEnvManager": "ms-python.python:venv"
 }
