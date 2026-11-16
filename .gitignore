@@ -208,3 +208,10 @@ mdbook-plantuml-img/
 # vm disk saves
 # -----------------------------------------------------------------------------
 /pidgeon-vm/*
+
+# -----------------------------------------------------------------------------
+# generated grafana dashboards
+# -----------------------------------------------------------------------------
+/assets/grafana/dashboards-test
+/assets/grafana/dashboards/*
+/assets/grafana/dashboards

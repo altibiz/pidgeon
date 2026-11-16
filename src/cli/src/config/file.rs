@@ -13,6 +13,7 @@ pub(crate) struct Hardware {
   pub(crate) cpu_temperature_path: Option<String>,
   pub(crate) cpu_frequency_path: Option<String>,
   pub(crate) throttled_path: Option<String>,
+  pub(crate) ext4_main_partition_name: Option<String>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]

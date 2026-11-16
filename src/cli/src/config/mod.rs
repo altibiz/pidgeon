@@ -34,6 +34,7 @@ pub(crate) struct Hardware {
   pub(crate) cpu_temperature_path: String,
   pub(crate) cpu_frequency_path: String,
   pub(crate) throttled_path: String,
+  pub(crate) ext4_main_partition_name: String,
 }
 
 #[derive(Debug, Clone)]
@@ -300,6 +301,13 @@ impl Manager {
           .unwrap_or(
             "/sys/devices/platform/soc/soc:firmware/get_throttled".to_owned(),
           ),
+        ext4_main_partition_name: config
+          .from_file
+          .hardware
+          .ext4_main_partition_name
+          .unwrap_or(
+            "sda2".to_owned()
+          )
       },
       cloud: Cloud {
         timeout: file::milliseconds_to_chrono(

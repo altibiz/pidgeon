@@ -16,7 +16,9 @@ from pidgeon_grafana.components.panels import (
 )
 from pidgeon_grafana.components.sql_helpers import (
   average_per_interval,
+  counter_increases,
   latest,
+  rate_per_second,
   time_group,
 )
 from pidgeon_grafana.shared import SeriesColor, StatusColor
@@ -30,6 +32,14 @@ def averages(*columns: tuple[str, str]) -> str:
 
 def newest(expression: str, name: str) -> str:
   return latest(TABLE, expression, name)
+
+
+def rate(name: str, counter: str) -> str:
+  return rate_per_second(TABLE, name, counter)
+
+
+def increases(counter: str, label: str) -> str:
+  return counter_increases(TABLE, counter, label)
 
 
 DASHBOARD = dashboard(
@@ -107,17 +117,67 @@ DASHBOARD = dashboard(
       fmt=QueryFormat.TIME_SERIES,
       graph_mode=StatGraphMode.AREA,
     ),
+    stat(
+      "Disk free",
+      newest(
+        "100.0 * rootfs_free_bytes / nullif(rootfs_total_bytes, 0)",
+        "Disk free",
+      ),
+      Unit.PERCENT,
+      pos(0, 4, 6, 4),
+      description=("Space left on the root partition;"
+                   " Postgres stops accepting writes when it runs out."),
+      steps=thresholds(
+        StatusColor.CRITICAL,
+        (10, StatusColor.WARNING),
+        (20, StatusColor.GOOD),
+      ),
+      decimals=0,
+    ),
+    stat(
+      "Filesystem errors",
+      newest("fs_errors", "Filesystem errors"),
+      Unit.NONE,
+      pos(6, 4, 6, 4),
+      description=("Errors ext4 recorded on the root partition. The count"
+                   " survives reboots until fsck clears it, so anything"
+                   " above 0 means the SSD needs a look."),
+      steps=thresholds(
+        StatusColor.GOOD,
+        (1, StatusColor.CRITICAL),
+      ),
+    ),
+    stat(
+      "OOM kills",
+      newest("oom_kills", "OOM kills"),
+      Unit.NONE,
+      pos(12, 4, 6, 4),
+      description=("Processes the kernel killed for lack of memory"
+                   " since the last boot."),
+      steps=thresholds(
+        StatusColor.GOOD,
+        (1, StatusColor.WARNING),
+      ),
+    ),
+    stat(
+      "Disk written",
+      newest("fs_lifetime_written_kbytes * 1024", "Disk written"),
+      Unit.DECIMAL_BYTES,
+      pos(18, 4, 6, 4),
+      description=("Written to the root filesystem since it was created;"
+                   " compare it with the SSD's rated endurance (TBW)."),
+    ),
     timeseries(
       "CPU temperature",
       averages(("CPU", "cpu_temperature_celsius")),
       Unit.CELSIUS,
-      pos(0, 4, 12, 8),
+      pos(0, 8, 12, 8),
     ),
     timeseries(
       "CPU frequency",
       averages(("CPU", "cpu_frequency_mhz * 1e6")),
       Unit.HERTZ,
-      pos(12, 4, 12, 8),
+      pos(12, 8, 12, 8),
       min_=0,
     ),
     timeseries(
@@ -127,7 +187,7 @@ DASHBOARD = dashboard(
         ("IO wait", "cpu_iowait_percent"),
       ),
       Unit.PERCENT,
-      pos(0, 12, 12, 8),
+      pos(0, 16, 12, 8),
       series=[
         ("Usage", SeriesColor.S1),
         ("IO wait", SeriesColor.S2),
@@ -143,7 +203,7 @@ DASHBOARD = dashboard(
         ("15m", "load_15m"),
       ),
       Unit.SHORT,
-      pos(12, 12, 12, 8),
+      pos(12, 16, 12, 8),
       series=[
         ("1m", SeriesColor.S1),
         ("5m", SeriesColor.S2),
@@ -160,7 +220,7 @@ DASHBOARD = dashboard(
         ("Swap", "swap_used_bytes"),
       ),
       Unit.BYTES,
-      pos(0, 20, 8, 8),
+      pos(0, 24, 12, 8),
       series=[
         ("Used", SeriesColor.S1),
         ("Swap", SeriesColor.S2),
@@ -171,15 +231,32 @@ DASHBOARD = dashboard(
       "Pidgeon memory",
       averages(("Pidgeon", "pidgeon_rss_bytes")),
       Unit.BYTES,
-      pos(8, 20, 8, 8),
+      pos(12, 24, 12, 8),
       description=("Resident memory of the pidgeon process;"
                    " steady growth between reboots points to a leak."),
+    ),
+    timeseries(
+      "Disk free",
+      averages(("Free", "rootfs_free_bytes")),
+      Unit.BYTES,
+      pos(0, 32, 8, 8),
+      description="Free space on the root partition.",
+      min_=0,
+    ),
+    timeseries(
+      "Disk writes",
+      rate("Written", "fs_lifetime_written_kbytes * 1024"),
+      Unit.BYTES_PER_SECOND,
+      pos(8, 32, 8, 8),
+      description=("Write rate to the root filesystem;"
+                   " Postgres, logs and the journal all count."),
+      min_=0,
     ),
     timeseries(
       "Database size",
       averages(("Database", "database_bytes")),
       Unit.BYTES,
-      pos(16, 20, 8, 8),
+      pos(16, 32, 8, 8),
       description="Measurements are never deleted, so this only grows.",
     ),
     state_timeline(
@@ -196,7 +273,7 @@ where $__timeFilter(timestamp) and throttled_flags is not null
 group by 1
 order by 1
 """,
-      pos(0, 28, 24, 6),
+      pos(0, 40, 24, 6),
       mappings=[
         value_mapping(
           (0, "OK", StatusColor.TRANSPARENT),
@@ -221,6 +298,16 @@ where $__timeFilter(boot)
 order by 1
 """,
       StatusColor.NEUTRAL,
+    ),
+    annotation(
+      "OOM kills",
+      increases("oom_kills", "OOM kills"),
+      StatusColor.WARNING,
+    ),
+    annotation(
+      "Filesystem errors",
+      increases("fs_errors", "Filesystem errors"),
+      StatusColor.CRITICAL,
     ),
   ],
 )

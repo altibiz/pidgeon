@@ -1,4 +1,10 @@
-{ self, config, pkgs, lib, ...}:
+{
+  self,
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 {
   branch.nixosModule.nixosModule = {
     imports = [
@@ -40,6 +46,8 @@
       max_wal_size = "1GB";
     };
 
+    # TODO: implement this later for limiting queries $PSQL -d pidgeon -tAc "ALTER ROLE grafana SET statement_timeout = '30s'"
+    # but it probably needs fine tuning for some of the queries
     services.postgresql.ensureUsers = [ { name = "grafana"; } ];
     systemd.services.postgresql.postStart = lib.mkAfter ''
       $PSQL -d pidgeon -tAc 'GRANT USAGE ON SCHEMA public TO grafana'
@@ -48,7 +56,6 @@
     '';
 
     networking.firewall.enable = true;
-    networking.firewall.allowedTCPPorts = [ 5433 ];
 
     services.grafana.enable = true;
     services.grafana.settings = {
@@ -65,6 +72,14 @@
         check_for_plugin_updates = false;
         feedback_links_enabled = false;
       };
+      users = {
+        allow_sign_up = false;
+        allow_org_create = false;
+        auto_assign_org_role = "Viewer";
+        viewers_can_edit = false;
+      };
+      snapshots.external_enabled = false;
+      public_dashboards.enabled = false;
       plugins.plugin_admin_enabled = false;
       news.news_feed_enabled = false;
       date_formats.default_timezone = "utc";
@@ -81,7 +96,7 @@
           type = "file";
           disableDeletion = true;
           allowUiUpdates = false; # NOTE: the updates are done manually with whole system update
-          options.path = "${self}/assets/grafana/dashboards";
+          options.path = self.lib.python.mkGrafanaDashboards pkgs;
         }
       ];
     };

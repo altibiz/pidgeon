@@ -1,63 +1,59 @@
-{ self
-, root
-, lib
-, specialArgs
-, sops-nix
-, pkgs
-, config
-, nixos-hardware
-, ...
+{
+  self,
+  root,
+  lib,
+  specialArgs,
+  sops-nix,
+  pkgs,
+  config,
+  nixos-hardware,
+  ...
 }:
 
 {
-  seal.overlays.raspberryPi4 =
-    (final: prev: {
+  seal.overlays.raspberryPi4 = (
+    final: prev: {
       # NOTE: https://github.com/NixOS/nixpkgs/issues/154163#issuecomment-1008362877
-      makeModulesClosure = x: prev.makeModulesClosure
-        (x // { allowMissing = true; });
-    });
+      makeModulesClosure = x: prev.makeModulesClosure (x // { allowMissing = true; });
+    }
+  );
 
-  seal.deploy.nodes =
-    builtins.listToAttrs
-      (builtins.map
-        (pidgeon: {
-          name = "pidgeon-${pidgeon.id}-raspberryPi4";
-          value = {
-            hostname = pidgeon.ip;
-            sshUser = "altibiz";
-          };
-        })
-        self.lib.pidgeons);
+  seal.deploy.nodes = builtins.listToAttrs (
+    builtins.map (pidgeon: {
+      name = "pidgeon-${pidgeon.id}-raspberryPi4";
+      value = {
+        hostname = pidgeon.ip;
+        sshUser = "altibiz";
+      };
+    }) self.lib.pidgeons
+  );
 
-  flake.nixosConfigurations =
-    builtins.listToAttrs
-      (builtins.map
-        (pidgeon:
+  flake.nixosConfigurations = builtins.listToAttrs (
+    builtins.map (pidgeon: {
+      name = "pidgeon-${pidgeon.id}-raspberryPi4-aarch64-linux";
+      value = lib.nixosSystem {
+        system = "aarch64-linux";
+        inherit specialArgs;
+        modules = [
+          self.nixosModules.raspberryPi4
           {
-            name = "pidgeon-${pidgeon.id}-raspberryPi4-aarch64-linux";
-            value = lib.nixosSystem {
-              system = "aarch64-linux";
-              inherit specialArgs;
-              modules = [
-                self.nixosModules.raspberryPi4
-                {
-                  options.pidgeon.id = lib.mkOption {
-                    type = lib.types.str;
-                    default = pidgeon.id;
-                  };
-                  options.pidgeon.ip = lib.mkOption {
-                    type = lib.types.str;
-                    default = pidgeon.ip;
-                  };
-                  options.pidgeon.hostName = lib.mkOption {
-                    type = lib.types.str;
-                    default = "pidgeon-${pidgeon.id}";
-                  };
-                }
-              ];
+            options.pidgeon.id = lib.mkOption {
+              type = lib.types.str;
+              default = pidgeon.id;
             };
-          })
-        self.lib.pidgeons);
+            options.pidgeon.ip = lib.mkOption {
+              type = lib.types.str;
+              default = pidgeon.ip;
+            };
+            options.pidgeon.hostName = lib.mkOption {
+              type = lib.types.str;
+              default = "pidgeon-${pidgeon.id}";
+            };
+          }
+        ];
+      };
+    }) self.lib.pidgeons
+  );
 
   branch.nixosModule.nixosModule =
     let
@@ -132,9 +128,11 @@
       users.users.altibiz = {
         group = "altibiz";
         isNormalUser = true;
-        hashedPasswordFile =
-          config.sops.secrets.${secretKeys.userHashedPasswordFile}.path;
-        extraGroups = [ "wheel" "dialout" ];
+        hashedPasswordFile = config.sops.secrets.${secretKeys.userHashedPasswordFile}.path;
+        extraGroups = [
+          "wheel"
+          "dialout"
+        ];
         packages = [
           pkgs.kitty
           pkgs.git
@@ -157,12 +155,14 @@
 
       # database
 
-      services.postgresql.settings.ssl_cert_file = config.sops.secrets.${secretKeys.postgresSslCertFile}.path;
+      services.postgresql.settings.ssl_cert_file =
+        config.sops.secrets.${secretKeys.postgresSslCertFile}.path;
       sops.secrets.${secretKeys.postgresSslCertFile} = {
         owner = config.systemd.services.postgresql.serviceConfig.User;
         group = config.systemd.services.postgresql.serviceConfig.Group;
       };
-      services.postgresql.settings.ssl_key_file = config.sops.secrets.${secretKeys.postgresSslKeyFile}.path;
+      services.postgresql.settings.ssl_key_file =
+        config.sops.secrets.${secretKeys.postgresSslKeyFile}.path;
       sops.secrets."postgres.crt" = {
         owner = config.systemd.services.postgresql.serviceConfig.User;
         group = config.systemd.services.postgresql.serviceConfig.Group;
@@ -222,6 +222,7 @@
           };
         };
       };
+
       sops.secrets.${secretKeys.nebulaCert} = {
         owner = config.systemd.services."nebula@ozds-vpn".serviceConfig.User;
         group = config.systemd.services."nebula@ozds-vpn".serviceConfig.Group;
@@ -230,6 +231,7 @@
         owner = config.systemd.services."nebula@ozds-vpn".serviceConfig.User;
         group = config.systemd.services."nebula@ozds-vpn".serviceConfig.Group;
       };
+
       sops.secrets.${secretKeys.nebulaCa} = {
         owner = config.systemd.services."nebula@ozds-vpn".serviceConfig.User;
         group = config.systemd.services."nebula@ozds-vpn".serviceConfig.Group;
@@ -238,7 +240,15 @@
       # network
 
       networking.networkmanager.enable = true;
-      networking.nameservers = [ "1.1.1.1" "1.0.0.1" ];
+      networking.nameservers = [
+        "1.1.1.1"
+        "1.0.0.1"
+      ];
+
+      networking.firewall.interfaces."nebula.ozds-vpn".allowedTCPPorts = [
+        3000
+        5433
+      ];
 
       networking.networkmanager.wifi.powersave = false;
       networking.networkmanager.ensureProfiles.profiles = {
@@ -280,7 +290,10 @@
 
       services.fstrim.enable = true;
 
-      boot.kernelModules = [ "i2c_dev" "spidev" ];
+      boot.kernelModules = [
+        "i2c_dev"
+        "spidev"
+      ];
       hardware.deviceTree.overlays = [
         {
           # NOTE: https://github.com/raspberrypi/linux/blob/rpi-6.6.y/arch/arm/boot/dts/overlays/i2c-bcm2708-overlay.dts
@@ -385,9 +398,49 @@
 
       # data visualization
 
+      # NOTE: open grafana to everyone - the firewall and VPN will do the blocking
+      services.grafana.settings.server.http_addr = lib.mkForce "0.0.0.0";
+
       services.grafana.settings.security = {
         admin_password = "$__file{${config.sops.secrets.${secretKeys.grafanaAdminPassword}.path}}";
         secret_key = "$__file{${config.sops.secrets.${secretKeys.grafanaSecretKey}.path}}";
+      };
+
+      systemd.services.grafana-viewer = {
+        after = [ "grafana.service" ];
+        requires = [ "grafana.service" ];
+        wantedBy = [ "multi-user.target" ];
+        path = [
+          pkgs.curl
+          pkgs.jq
+        ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          TimeoutStartSec = "2min";
+        };
+        script = ''
+          api=http://127.0.0.1:3000/api
+          admin=$(< ${config.sops.secrets.${secretKeys.grafanaAdminPassword}.path})
+          viewer=${config.sops.secrets.${secretKeys.grafanaViewerPassword}.path}
+          netrc() { printf 'machine 127.0.0.1 login admin password %s\n' "$admin"; }
+
+          until curl -sf "$api/health" > /dev/null; do sleep 1; done
+
+          id=$(curl -s --netrc-file <(netrc) "$api/users/lookup?loginOrEmail=viewer" | jq -r '.id // empty')
+
+          if [ -z "$id" ]; then
+            jq -n --rawfile password "$viewer" \
+              '{name: "Viewer", login: "viewer", password: ($password | rtrimstr("\n"))}' \
+              | curl -sf --netrc-file <(netrc) -H 'Content-Type: application/json' \
+                --data @- "$api/admin/users"
+          else
+            jq -n --rawfile password "$viewer" \
+              '{password: ($password | rtrimstr("\n"))}' \
+              | curl -sf --netrc-file <(netrc) -H 'Content-Type: application/json' \
+                -X PUT --data @- "$api/admin/users/$id/password"
+          fi
+        '';
       };
 
       sops.secrets.${secretKeys.grafanaAdminPassword} = {
@@ -396,5 +449,7 @@
       sops.secrets.${secretKeys.grafanaSecretKey} = {
         owner = config.systemd.services.grafana.serviceConfig.User;
       };
+
+      sops.secrets.${secretKeys.grafanaViewerPassword} = { };
     };
 }

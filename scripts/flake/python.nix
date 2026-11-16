@@ -1,9 +1,11 @@
-{ self
-, pyproject-nix
-, pyproject-build-systems
-, uv2nix
-, lib
-, ...
+{
+  self,
+  root,
+  pyproject-nix,
+  pyproject-build-systems,
+  uv2nix,
+  lib,
+  ...
 }:
 
 let
@@ -18,87 +20,115 @@ let
 
     pyprojectOverrides = final: prev: {
       numpy = prev.numpy.overrideAttrs (old: {
-        buildInputs = (old.buildInputs or [ ]) ++ (with pkgs; [
-          libgcc
-        ]);
+        buildInputs =
+          (old.buildInputs or [ ])
+          ++ (with pkgs; [
+            libgcc
+          ]);
       });
 
       smbus = prev.smbus.overrideAttrs (old: {
-        buildInputs = (old.buildInputs or [ ]) ++ (with prev; [
-          setuptools
-        ]);
+        buildInputs =
+          (old.buildInputs or [ ])
+          ++ (with prev; [
+            setuptools
+          ]);
       });
     };
 
     python = pkgs.python311;
 
-    buildUtil =
-      pkgs.callPackages
-        pyproject-nix.build.util
-        { };
+    buildUtil = pkgs.callPackages pyproject-nix.build.util { };
 
     pythonSet =
       (pkgs.callPackage pyproject-nix.build.packages {
         inherit python;
-      }).overrideScope (lib.composeManyExtensions [
-        pyproject-build-systems.overlays.default
-        overlay
-        pyprojectOverrides
-      ]);
+      }).overrideScope
+        (
+          lib.composeManyExtensions [
+            pyproject-build-systems.overlays.default
+            overlay
+            pyprojectOverrides
+          ]
+        );
 
-    editableMembers = [ "pidgeon-probe" "pidgeon-grafana" ];
+    editableMembers = [
+      "pidgeon-probe"
+      "pidgeon-grafana"
+    ];
 
     editableOverlay = workspace.mkEditablePyprojectOverlay {
       root = "$REPO_ROOT";
       members = editableMembers;
     };
 
-    editablePythonSet = pythonSet.overrideScope
-      (lib.composeManyExtensions [
+    editablePythonSet = pythonSet.overrideScope (
+      lib.composeManyExtensions [
         editableOverlay
-        (final: prev: lib.genAttrs editableMembers (name:
-          prev.${name}.overrideAttrs (old: {
-            src = lib.cleanSource old.src;
+        (
+          final: prev:
+          lib.genAttrs editableMembers (
+            name:
+            prev.${name}.overrideAttrs (old: {
+              src = lib.cleanSource old.src;
 
-            # NOTE: hatchling requirement
-            nativeBuildInputs =
-              old.nativeBuildInputs
-              ++ final.resolveBuildSystem {
-                editables = [ ];
-              };
-          })))
-      ]);
+              # NOTE: hatchling requirement
+              nativeBuildInputs =
+                old.nativeBuildInputs
+                ++ final.resolveBuildSystem {
+                  editables = [ ];
+                };
+            })
+          )
+        )
+      ]
+    );
   };
 in
 {
-  flake.lib.python.mkPackage = pkgs:
+  flake.lib.python.mkGrafanaDashboards =
+    pkgs:
+    let
+      src = lib.fileset.toSource {
+        root = lib.path.append root "scripts/grafana/src";
+        fileset = lib.path.append root "scripts/grafana/src";
+      };
+    in
+    pkgs.runCommand "pidgeon-grafana-dashboards"
+      {
+        nativeBuildInputs = [ pkgs.python311 ];
+      }
+      ''
+        PYTHONPATH=${src} python -m pidgeon_grafana --out $out
+      '';
+
+  flake.lib.python.mkPackage =
+    pkgs:
     let
       uv = mkUvLib pkgs;
 
-      venv =
-        uv.pythonSet.mkVirtualEnv
-          "pidgeon-env"
-          uv.workspace.deps.default;
+      venv = uv.pythonSet.mkVirtualEnv "pidgeon-env" uv.workspace.deps.default;
     in
     uv.buildUtil.mkApplication {
       venv = venv;
       package = uv.pythonSet.pidgeon-probe;
     };
 
-  flake.lib.python.mkDevShell = pkgs:
+  flake.lib.python.mkDevShell =
+    pkgs:
     let
       uv = mkUvLib pkgs;
 
-      venv =
-        uv.editablePythonSet.mkVirtualEnv
-          "pidgeon-dev-env"
-          uv.workspace.deps.all;
+      venv = uv.editablePythonSet.mkVirtualEnv "pidgeon-dev-env" uv.workspace.deps.all;
     in
     pkgs.mkShell {
       packages = [
         (pkgs.writeShellApplication {
           name = "pyright";
-          runtimeInputs = [ pkgs.nodejs venv ];
+          runtimeInputs = [
+            pkgs.nodejs
+            venv
+          ];
           text = ''
             export PYTHONPREFIX=${venv}
             export PYTHONEXECUTABLE=${venv}/bin/python
@@ -110,7 +140,10 @@ in
         })
         (pkgs.writeShellApplication {
           name = "pyright-langserver";
-          runtimeInputs = [ pkgs.nodejs venv ];
+          runtimeInputs = [
+            pkgs.nodejs
+            venv
+          ];
           text = ''
             export PYTHONPREFIX=${venv}
             export PYTHONEXECUTABLE=${venv}/bin/python

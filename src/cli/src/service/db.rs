@@ -72,7 +72,13 @@ pub(crate) struct SystemHealth {
   pub(crate) memory_total_bytes: Option<i64>,
   pub(crate) memory_available_bytes: Option<i64>,
   pub(crate) swap_used_bytes: Option<i64>,
+  pub(crate) oom_kills: Option<i64>,
   pub(crate) pidgeon_rss_bytes: Option<i64>,
+  pub(crate) rootfs_total_bytes: Option<i64>,
+  pub(crate) rootfs_free_bytes: Option<i64>,
+  pub(crate) rootfs_free_inodes: Option<i64>,
+  pub(crate) fs_errors: Option<i64>,
+  pub(crate) fs_lifetime_written_kbytes: Option<i64>,
   pub(crate) database_bytes: Option<i64>,
 }
 
@@ -568,11 +574,14 @@ impl Service {
           cpu_usage_percent, cpu_iowait_percent,
           load_1m, load_5m, load_15m,
           memory_total_bytes, memory_available_bytes, swap_used_bytes,
-          pidgeon_rss_bytes, database_bytes
+          oom_kills, pidgeon_rss_bytes,
+          rootfs_total_bytes, rootfs_free_bytes, rootfs_free_inodes,
+          fs_errors, fs_lifetime_written_kbytes,
+          database_bytes
         )
         values (
-          $1, $2, $3, $4, $5, $6, $7, $8,
-          $9, $10, $11, $12, $13, $14, $15, $16
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+          $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
         )
       "#,
       health_snapshot.timestamp,
@@ -589,7 +598,13 @@ impl Service {
       health_snapshot.memory_total_bytes,
       health_snapshot.memory_available_bytes,
       health_snapshot.swap_used_bytes,
+      health_snapshot.oom_kills,
       health_snapshot.pidgeon_rss_bytes,
+      health_snapshot.rootfs_total_bytes,
+      health_snapshot.rootfs_free_bytes,
+      health_snapshot.rootfs_free_inodes,
+      health_snapshot.fs_errors,
+      health_snapshot.fs_lifetime_written_kbytes,
       health_snapshot.database_bytes
     )
     .execute(&self.pool)

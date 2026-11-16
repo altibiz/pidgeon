@@ -79,7 +79,13 @@ impl process::Recurring for Process {
         memory_total_bytes: snapshot.memory_total_bytes,
         memory_available_bytes: snapshot.memory_available_bytes,
         swap_used_bytes: snapshot.swap_used_bytes,
+        oom_kills: snapshot.oom_kills,
         pidgeon_rss_bytes: snapshot.pidgeon_rss_bytes,
+        rootfs_total_bytes: snapshot.rootfs_total_bytes,
+        rootfs_free_bytes: snapshot.rootfs_free_bytes,
+        rootfs_free_inodes: snapshot.rootfs_free_inodes,
+        fs_errors: snapshot.fs_errors,
+        fs_lifetime_written_kbytes: snapshot.fs_lifetime_written_kbytes,
         database_bytes,
       })
       .await?;

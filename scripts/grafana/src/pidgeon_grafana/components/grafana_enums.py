@@ -103,6 +103,11 @@ class Unit(StrEnum):
   DECIMAL_BYTES = "decbytes"
   BITS = "bits"
 
+  # data rate
+  BYTES_PER_SECOND = "binBps"
+  DECIMAL_BYTES_PER_SECOND = "Bps"
+  BITS_PER_SECOND = "binbps"
+
   # time
   MILLISECONDS = "ms"
   SECONDS = "s"

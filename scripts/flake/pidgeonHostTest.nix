@@ -1,4 +1,10 @@
-{ self, pkgs, specialArgs, ...} : {
+{
+  self,
+  pkgs,
+  specialArgs,
+  ...
+}:
+{
   integrate.check.check = pkgs.testers.runNixOSTest {
     name = "pidgeon-host";
 
@@ -8,32 +14,32 @@
     nodes.pidgeon = { pkgs, lib, ... }: {
       imports = [ self.nixosModules.pidgeonHost ];
 
-      nixpkgs.config.allowUnfreePredicate = pkg:
-        builtins.elem (lib.getName pkg) [ "timescaledb" ];
+      nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [ "timescaledb" ];
 
       services.postgresql.initialScript = pkgs.writeText "init.sql" ''
-          CREATE USER pidgeon PASSWORD 'pidgeon';
-          CREATE DATABASE pidgeon OWNER pidgeon;
-        '';
-        services.postgresql.settings.ssl = lib.mkForce "off";
-        services.pidgeon.envPath = "${pkgs.writeText "pidgeon.env" ''
-          PIDGEON_DB_DOMAIN=localhost
-          PIDGEON_DB_PORT=5433
-          PIDGEON_DB_USER=pidgeon
-          PIDGEON_DB_PASSWORD=pidgeon
-          PIDGEON_DB_NAME=pidgeon
-          PIDGEON_CLOUD_DOMAIN=localhost
-          PIDGEON_CLOUD_ID=pidgeon-test
-          PIDGEON_NETWORK_IP_RANGE_START=127.0.0.1
-          PIDGEON_NETWORK_IP_RANGE_END=127.0.0.1
-        ''}";
-        services.grafana.settings.security.admin_password = "$__file{${pkgs.writeText "grafana-admin-pass" "test"}}";
-        environment.systemPackages = [ pkgs.curl ];
-        virtualisation.memorySize = 2048;
+        CREATE USER pidgeon PASSWORD 'pidgeon';
+        CREATE DATABASE pidgeon OWNER pidgeon;
+      '';
+      services.postgresql.settings.ssl = lib.mkForce "off";
+      services.pidgeon.envPath = "${pkgs.writeText "pidgeon.env" ''
+        PIDGEON_DB_DOMAIN=localhost
+        PIDGEON_DB_PORT=5433
+        PIDGEON_DB_USER=pidgeon
+        PIDGEON_DB_PASSWORD=pidgeon
+        PIDGEON_DB_NAME=pidgeon
+        PIDGEON_CLOUD_DOMAIN=localhost
+        PIDGEON_CLOUD_ID=pidgeon-test
+        PIDGEON_NETWORK_IP_RANGE_START=127.0.0.1
+        PIDGEON_NETWORK_IP_RANGE_END=127.0.0.1
+      ''}";
+      services.grafana.settings.security.admin_password =
+        "$__file{${pkgs.writeText "grafana-admin-pass" "test"}}";
+      environment.systemPackages = [ pkgs.curl ];
+      virtualisation.memorySize = 2048;
     };
 
     nodes.lan = { pkgs, ... }: {
-        environment.systemPackages = [ pkgs.curl ];
+      environment.systemPackages = [ pkgs.curl ];
     };
 
     testScript = ''
@@ -71,7 +77,7 @@
               yield variable["query"], "table"
 
       grafana = "curl -sf -u admin:test -H 'Content-Type: application/json'"
-      for path in sorted(glob.glob("${self}/assets/grafana/dashboards/*.json")):
+      for path in sorted(glob.glob("${self.lib.python.mkGrafanaDashboards pkgs}/*.json")):
           with open(path) as file:
               dashboard = json.load(file)
           pidgeon.wait_until_succeeds(

@@ -46,7 +46,7 @@ probe-server *args:
       {{ args }}
 
 grafana *args:
-
+    pidgeon-grafana -o '{{ root }}/assets/grafana/dashboards/' {{ args }}
 
 test:
     cd '{{ root }}'; cargo test
