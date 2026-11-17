@@ -66,7 +66,7 @@ def "main" [ ] {
     }
     if ($secrets_dir == "") {
       print "Please select the secrets directory."
-      $secrets_dir = (gum choose 
+      $secrets_dir = (gum choose
         --header "Secrets directory:"
         ...(ls).name)
     }
@@ -161,7 +161,7 @@ def "main" [ ] {
     }
     if ($secrets_dir == "") {
       print "Please select the secrets directory."
-      $secrets_dir = (gum choose 
+      $secrets_dir = (gum choose
         --header "Secrets directory:"
         ...(ls).name)
     }
@@ -313,7 +313,7 @@ def "main" [ ] {
     }
     if ($secrets_dir == "") {
       print "Please select the secrets directory."
-      $secrets_dir = (gum choose 
+      $secrets_dir = (gum choose
         --header "Secrets directory:"
         ...(ls).name)
     }
@@ -358,7 +358,7 @@ def "main" [ ] {
     }
     if ($secrets_dir == "") {
       print "Please select the secrets directory."
-      $secrets_dir = (gum choose 
+      $secrets_dir = (gum choose
         --header "Secrets directory:"
         ...(ls).name)
     }
@@ -403,7 +403,7 @@ def "main" [ ] {
     }
     if ($secrets_dir == "") {
       print "Please select the secrets directory."
-      $secrets_dir = (gum choose 
+      $secrets_dir = (gum choose
         --header "Secrets directory:"
         ...(ls).name)
     }
@@ -615,7 +615,7 @@ def "main init" [--id: string]: nothing -> string {
       $hosts
         | values
         | get vpn.ip
-        | each { |x| 
+        | each { |x|
             let p = $x
               | parse "{a}.{b}.{c}.{d}"
               | each { |x|
@@ -750,7 +750,7 @@ def "main image generate" [id: string]: nothing -> string {
     | get name
     | first
   unzstd $compressed -o $"./($id)-temp.img"
-  mv -f  $"./($id)-temp.img" $"./($id).img" 
+  mv -f  $"./($id)-temp.img" $"./($id).img"
   chmod 644 $"./($id).img"
   rm -f result
   $"(pwd)/($id).img"
@@ -813,7 +813,7 @@ def "main secrets scrt key" [name: string]: nothing -> nothing {
 def "main secrets scrt val" [name: string]: nothing -> nothing {
   let vals = ls $env.PWD
     | where { |x| $x.type == "file" }
-    | where { |x| 
+    | where { |x|
         let basename = $x.name | path basename
         return (
           not ($basename | str ends-with ".scrt.val")
@@ -826,7 +826,7 @@ def "main secrets scrt val" [name: string]: nothing -> nothing {
         let content = open --raw $x.name
           | str trim
           | str replace --all "\n" "\n  "
-        return $"($x.name | path basename): |\n  ($content)" 
+        return $"($x.name | path basename): |\n  ($content)"
       }
     | str join "\n"
   $vals | save -f $"($name).scrt.val"
@@ -834,7 +834,7 @@ def "main secrets scrt val" [name: string]: nothing -> nothing {
 
   let keys = ls $env.PWD
     | where { |x| $x.type == "file" }
-    | where { |x| 
+    | where { |x|
         let basename = $x.name | path basename
         return (
           ($basename | str ends-with ".scrt.key.pub")
@@ -1006,7 +1006,7 @@ def "main secrets db key" [
   rm -f $"($name)-temp.db.key.req"
 
   if $renew {
-    mv -f $"($name)-temp.db.key" $"($name).db.key" 
+    mv -f $"($name)-temp.db.key" $"($name).db.key"
   } else {
     try { mv -n $"($name)-temp.db.key" $"($name).db.key" }
     rm -f $"($name)-temp.db.key"
@@ -1030,12 +1030,12 @@ def "main secrets db key" [
 # assumes that a postgresql is used
 #
 # outputs:
-#   ./name.postgres.db.user 
-#   ./name.pidgeon.db.user 
-#   ./name.altibiz.db.user 
-#   ./name.db.sql 
+#   ./name.postgres.db.user
+#   ./name.pidgeon.db.user
+#   ./name.altibiz.db.user
+#   ./name.db.sql
 def "main secrets db sql" [name: string]: nothing -> nothing {
-  # create a database user password 
+  # create a database user password
   #
   # outputs:
   #   ./name.db.user
