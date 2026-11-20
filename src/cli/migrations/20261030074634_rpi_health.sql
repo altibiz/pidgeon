@@ -1,6 +1,7 @@
 -- Add migration script here
 begin;
 
+-- TODO: columns marked "not collected yet" are not yet collected -- TODO
 create table system_health (
 
   timestamp timestamp with time zone not null primary key,
@@ -32,26 +33,26 @@ create table system_health (
   rootfs_free_inodes bigint null,
   fs_errors bigint null,
   fs_lifetime_written_kbytes bigint null,
-  disk_reads bigint null,
-  disk_read_ms bigint null,
-  disk_writes bigint null,
-  disk_write_ms bigint null,
-  disk_sectors_written bigint null,
+  disk_reads bigint null, -- not collected yet
+  disk_read_ms bigint null, -- not collected yet
+  disk_writes bigint null, -- not collected yet
+  disk_write_ms bigint null, -- not collected yet
+  disk_sectors_written bigint null, -- not collected yet
   database_bytes bigint null,
 
   -- network
-  eth0_carrier_changes bigint null,
-  eth0_rx_errors bigint null,
-  eth0_tx_errors bigint null,
-  wlan0_rx_errors bigint null,
-  wlan0_tx_errors bigint null,
-  wlan0_signal_dbm real null,
+  eth0_carrier_changes bigint null, -- not collected yet
+  eth0_rx_errors bigint null, -- not collected yet
+  eth0_tx_errors bigint null, -- not collected yet
+  wlan0_rx_errors bigint null, -- not collected yet
+  wlan0_tx_errors bigint null, -- not collected yet
+  wlan0_signal_dbm real null, -- not collected yet
 
   -- kernel
-  kernel_errors bigint null,
+  kernel_errors bigint null, -- not collected yet
 
   -- metrics not yet promoted to columns
-  extra jsonb not null default '{}'
+  extra jsonb not null default '{}' -- not collected yet, stays '{}'
 );
 select create_hypertable('system_health', 'timestamp');
 
