@@ -7,6 +7,7 @@ let
     // {
       name = if pidgeon ? name then pidgeon.name else "Unnamed ${pidgeon.id}";
       wifi = if pidgeon ? wifi then pidgeon.wifi else pidgeon.id;
+      uplink = if pidgeon ? uplink then pidgeon.uplink else "wifi";
     }
   ) (builtins.fromJSON (builtins.readFile (lib.path.append root "assets/pidgeon/pidgeons.json")));
 

@@ -49,6 +49,13 @@
               type = lib.types.str;
               default = "pidgeon-${pidgeon.id}";
             };
+            options.pidgeon.uplink = lib.mkOption {
+              type = lib.types.enum [
+                "wifi"
+                "ethernet"
+              ];
+              default = pidgeon.uplink;
+            };
           }
         ];
       };
@@ -73,6 +80,7 @@
         nixos-hardware.nixosModules.raspberry-pi-4
         sops-nix.nixosModules.default
         self.nixosModules.pidgeonHost
+        self.nixosModules.wifiWatchdog
       ];
 
       # system
@@ -286,9 +294,15 @@
       ];
       sops.secrets.${secretKeys.networkManagerEnvironmentFile} = { };
 
+      services.wifiWatchdog.enable = config.pidgeon.uplink == "wifi";
+
       # hardware
 
       services.fstrim.enable = true;
+
+      systemd.watchdog.runtimeTime = "15s";
+      systemd.watchdog.rebootTime = "15s";
+      systemd.targets.reboot.unitConfig.JobTimeoutSec = "3min";
 
       boot.kernelModules = [
         "i2c_dev"
