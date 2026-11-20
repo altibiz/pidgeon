@@ -1,0 +1,2 @@
+# Everything text is LF in this repo and on disk, on every platform
+* text=auto eol=lf

@@ -30,7 +30,11 @@ pub(crate) struct Network {
 
 #[derive(Debug, Clone)]
 pub(crate) struct Hardware {
-  pub(crate) temperature_monitor: String,
+  pub(crate) temperature_monitor_path: String,
+  pub(crate) cpu_temperature_path: String,
+  pub(crate) cpu_frequency_path: String,
+  pub(crate) throttled_path: String,
+  pub(crate) ext4_main_partition_name: String,
 }
 
 #[derive(Debug, Clone)]
@@ -87,6 +91,7 @@ pub(crate) struct Schedule {
   pub(crate) nightly: cron::Schedule,
   pub(crate) time: cron::Schedule,
   pub(crate) poll: cron::Schedule,
+  pub(crate) system_health: cron::Schedule,
   pub(crate) timezone: chrono_tz::Tz,
 }
 
@@ -265,14 +270,44 @@ impl Manager {
           &config.from_file.schedule.poll,
           "0 * * * * * *", // NOTE: every minute
         ),
+        system_health: file::string_to_cron(
+          &config.from_file.schedule.system_health,
+          "0 * * * * * *", // NOTE: every minute
+        ),
         timezone: config.from_file.schedule.timezone.unwrap_or(chrono_tz::UTC),
       },
       hardware: Hardware {
-        temperature_monitor: config
+        temperature_monitor_path: config
           .from_file
           .hardware
-          .temperature_monitor
+          .temperature_monitor_path
           .unwrap_or("/sys/class/hwmon/hwmon1/temp1_input".to_owned()),
+        cpu_temperature_path: config
+          .from_file
+          .hardware
+          .cpu_temperature_path
+          .unwrap_or("/sys/class/thermal/thermal_zone0/temp".to_owned()),
+        cpu_frequency_path: config
+          .from_file
+          .hardware
+          .cpu_frequency_path
+          .unwrap_or(
+            "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq".to_owned(),
+          ),
+        throttled_path: config
+          .from_file
+          .hardware
+          .throttled_path
+          .unwrap_or(
+            "/sys/devices/platform/soc/soc:firmware/get_throttled".to_owned(),
+          ),
+        ext4_main_partition_name: config
+          .from_file
+          .hardware
+          .ext4_main_partition_name
+          .unwrap_or(
+            "sda2".to_owned()
+          )
       },
       cloud: Cloud {
         timeout: file::milliseconds_to_chrono(

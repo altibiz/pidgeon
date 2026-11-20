@@ -203,3 +203,15 @@ cython_debug/
 /docs/hr/book
 mdbook-plantuml-img/
 .gns3_perms
+
+# -----------------------------------------------------------------------------
+# vm disk saves
+# -----------------------------------------------------------------------------
+/pidgeon-vm/*
+
+# -----------------------------------------------------------------------------
+# generated grafana dashboards
+# -----------------------------------------------------------------------------
+/assets/grafana/dashboards-test
+/assets/grafana/dashboards/*
+/assets/grafana/dashboards

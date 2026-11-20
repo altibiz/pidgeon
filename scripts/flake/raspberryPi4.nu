@@ -149,6 +149,66 @@ def "main secrets" [--id: string = ""] {
   $pidgeon.spec | rumor stdin json --stay
 }
 
+# NOTE: used as preemptive measure to write preliminary WiFi configuration for
+# newly added pidgeon messenger devices
+def "main seed_pidgeon" [--id: string = ""] {
+  let pidgeons = (open --raw $pidgeons) | from json
+
+  let id = if ($id | is-empty) {
+    gum choose --header "Pick pidgeon id:" ...($pidgeons | get id)
+  } else {
+    $id
+  }
+
+  let matches = $pidgeons | where $it.id == $id
+  if ($matches | is-empty) {
+    error make { msg: $"Pidgeon ($id) is not defined in pidgeons.json" }
+  }
+  let pidgeon = $matches | first
+  let pidgeon_kv_path = $"kv/ozds/pidgeon/($pidgeon.id)/current"
+
+  let exists = vault kv get -format=json $pidgeon_kv_path | complete
+
+  if (($exists | get exit_code) == 0) {
+    print "Pidgeon init configuration already exists - no seed needed"
+    exit 0
+  }
+
+  if not ($exists.stderr | str contains "No value found") {
+    error make { msg: $"Could not read ($pidgeon_kv_path): ($exists.stderr | str trim)" }
+  }
+
+  let wifi = $pidgeon.wifi? | default $pidgeon.id
+
+  let seed = if $wifi == $pidgeon.id {
+    let password = random chars --length 32
+    {
+      "wifi.ssid.suffix": (random chars --length 16)
+      "wifi.pass": $password
+    }
+  } else {
+    let source_kv_path = $"kv/ozds/pidgeon/($wifi)/current"
+    let source = vault kv get -format=json $source_kv_path | complete
+
+    if $source.exit_code != 0 {
+      error make {
+        msg: $"Pidgeon ($pidgeon.id) uses the WiFi of ($wifi), but ($source_kv_path) could not be read: ($source.stderr | str trim)"
+      }
+    }
+
+    $source.stdout
+      | from json
+      | get data.data
+      | select "wifi.ssid.suffix" "wifi.pass"
+  }
+
+  $seed | to json | vault kv put $pidgeon_kv_path -
+
+  print $"Seeded ($pidgeon_kv_path) with WiFi SSID pidgeon-($seed | get 'wifi.ssid.suffix')"
+  print $"WiFi password: vault kv get -field=wifi.pass ($pidgeon_kv_path)"
+}
+
+
 def "main image" [--id: string = ""] {
   let pidgeon = (pick pidgeon $id)
 

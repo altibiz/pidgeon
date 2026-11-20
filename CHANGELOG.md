@@ -18,6 +18,18 @@ and adheres to [Semantic Versioning](https://semver.org/).
 - reading and serving time related registers to probe
 - push process throttling
 - update/install commands for raspberry pis
+- system health db table with weekly compression and monthly retention
+- system health process that stores raspberry pi health every minute
+- configurable system health schedule and sensor paths
+- grafana with meters, overview and system health dashboards
+- grafana dashboard generator and local grafana in docker compose
+- grafana viewer user on raspberry pis
+- nixos test for the pidgeon host stack and its dashboards
+- local pidgeon vm configuration
+- command to seed wifi configuration for a new pidgeon
+- wifi watchdog that reloads the driver and reboots on a wedged radio
+- per pidgeon uplink setting to turn the wifi watchdog off on ethernet
+- hardware watchdog and forced reboot timeout on raspberry pis
 
 ### Changed
 
@@ -28,6 +40,9 @@ and adheres to [Semantic Versioning](https://semver.org/).
 - wifi share fix
 - concentrator 4 routing
 - better raspberry pi arguments
+- shared pidgeon host module for raspberry pis, vm and tests
+- postgres and grafana only reachable over the vpn
+- renamed temperature_monitor hardware setting to temperature_monitor_path
 
 ### Removed
 

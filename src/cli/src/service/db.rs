@@ -56,6 +56,32 @@ pub(crate) struct Health {
   pub(crate) data: serde_json::Value,
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct SystemHealth {
+  pub(crate) timestamp: DateTime<Utc>,
+  pub(crate) boot_id: String,
+  pub(crate) uptime_seconds: i64,
+  pub(crate) cpu_temperature_celsius: Option<f32>,
+  pub(crate) cpu_frequency_mhz: Option<i32>,
+  pub(crate) throttled_flags: Option<i32>,
+  pub(crate) cpu_usage_percent: Option<f32>,
+  pub(crate) cpu_iowait_percent: Option<f32>,
+  pub(crate) load_1m: Option<f32>,
+  pub(crate) load_5m: Option<f32>,
+  pub(crate) load_15m: Option<f32>,
+  pub(crate) memory_total_bytes: Option<i64>,
+  pub(crate) memory_available_bytes: Option<i64>,
+  pub(crate) swap_used_bytes: Option<i64>,
+  pub(crate) oom_kills: Option<i64>,
+  pub(crate) pidgeon_rss_bytes: Option<i64>,
+  pub(crate) rootfs_total_bytes: Option<i64>,
+  pub(crate) rootfs_free_bytes: Option<i64>,
+  pub(crate) rootfs_free_inodes: Option<i64>,
+  pub(crate) fs_errors: Option<i64>,
+  pub(crate) fs_lifetime_written_kbytes: Option<i64>,
+  pub(crate) database_bytes: Option<i64>,
+}
+
 #[derive(Debug, Copy, Clone, Type, Eq, PartialEq)]
 #[sqlx(type_name = "log_status", rename_all = "lowercase")]
 pub(crate) enum LogStatus {
@@ -530,6 +556,74 @@ impl Service {
     );
 
     Ok(log)
+  }
+
+  #[tracing::instrument(skip_all, fields(timestamp = ?health_snapshot.timestamp))]
+  pub(crate) async fn insert_system_health(
+    &self,
+    health_snapshot: SystemHealth,
+  ) -> Result<(), Error> {
+    #[allow(clippy::panic, reason = "sqlx thing")]
+    sqlx::query!(
+      r#"
+        insert into system_health (
+          timestamp, boot_id, uptime_seconds,
+          cpu_temperature_celsius, cpu_frequency_mhz, throttled_flags,
+          cpu_usage_percent, cpu_iowait_percent,
+          load_1m, load_5m, load_15m,
+          memory_total_bytes, memory_available_bytes, swap_used_bytes,
+          oom_kills, pidgeon_rss_bytes,
+          rootfs_total_bytes, rootfs_free_bytes, rootfs_free_inodes,
+          fs_errors, fs_lifetime_written_kbytes,
+          database_bytes
+        )
+        values (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+          $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
+        )
+      "#,
+      health_snapshot.timestamp,
+      health_snapshot.boot_id,
+      health_snapshot.uptime_seconds,
+      health_snapshot.cpu_temperature_celsius,
+      health_snapshot.cpu_frequency_mhz,
+      health_snapshot.throttled_flags,
+      health_snapshot.cpu_usage_percent,
+      health_snapshot.cpu_iowait_percent,
+      health_snapshot.load_1m,
+      health_snapshot.load_5m,
+      health_snapshot.load_15m,
+      health_snapshot.memory_total_bytes,
+      health_snapshot.memory_available_bytes,
+      health_snapshot.swap_used_bytes,
+      health_snapshot.oom_kills,
+      health_snapshot.pidgeon_rss_bytes,
+      health_snapshot.rootfs_total_bytes,
+      health_snapshot.rootfs_free_bytes,
+      health_snapshot.rootfs_free_inodes,
+      health_snapshot.fs_errors,
+      health_snapshot.fs_lifetime_written_kbytes,
+      health_snapshot.database_bytes
+    )
+    .execute(&self.pool)
+    .await?;
+
+    tracing::trace!(
+      "Inserted system health at {:?}",
+      health_snapshot.timestamp
+    );
+    Ok(())
+  }
+
+  #[tracing::instrument(skip(self))]
+  pub(crate) async fn get_database_size(&self) -> Result<i64, Error> {
+    #[allow(clippy::panic, reason = "sqlx thing")]
+    let size = sqlx::query_scalar!(
+      r#"select pg_database_size(current_database()) as "size!""#
+    )
+    .fetch_one(&self.pool)
+    .await?;
+    Ok(size)
   }
 }
 

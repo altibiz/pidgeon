@@ -2,19 +2,21 @@
 name = "pidgeon"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = ["pidgeon-probe"]
+dependencies = ["pidgeon-probe", "pidgeon-grafana"]
 
 [dependency-groups]
 dev = ["yapf >=0.40.2", "pyright >=1.1.334", "ruff >=0.1.4"]
 
 [tool.uv.sources]
 pidgeon-probe = { workspace = true }
+pidgeon-grafana = { workspace = true }
 
 [tool.uv.workspace]
-members = ["scripts/probe"]
+members = ["scripts/probe", "scripts/grafana"]
 
 [project.scripts]
 pidgeon-probe = "pidgeon_probe:main"
+pidgeon-grafana = "pidgeon_grafana:main"
 
 [tool.yapf]
 based_on_style = "pep8"
