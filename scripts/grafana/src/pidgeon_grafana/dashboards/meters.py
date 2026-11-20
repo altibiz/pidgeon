@@ -31,12 +31,14 @@ PHASES = [
   ("L3", SeriesColor.S3),
 ]
 
+
 def phases(prefix: str, suffix: str) -> str:
   return average_per_interval(
     TABLE,
     [(name, json_field(f"{prefix}{name}{suffix}")) for name, _ in PHASES],
     DEVICE,
   )
+
 
 DASHBOARD = dashboard(
   "pidgeon-meters",

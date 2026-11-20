@@ -6,7 +6,7 @@ use std::{
 use crate::*;
 use rustix::fs::statvfs;
 
-// TODO: better erorr handling and information about failed full snapshot taking
+// TODO: better error handling and information about failed full snapshot taking
 
 // NOTE: these var paths are mostly static and don't need dynamic config read
 const BOOT_ID: &str = "/proc/sys/kernel/random/boot_id";
@@ -120,7 +120,7 @@ impl Service {
       uptime_seconds,
       cpu_temperature_celsius: read_number::<f32>(&self.cpu_temperature)
         .await
-        .map(|milidegrees| milidegrees / 1000f32),
+        .map(|millidegrees| millidegrees / 1000f32),
       cpu_frequency_mhz: read_number::<i32>(&self.cpu_frequency)
         .await
         .and_then(|khz| khz.checked_div(1000)),

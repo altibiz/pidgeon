@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from pidgeon_grafana.components.grafana_enums import TimeGroupFill
 
+
 def time_group(
   fill: TimeGroupFill | None = None,
   column: str = "timestamp",

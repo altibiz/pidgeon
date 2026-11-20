@@ -1,8 +1,7 @@
-{
-  self,
-  pkgs,
-  specialArgs,
-  ...
+{ self
+, pkgs
+, specialArgs
+, ...
 }:
 {
   integrate.check.check = pkgs.testers.runNixOSTest {

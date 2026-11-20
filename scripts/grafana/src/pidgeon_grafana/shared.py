@@ -17,11 +17,13 @@ TAG = "pidgeon"
 # NOTE: mirrors schedule.timezone in assets/pidgeon/config.toml
 TIMEZONE = "Europe/Zagreb"
 
+
 # NOTE: series colors, to be used only for differentiating L1 - L3 series
 class SeriesColor(StrEnum):
   S1 = "#3987e5"
   S2 = "#d95926"
   S3 = "#199e70"
+
 
 # NOTE: state colors,
 class StatusColor(StrEnum):

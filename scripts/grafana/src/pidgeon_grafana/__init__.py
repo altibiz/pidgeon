@@ -6,11 +6,14 @@ from pidgeon_grafana.args import Args
 from pidgeon_grafana.dashboards import DASHBOARDS
 from pidgeon_grafana.shared import Json
 
+
 def render(board: Json) -> str:
   return json.dumps(board, indent=2, ensure_ascii=False) + "\n"
 
+
 def is_current(path: Path, content: str) -> bool:
   return path.exists() and path.read_text(encoding="utf-8") == content
+
 
 def main():
   args = Args()

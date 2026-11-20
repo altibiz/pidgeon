@@ -1,11 +1,10 @@
-{
-  self,
-  root,
-  pyproject-nix,
-  pyproject-build-systems,
-  uv2nix,
-  lib,
-  ...
+{ self
+, root
+, pyproject-nix
+, pyproject-build-systems
+, uv2nix
+, lib
+, ...
 }:
 
 let
@@ -67,19 +66,19 @@ let
         editableOverlay
         (
           final: prev:
-          lib.genAttrs editableMembers (
-            name:
-            prev.${name}.overrideAttrs (old: {
-              src = lib.cleanSource old.src;
+            lib.genAttrs editableMembers (
+              name:
+              prev.${name}.overrideAttrs (old: {
+                src = lib.cleanSource old.src;
 
-              # NOTE: hatchling requirement
-              nativeBuildInputs =
-                old.nativeBuildInputs
-                ++ final.resolveBuildSystem {
-                  editables = [ ];
-                };
-            })
-          )
+                # NOTE: hatchling requirement
+                nativeBuildInputs =
+                  old.nativeBuildInputs
+                  ++ final.resolveBuildSystem {
+                    editables = [ ];
+                  };
+              })
+            )
         )
       ]
     );

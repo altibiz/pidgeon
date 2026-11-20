@@ -82,7 +82,6 @@ pub(crate) struct SystemHealth {
   pub(crate) database_bytes: Option<i64>,
 }
 
-
 #[derive(Debug, Copy, Clone, Type, Eq, PartialEq)]
 #[sqlx(type_name = "log_status", rename_all = "lowercase")]
 pub(crate) enum LogStatus {
@@ -562,10 +561,9 @@ impl Service {
   #[tracing::instrument(skip_all, fields(timestamp = ?health_snapshot.timestamp))]
   pub(crate) async fn insert_system_health(
     &self,
-    health_snapshot: SystemHealth
-  ) -> Result<(), Error>
-  {
-    #[allow(clippy::panic, reason="sqlx thing")]
+    health_snapshot: SystemHealth,
+  ) -> Result<(), Error> {
+    #[allow(clippy::panic, reason = "sqlx thing")]
     sqlx::query!(
       r#"
         insert into system_health (
@@ -610,21 +608,23 @@ impl Service {
     .execute(&self.pool)
     .await?;
 
-    tracing::trace!("Inserted system health at {:?}", health_snapshot.timestamp);
+    tracing::trace!(
+      "Inserted system health at {:?}",
+      health_snapshot.timestamp
+    );
     Ok(())
   }
 
   #[tracing::instrument(skip(self))]
   pub(crate) async fn get_database_size(&self) -> Result<i64, Error> {
     #[allow(clippy::panic, reason = "sqlx thing")]
-    let size =  sqlx::query_scalar!(
+    let size = sqlx::query_scalar!(
       r#"select pg_database_size(current_database()) as "size!""#
     )
     .fetch_one(&self.pool)
     .await?;
     Ok(size)
   }
-
 }
 
 pub(crate) fn to_db_address(address: IpAddr) -> IpNetwork {

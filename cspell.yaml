@@ -64,3 +64,48 @@ words:
   - nushell
   - nixos
   - substituters
+  - rootfs
+  - kbytes
+  - inodes
+  - loadavg
+  - statvfs
+  - rustix
+  - frsize
+  - bavail
+  - favail
+  - oomkills
+  - cpufreq
+  - wlan
+  - timestamptz
+  - unpushed
+  - millidegrees
+overrides:
+  - filename: "**/pidgeon_grafana/components/grafana_enums.py"
+    words:
+      - bargauge
+      - barchart
+      - piechart
+      - xychart
+      - dashlist
+      - alertlist
+      - annolist
+      - geomap
+      - flamegraph
+      - percentunit
+      - kwatt
+      - megwatt
+      - voltamp
+      - kvoltamp
+      - voltampreact
+      - kvoltampreact
+      - watth
+      - kwatth
+      - mamp
+      - mvolt
+      - kvolt
+      - decbytes
+      - binbps
+      - dtdurations
+      - dtdurationms
+      - symlog
+      - sparkline

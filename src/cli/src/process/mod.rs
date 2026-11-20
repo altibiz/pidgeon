@@ -6,9 +6,9 @@ mod nightly;
 mod ping;
 mod poll;
 mod push;
+mod system_health;
 mod time;
 mod update;
-mod system_health;
 
 use std::sync::Arc;
 

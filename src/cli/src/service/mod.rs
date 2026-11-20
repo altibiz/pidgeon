@@ -22,7 +22,7 @@ struct Values {
   net: net::Service,
   i2c: i2c::Service,
   serial: serial::Service,
-  system: system::Service
+  system: system::Service,
 }
 
 #[derive(Debug, Clone)]
@@ -40,7 +40,7 @@ impl Container {
         net: net::Service::new(config.clone()),
         i2c: i2c::Service::new(config.clone()),
         serial: serial::Service::new(config.clone()),
-        system: system::Service::new(config.clone())
+        system: system::Service::new(config.clone()),
       }),
     }
   }

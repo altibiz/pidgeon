@@ -1,4 +1,4 @@
-{self, lib, pkgs, specialArgs, ...}:
+{ self, lib, pkgs, specialArgs, ... }:
 
 # NOTE: this is long running version of local vm of pidgeon
 # that simulates half stack of the pidgeon service
@@ -22,7 +22,7 @@
     system.stateVersion = "24.11";
     networking.hostName = "pidgeon";
     nixpkgs.config.allowUnfreePredicate = pkg:
-      builtins.elem (lib.getName pkg) ["timescaledb"];
+      builtins.elem (lib.getName pkg) [ "timescaledb" ];
 
     # NOTE: static config of sops to 'emulate' the ones provided on the pi
 

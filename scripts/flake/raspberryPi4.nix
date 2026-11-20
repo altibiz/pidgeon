@@ -1,13 +1,12 @@
-{
-  self,
-  root,
-  lib,
-  specialArgs,
-  sops-nix,
-  pkgs,
-  config,
-  nixos-hardware,
-  ...
+{ self
+, root
+, lib
+, specialArgs
+, sops-nix
+, pkgs
+, config
+, nixos-hardware
+, ...
 }:
 
 {
@@ -19,47 +18,51 @@
   );
 
   seal.deploy.nodes = builtins.listToAttrs (
-    builtins.map (pidgeon: {
-      name = "pidgeon-${pidgeon.id}-raspberryPi4";
-      value = {
-        hostname = pidgeon.ip;
-        sshUser = "altibiz";
-      };
-    }) self.lib.pidgeons
+    builtins.map
+      (pidgeon: {
+        name = "pidgeon-${pidgeon.id}-raspberryPi4";
+        value = {
+          hostname = pidgeon.ip;
+          sshUser = "altibiz";
+        };
+      })
+      self.lib.pidgeons
   );
 
   flake.nixosConfigurations = builtins.listToAttrs (
-    builtins.map (pidgeon: {
-      name = "pidgeon-${pidgeon.id}-raspberryPi4-aarch64-linux";
-      value = lib.nixosSystem {
-        system = "aarch64-linux";
-        inherit specialArgs;
-        modules = [
-          self.nixosModules.raspberryPi4
-          {
-            options.pidgeon.id = lib.mkOption {
-              type = lib.types.str;
-              default = pidgeon.id;
-            };
-            options.pidgeon.ip = lib.mkOption {
-              type = lib.types.str;
-              default = pidgeon.ip;
-            };
-            options.pidgeon.hostName = lib.mkOption {
-              type = lib.types.str;
-              default = "pidgeon-${pidgeon.id}";
-            };
-            options.pidgeon.uplink = lib.mkOption {
-              type = lib.types.enum [
-                "wifi"
-                "ethernet"
-              ];
-              default = pidgeon.uplink;
-            };
-          }
-        ];
-      };
-    }) self.lib.pidgeons
+    builtins.map
+      (pidgeon: {
+        name = "pidgeon-${pidgeon.id}-raspberryPi4-aarch64-linux";
+        value = lib.nixosSystem {
+          system = "aarch64-linux";
+          inherit specialArgs;
+          modules = [
+            self.nixosModules.raspberryPi4
+            {
+              options.pidgeon.id = lib.mkOption {
+                type = lib.types.str;
+                default = pidgeon.id;
+              };
+              options.pidgeon.ip = lib.mkOption {
+                type = lib.types.str;
+                default = pidgeon.ip;
+              };
+              options.pidgeon.hostName = lib.mkOption {
+                type = lib.types.str;
+                default = "pidgeon-${pidgeon.id}";
+              };
+              options.pidgeon.uplink = lib.mkOption {
+                type = lib.types.enum [
+                  "wifi"
+                  "ethernet"
+                ];
+                default = pidgeon.uplink;
+              };
+            }
+          ];
+        };
+      })
+      self.lib.pidgeons
   );
 
   branch.nixosModule.nixosModule =

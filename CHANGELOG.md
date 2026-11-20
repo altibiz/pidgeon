@@ -18,6 +18,9 @@ and adheres to [Semantic Versioning](https://semver.org/).
 - reading and serving time related registers to probe
 - push process throttling
 - update/install commands for raspberry pis
+- wifi watchdog that reloads the driver and reboots on a wedged radio
+- per pidgeon uplink setting to turn the wifi watchdog off on ethernet
+- hardware watchdog and forced reboot timeout on raspberry pis
 
 ### Changed
 

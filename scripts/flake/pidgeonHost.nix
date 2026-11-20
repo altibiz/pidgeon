@@ -1,9 +1,8 @@
-{
-  self,
-  config,
-  pkgs,
-  lib,
-  ...
+{ self
+, config
+, pkgs
+, lib
+, ...
 }:
 {
   branch.nixosModule.nixosModule = {
@@ -48,7 +47,7 @@
 
     # TODO: implement this later for limiting queries $PSQL -d pidgeon -tAc "ALTER ROLE grafana SET statement_timeout = '30s'"
     # but it probably needs fine tuning for some of the queries
-    services.postgresql.ensureUsers = [ { name = "grafana"; } ];
+    services.postgresql.ensureUsers = [{ name = "grafana"; }];
     systemd.services.postgresql.postStart = lib.mkAfter ''
       $PSQL -d pidgeon -tAc 'GRANT USAGE ON SCHEMA public TO grafana'
       $PSQL -d pidgeon -tAc 'GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafana'

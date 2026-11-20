@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from pathlib import Path
 
+
 class Args:
 
   def __init__(self):

@@ -1,4 +1,3 @@
-
 use tokio::sync::Mutex;
 
 #[allow(unused_imports, reason = "services")]
@@ -11,7 +10,7 @@ pub(crate) struct Process {
   #[allow(dead_code, reason = "process")]
   services: service::Container,
 
-  previous_cpu: Mutex<Option<system::CpuTimes>>
+  previous_cpu: Mutex<Option<system::CpuTimes>>,
 }
 
 impl Process {
@@ -22,7 +21,7 @@ impl Process {
     Self {
       config,
       services,
-      previous_cpu: Mutex::new(None)
+      previous_cpu: Mutex::new(None),
     }
   }
 }
@@ -35,20 +34,21 @@ impl process::Recurring for Process {
   async fn execute(&self) -> anyhow::Result<()> {
     let snapshot = self.services.system().read().await?;
 
-    let (cpu_usage_percent, cpu_iowait_percent ) = {
+    let (cpu_usage_percent, cpu_iowait_percent) = {
       let mut previous = self.previous_cpu.lock().await;
       let usage = match (*previous, snapshot.cpu_times) {
         (Some(previous), Some(current)) => current.usage_since(&previous),
-        _ => None
+        _ => None,
       };
       *previous = snapshot.cpu_times;
       usage.unzip()
     };
 
     let (load_1m, load_5m, load_15m) = match snapshot.load {
-      Some((load_1m, load_5m, load_15m))
-        => (Some(load_1m), Some(load_5m), Some(load_15m)),
-      None => (None, None, None)
+      Some((load_1m, load_5m, load_15m)) => {
+        (Some(load_1m), Some(load_5m), Some(load_15m))
+      }
+      None => (None, None, None),
     };
 
     let database_bytes = match self.services.db().get_database_size().await {
