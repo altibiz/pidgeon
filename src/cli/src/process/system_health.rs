@@ -65,7 +65,7 @@ impl process::Recurring for Process {
       .services
       .db()
       .insert_system_health(db::SystemHealth {
-        timestamp: timestamp,
+        timestamp,
         boot_id: snapshot.boot_id,
         uptime_seconds: snapshot.uptime_seconds,
         cpu_temperature_celsius: snapshot.cpu_temperature_celsius,
